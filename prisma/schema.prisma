@@ -6,3 +6,235 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// Ràng buộc mà Prisma không diễn tả được (CHECK, index một phần, trigger, GRANT)
+// nằm trong SQL viết tay ở cuối từng tệp migration.
+
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName  String    @map("display_name")
+  rank         String?
+  status       String    @default("active")
+  mergedIntoId String?   @map("merged_into_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  mergedInto   User?     @relation("UserMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
+  mergedFrom   User[]    @relation("UserMerge")
+  identities   UserIdentity[]
+  devices      Device[]
+  sessions     LearnerSession[]
+  loginTickets LoginTicket[]
+  otpChallenges OtpChallenge[]
+  oidcStates   OidcState[]
+
+  @@map("users")
+}
+
+model UserIdentity {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  kind           String
+  valueCanonical String   @map("value_canonical")
+  verifiedAt     DateTime @map("verified_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([kind, valueCanonical])
+  @@map("user_identities")
+}
+
+model Device {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  deviceKeyHash String    @map("device_key_hash")
+  label         String
+  registeredAt  DateTime  @default(now()) @map("registered_at") @db.Timestamptz(6)
+  lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(6)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  sessions      LearnerSession[]
+
+  @@unique([userId, deviceKeyHash])
+  @@map("devices")
+}
+
+model LearnerSession {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  deviceId          String    @map("device_id") @db.Uuid
+  tokenHash         String    @unique @map("token_hash")
+  tokenIssuedAt     DateTime  @default(now()) @map("token_issued_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  authAt            DateTime  @map("auth_at") @db.Timestamptz(6)
+  lastSeenAt        DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  absoluteExpiresAt DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
+  prevValidUntil    DateTime? @map("prev_valid_until") @db.Timestamptz(6)
+  nextTokenEnc      String?   @map("next_token_enc")
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  device            Device    @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  history           SessionTokenHistory[]
+
+  @@map("learner_sessions")
+}
+
+model SessionTokenHistory {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId   String         @map("session_id") @db.Uuid
+  tokenHash   String         @unique @map("token_hash")
+  rotatedAt   DateTime       @default(now()) @map("rotated_at") @db.Timestamptz(6)
+  detectUntil DateTime       @map("detect_until") @db.Timestamptz(6)
+  session     LearnerSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([sessionId, rotatedAt])
+  @@map("session_token_history")
+}
+
+model LoginTicket {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash     String    @unique @map("token_hash")
+  userId        String    @map("user_id") @db.Uuid
+  realm         String    @default("learner")
+  purpose       String    @default("replace_device")
+  deviceKeyHash String    @map("device_key_hash")
+  deviceLabel   String    @map("device_label")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt        DateTime? @map("used_at") @db.Timestamptz(6)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("login_tickets")
+}
+
+model OtpChallenge {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  purpose          String
+  kind             String
+  valueCanonical   String    @map("value_canonical")
+  userId           String?   @map("user_id") @db.Uuid
+  codeHmac         String    @map("code_hmac")
+  keyVersion       String    @map("key_version")
+  attempts         Int       @default(0)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt       DateTime? @map("consumed_at") @db.Timestamptz(6)
+  invalidatedAt    DateTime? @map("invalidated_at") @db.Timestamptz(6)
+  deliveryFailedAt DateTime? @map("delivery_failed_at") @db.Timestamptz(6)
+  user             User?     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("otp_challenges")
+}
+
+model OtpSendLog {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kind           String
+  valueCanonical String   @map("value_canonical")
+  ip             String   @db.Inet
+  channel        String
+  sentAt         DateTime @default(now()) @map("sent_at") @db.Timestamptz(6)
+  outcome        String
+
+  @@index([kind, valueCanonical, sentAt])
+  @@index([ip, sentAt])
+  @@map("otp_send_log")
+}
+
+model ZnsDailyBudget {
+  day  DateTime @id @db.Date
+  used Int      @default(0)
+
+  @@map("zns_daily_budget")
+}
+
+model OidcState {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stateHash     String    @unique @map("state_hash")
+  realm         String
+  intent        String
+  userId        String?   @map("user_id") @db.Uuid
+  nonce         String
+  codeVerifier  String    @map("code_verifier")
+  deviceKeyHash String?   @map("device_key_hash")
+  deviceLabel   String?   @map("device_label")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt        DateTime? @map("used_at") @db.Timestamptz(6)
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("oidc_states")
+}
+
+model AdminUser {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  emailLower      String    @unique @map("email_lower")
+  role            String
+  status          String
+  invitedById     String?   @map("invited_by") @db.Uuid
+  invitedAt       DateTime  @map("invited_at") @db.Timestamptz(6)
+  inviteExpiresAt DateTime  @map("invite_expires_at") @db.Timestamptz(6)
+  activatedAt     DateTime? @map("activated_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  invitedBy       AdminUser?  @relation("AdminInvite", fields: [invitedById], references: [id], onDelete: Restrict)
+  invited         AdminUser[] @relation("AdminInvite")
+  identity        AdminIdentity?
+  sessions        AdminSession[]
+  emailLinks      AdminEmailLink[]
+  auditEntries    AdminAuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminIdentity {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminUserId String    @unique @map("admin_user_id") @db.Uuid
+  googleSub   String    @unique @map("google_sub")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@map("admin_identities")
+}
+
+model AdminSession {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminUserId       String    @map("admin_user_id") @db.Uuid
+  tokenHash         String    @unique @map("token_hash")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  authAt            DateTime  @map("auth_at") @db.Timestamptz(6)
+  lastSeenAt        DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  absoluteExpiresAt DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  adminUser         AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@map("admin_sessions")
+}
+
+model AdminEmailLink {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash     String    @unique @map("token_hash")
+  adminUserId   String    @map("admin_user_id") @db.Uuid
+  purpose       String    @default("login")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt        DateTime? @map("used_at") @db.Timestamptz(6)
+  invalidatedAt DateTime? @map("invalidated_at") @db.Timestamptz(6)
+  adminUser     AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@map("admin_email_links")
+}
+
+model AdminAuditLog {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminUserId String?    @map("admin_user_id") @db.Uuid
+  action      String
+  targetType  String     @map("target_type")
+  targetId    String?    @map("target_id")
+  before      Json?
+  after       Json?
+  result      String
+  reason      String?
+  ip          String?    @db.Inet
+  at          DateTime   @default(now()) @db.Timestamptz(6)
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@index([at])
+  @@map("admin_audit_log")
+}
