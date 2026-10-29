@@ -1,0 +1,15 @@
+# Postgres cho phát triển và test cục bộ. Không dùng cho production (xem P5).
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: me_admin
+      POSTGRES_PASSWORD: me_admin_dev
+      POSTGRES_DB: postgres
+    ports:
+      - "55433:5432"
+    volumes:
+      - me_pg_dev:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+volumes:
+  me_pg_dev:
