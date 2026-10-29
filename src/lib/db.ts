@@ -8,7 +8,10 @@ let client: PrismaClient | undefined;
 
 export function prisma(): PrismaClient {
   if (!client) {
-    client = new PrismaClient({ adapter: new PrismaPg({ connectionString: env().DATABASE_URL }) });
+    const url = env().DATABASE_URL;
+    // Prisma ghi rõ tên schema vào truy vấn; lấy từ tham số ?schema= của URL (mặc định public).
+    const schema = new URL(url).searchParams.get("schema") ?? undefined;
+    client = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }, { schema }) });
   }
   return client;
 }

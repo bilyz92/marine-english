@@ -13,6 +13,7 @@ export function newSchemaName(): string {
 export function withSearchPath(url: string, schema: string): string {
   const u = new URL(url);
   u.searchParams.set("options", `-c search_path=${schema}`);
+  u.searchParams.set("schema", schema);
   return u.toString();
 }
 
