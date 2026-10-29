@@ -18,6 +18,16 @@ export async function issueAdminLink(email: string, sender: AdminLinkSender): Pr
       SELECT id FROM admin_users
       WHERE email_lower = ${canonical} AND (status = 'active' OR (status = 'invited' AND now() < invite_expires_at))`;
     if (!admin) return false;
+    // Giới hạn theo admin (chống dội thư; bảng link không được xóa): chờ 60 giây, tối đa 10 link/24 giờ.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`admin-link:${admin.id}`}))`;
+    const [recent] = await tx.$queryRaw<{ minute: number; day: number }[]>`
+      SELECT count(*) FILTER (WHERE created_at > now() - interval '60 seconds')::int AS minute, count(*)::int AS day
+      FROM admin_email_links WHERE admin_user_id = ${admin.id}::uuid AND created_at > now() - interval '24 hours'`;
+    if (recent!.minute > 0 || recent!.day >= 10) return false;
+    // Chỉ link mới nhất còn dùng được.
+    await tx.$executeRaw`
+      UPDATE admin_email_links SET invalidated_at = now()
+      WHERE admin_user_id = ${admin.id}::uuid AND used_at IS NULL AND invalidated_at IS NULL`;
     await tx.$executeRaw`
       INSERT INTO admin_email_links (token_hash, admin_user_id, expires_at)
       VALUES (${tokenHash("admin", token)}, ${admin.id}::uuid, now() + interval '15 minutes')`;

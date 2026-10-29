@@ -76,6 +76,27 @@ describe("link email quản trị", () => {
     expect((await auditRows("admin_login")).map((r) => r.result)).toEqual(["ok", "denied", "denied"]);
   });
 
+  it("giới hạn gửi link: chờ 60 giây, tối đa 10 link/24 giờ; link mới hủy link cũ chưa dùng", async () => {
+    await insertAdmin("chu@x.vn");
+    const sink = new FakeEmailSink();
+    await issueAdminLink("chu@x.vn", sink);
+    await issueAdminLink("chu@x.vn", sink);
+    expect(sink.messages()).toHaveLength(1);
+    const first = new URL(sink.messages()[0]!.body).searchParams.get("link")!;
+    await ageLinks(60_000);
+    await issueAdminLink("chu@x.vn", sink);
+    expect(sink.messages()).toHaveLength(2);
+    expect(await consumeAdminLink(first)).toBeNull();
+    for (let i = 0; i < 8; i++) {
+      await ageLinks(60_000);
+      await issueAdminLink("chu@x.vn", sink);
+    }
+    expect(sink.messages()).toHaveLength(10);
+    await ageLinks(60_000);
+    await issueAdminLink("chu@x.vn", sink);
+    expect(sink.messages()).toHaveLength(10);
+  });
+
   it("hai lần dùng song song → đúng một phiên", async () => {
     await insertAdmin("chu@x.vn");
     const token = await linkFor("chu@x.vn");

@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 import type { OtpKind, OtpSender } from "@/modules/mail/contracts";
-import { devMailbox } from "@/modules/mail/fake-sink";
+import { emailSender } from "@/modules/mail/email-sender";
 
 export class ZaloDisabledError extends Error {
   constructor() {
@@ -16,7 +16,7 @@ export class ZaloZnsSender implements OtpSender {
   }
 }
 
-/** Email: hộp thư giả trong bộ nhớ cho tới khi có nhà cung cấp email thật (cổng G7). Số điện thoại: Zalo ZNS. */
+/** Email: emailSender() (hộp thư giả ở dev, báo lỗi ở production cho tới G7). Số điện thoại: Zalo ZNS. */
 export function otpSenderFor(kind: OtpKind): OtpSender {
-  return kind === "phone" ? new ZaloZnsSender() : devMailbox;
+  return kind === "phone" ? new ZaloZnsSender() : emailSender();
 }
