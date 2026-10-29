@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { hmacHex } from "@/lib/crypto";
+import { hmacHex, safeEqualHex } from "@/lib/crypto";
 import { prisma, withTx, type Tx } from "@/lib/db";
 import { env } from "@/lib/env";
 import type { OtpKind, OtpSender } from "@/modules/mail/contracts";
@@ -100,4 +100,47 @@ export async function issueOtp(input: IssueInput, sender: OtpSender): Promise<Is
     await db.$executeRaw`UPDATE otp_send_log SET outcome = 'delivery_failed' WHERE id = ${issued.logId}::uuid`;
     return "delivery_failed";
   }
+}
+
+export type VerifyInput = { purpose: OtpPurpose; kind: OtpKind; value: string; code: string; userId?: string };
+
+const MAX_ATTEMPTS = 5;
+
+/**
+ * Xác minh trong transaction của người gọi: khóa thử thách còn hiệu lực, kiểm hạn khi đang giữ khóa, so HMAC hằng thời gian.
+ * Sai thì tăng attempts (đủ 5 thì hủy mã). Người gọi phải commit cả khi kết quả là 'invalid' để lượt sai được ghi lại.
+ */
+export async function verifyOtp(tx: Tx, input: VerifyInput): Promise<"ok" | "invalid"> {
+  const { purpose, kind, value, code } = input;
+  const [c] = await tx.$queryRaw<{ id: string; code_hmac: string; key_version: string; user_id: string | null; live: boolean }[]>`
+    SELECT id, code_hmac, key_version, user_id, (expires_at > now()) AS live
+    FROM otp_challenges
+    WHERE purpose = ${purpose} AND kind = ${kind} AND value_canonical = ${value}
+      AND consumed_at IS NULL AND invalidated_at IS NULL
+    FOR UPDATE`;
+  if (!c || !c.live || c.user_id !== (input.userId ?? null)) return "invalid";
+
+  const expected = otpHmac(c.key_version, purpose, kind, value, code);
+  if (expected && safeEqualHex(expected, c.code_hmac)) {
+    await tx.$executeRaw`UPDATE otp_challenges SET consumed_at = now() WHERE id = ${c.id}::uuid`;
+    return "ok";
+  }
+  await tx.$executeRaw`
+    UPDATE otp_challenges
+    SET attempts = attempts + 1,
+        invalidated_at = CASE WHEN attempts + 1 >= ${MAX_ATTEMPTS} THEN now() ELSE invalidated_at END
+    WHERE id = ${c.id}::uuid`;
+  return "invalid";
+}
+
+/**
+ * Sau khi đổi OTP_PEPPER_CURRENT sang newVersion: hủy mọi mã còn hiệu lực phát bằng pepper cũ. Trả số mã bị hủy.
+ */
+export async function rotateOtpPepper(newVersion: string): Promise<number> {
+  if (newVersion !== env().OTP_PEPPER_CURRENT) {
+    throw new Error(`OTP_PEPPER_CURRENT phải là ${newVersion} trước khi đổi pepper`);
+  }
+  return prisma().$executeRaw`
+    UPDATE otp_challenges SET invalidated_at = now()
+    WHERE key_version <> ${newVersion} AND consumed_at IS NULL AND invalidated_at IS NULL`;
 }
