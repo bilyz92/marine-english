@@ -116,6 +116,17 @@ export async function consumeTicketAndReplace(input: {
   });
 }
 
+/** Danh sách máy đang hoạt động cho trang chọn máy; vé không bị tiêu thụ. Vé sai/hết hạn → []. */
+export async function ticketDevices(ticket: string): Promise<DeviceSummary[]> {
+  return withTx(async (tx) => {
+    const [t] = await tx.$queryRaw<{ user_id: string }[]>`
+      SELECT user_id FROM login_tickets
+      WHERE token_hash = ${tokenHash("learner", ticket)} AND used_at IS NULL AND expires_at > now()
+        AND realm = 'learner' AND purpose = 'replace_device'`;
+    return t ? activeDevices(tx, t.user_id) : [];
+  });
+}
+
 /** Thu hồi một thiết bị và mọi phiên của nó. */
 export async function revokeDevice(tx: Tx, deviceId: string): Promise<void> {
   await tx.$executeRaw`UPDATE devices SET revoked_at = now() WHERE id = ${deviceId}::uuid AND revoked_at IS NULL`;

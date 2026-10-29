@@ -13,7 +13,7 @@ const RANKS = [
 
 type Mode = "signup" | "login";
 
-export function LoginForm({ zaloEnabled }: { zaloEnabled: boolean }) {
+export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean; googleFailed: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signup");
   const [step, setStep] = useState<"form" | "code" | "done">("form");
@@ -21,7 +21,7 @@ export function LoginForm({ zaloEnabled }: { zaloEnabled: boolean }) {
   const [contact, setContact] = useState("");
   const [rank, setRank] = useState("");
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(googleFailed ? "Đăng nhập Google không thành công. Thử lại hoặc dùng email." : null);
   const [busy, setBusy] = useState(false);
 
   const profile = mode === "signup" ? { displayName: displayName.trim(), rank: rank || null } : {};
@@ -36,6 +36,16 @@ export function LoginForm({ zaloEnabled }: { zaloEnabled: boolean }) {
     if (status !== 200) return setError(data.error ?? "Không gửi được mã, thử lại sau.");
     setError(null);
     setStep("code");
+  }
+
+  async function google() {
+    setBusy(true);
+    const { status, data } = await postJson<{ redirectUrl?: string }>("/api/auth/learner/google/start", {
+      deviceKey: await getDeviceKey(), deviceLabel: deviceLabel(),
+    });
+    if (status === 200 && data.redirectUrl) return window.location.assign(data.redirectUrl);
+    setBusy(false);
+    setError("Không mở được đăng nhập Google, thử lại sau.");
   }
 
   async function verify(event: React.FormEvent) {
@@ -88,7 +98,7 @@ export function LoginForm({ zaloEnabled }: { zaloEnabled: boolean }) {
         <button type="button" className={mode === "signup" ? styles.tabActive : styles.tab} onClick={() => setMode("signup")}>Tạo tài khoản</button>
         <button type="button" className={mode === "login" ? styles.tabActive : styles.tab} onClick={() => setMode("login")}>Đăng nhập</button>
       </div>
-      <button type="button" className={styles.secondary} disabled title="Sắp có">Tiếp tục với Google</button>
+      <button type="button" className={styles.secondary} disabled={busy} onClick={google}>Tiếp tục với Google</button>
       <div className={styles.divider}>hoặc</div>
       {mode === "signup" && (
         <label className={styles.field}>

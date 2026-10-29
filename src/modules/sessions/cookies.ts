@@ -34,3 +34,18 @@ export function ticketCookie(ticket: string): string {
 export function clearTicketCookie(): string {
   return cookie(TICKET_COOKIE, "", 0, true);
 }
+
+const OIDC_COOKIE: Record<Realm, string> = { learner: "__Host-me_oidc_learner", admin: "__Host-me_oidc_admin" };
+
+export function oidcCookieName(realm: Realm): string {
+  return OIDC_COOKIE[realm];
+}
+
+/** Cookie state OIDC: HttpOnly, sống 10 phút như dòng oidc_states. */
+export function oidcCookie(realm: Realm, value: string): string {
+  return cookie(OIDC_COOKIE[realm], value, 600, true);
+}
+
+export function clearOidcCookie(realm: Realm): string {
+  return cookie(OIDC_COOKIE[realm], "", 0, true);
+}

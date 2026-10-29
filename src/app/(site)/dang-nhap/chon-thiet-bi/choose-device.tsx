@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../login.module.css";
 import { DEVICES_KEY, postJson, type Device } from "../api";
@@ -16,7 +16,16 @@ function loadDevices(): Device[] {
 
 export function ChooseDevice() {
   const router = useRouter();
-  const [devices] = useState<Device[]>(() => (typeof window === "undefined" ? [] : loadDevices()));
+  const [devices, setDevices] = useState<Device[]>(() => (typeof window === "undefined" ? [] : loadDevices()));
+
+  // Sau đăng nhập Google không có danh sách trong sessionStorage: hỏi máy chủ theo cookie vé.
+  useEffect(() => {
+    if (devices.length > 0) return;
+    fetch("/api/auth/learner/device/select")
+      .then((res) => res.json() as Promise<{ devices: Device[] }>)
+      .then((data) => setDevices(data.devices))
+      .catch(() => setDevices([]));
+  }, [devices.length]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 

@@ -74,3 +74,8 @@ export function parseBody<T extends z.ZodType>(body: unknown, schema: T): z.infe
 export async function readJson<T extends z.ZodType>(req: Request, schema: T): Promise<z.infer<T>> {
   return parseBody(await readBody(req), schema);
 }
+
+/** Chuyển hướng 303 tới đường dẫn trong site (headers sửa được để đính cookie). */
+export function redirectTo(path: string): Response {
+  return new Response(null, { status: 303, headers: { location: new URL(path, env().APP_ORIGIN).toString() } });
+}
