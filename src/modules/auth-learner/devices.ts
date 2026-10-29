@@ -25,7 +25,7 @@ export function deviceKeyHashFrom(body: unknown): string {
 }
 
 /** Khóa dòng học viên; tài khoản không còn active thì ném InactiveUserError. */
-async function lockActiveUser(tx: Tx, userId: string): Promise<void> {
+export async function lockActiveUser(tx: Tx, userId: string): Promise<void> {
   const [user] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
   if (user?.status !== "active") throw new InactiveUserError();
 }
