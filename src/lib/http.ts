@@ -1,3 +1,6 @@
+import type { z } from "zod";
+import { env } from "./env";
+
 export class HttpError extends Error {
   constructor(
     readonly status: number,
@@ -50,4 +53,24 @@ export function clientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");
   const last = forwarded?.split(",").at(-1)?.trim();
   return last || "127.0.0.1";
+}
+
+/** Luồng đăng nhập chưa có phiên nên chỉ kiểm Origin (chống CSRF đăng nhập). */
+export function requireSameOrigin(req: Request): void {
+  if (req.headers.get("origin") !== env().APP_ORIGIN) throw new HttpError(403, "Nguồn yêu cầu không hợp lệ");
+}
+
+export async function readBody(req: Request): Promise<unknown> {
+  return req.json().catch(() => undefined);
+}
+
+/** Kiểm body theo schema; sai thì 400. */
+export function parseBody<T extends z.ZodType>(body: unknown, schema: T): z.infer<T> {
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) throw new HttpError(400, "Dữ liệu gửi lên không hợp lệ");
+  return parsed.data;
+}
+
+export async function readJson<T extends z.ZodType>(req: Request, schema: T): Promise<z.infer<T>> {
+  return parseBody(await readBody(req), schema);
 }

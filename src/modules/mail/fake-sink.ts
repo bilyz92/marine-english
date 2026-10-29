@@ -22,3 +22,7 @@ export class FakeEmailSink implements OtpSender, AdminLinkSender {
     this.inbox = [];
   }
 }
+
+// Hộp thư dùng chung trong tiến trình (route và trang /dev/thu nằm ở các bundle khác nhau nên gắn vào globalThis).
+const holder = globalThis as typeof globalThis & { __meDevMailbox?: FakeEmailSink };
+export const devMailbox: FakeEmailSink = (holder.__meDevMailbox ??= new FakeEmailSink());

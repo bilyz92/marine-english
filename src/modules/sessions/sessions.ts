@@ -31,7 +31,8 @@ export class InactiveUserError extends Error {
 
 const RECENT_AUTH_MS = 10 * 60_000;
 
-function tokenHash(realm: Realm, token: string): string {
+/** HMAC của token (phiên, vé, khóa thiết bị) bằng khóa riêng của khu vực; DB chỉ lưu giá trị này. */
+export function tokenHash(realm: Realm, token: string): string {
   const e = env();
   return hmacHex(Buffer.from(realm === "admin" ? e.SESSION_KEY_ADMIN : e.SESSION_KEY_LEARNER, "base64"), token);
 }

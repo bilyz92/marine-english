@@ -22,3 +22,15 @@ export function sessionCookies(realm: Realm, token: string, csrf: string): strin
 export function clearSessionCookies(realm: Realm): string[] {
   return [cookie(SESSION_COOKIE[realm], "", 0, true), cookie(CSRF_COOKIE[realm], "", 0, false)];
 }
+
+const TICKET_COOKIE = "__Host-me_ticket";
+export const ticketCookieName = TICKET_COOKIE;
+
+/** Vé thay máy: HttpOnly, sống 10 phút như dòng login_tickets. */
+export function ticketCookie(ticket: string): string {
+  return cookie(TICKET_COOKIE, ticket, 600, true);
+}
+
+export function clearTicketCookie(): string {
+  return cookie(TICKET_COOKIE, "", 0, true);
+}
