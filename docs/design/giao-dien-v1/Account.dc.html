@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tài khoản của tôi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}a:hover{color:#4C1D95}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="border-bottom: 1px solid #EEECF3; background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="Home.dc.html" style="display: flex; align-items: center; gap: 10px; color: #1C1630; text-decoration: none">
+<span style="width: 40px; height: 40px; border-radius: 10px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"></circle><path d="M12 7v14"></path><path d="M5 12H3a9 9 0 0 0 18 0h-2"></path><path d="M8 10h8"></path></svg></span>
+<span style="font-weight: 800; font-size: 18px">Marine English</span>
+</a>
+<nav aria-label="Menu tài khoản" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<a href="Catalog.dc.html" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; color: #3A3550; text-decoration: none; font-weight: 500">Khóa học</a>
+<a href="MyCourses.dc.html" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; color: #3A3550; text-decoration: none; font-weight: 500">Khóa học của tôi</a>
+<a href="Account.dc.html" aria-current="page" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; color: {{primary}}; text-decoration: none; font-weight: 700">Tài khoản</a>
+</nav>
+</div>
+</header>
+
+<main style="max-width: 1000px; margin: 0 auto; padding: 48px 24px 72px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px">
+<h1 style="margin: 0; font-size: 36px; line-height: 1.25; font-weight: 800">Tài khoản của tôi</h1>
+<span style="padding: 2px 10px; border-radius: 6px; background: #F1F0F5; color: #4B4760; font-size: 13px; font-weight: 600">Dữ liệu mẫu</span>
+</div>
+
+<sc-if value="{{showPerk}}" hint-placeholder-val="{{ true }}">
+<section aria-labelledby="h-perk" style="padding: 24px; border-radius: 16px; background: #F1ECFB; border: 1px solid #DDD0F7; display: flex; flex-direction: column; gap: 12px">
+<h2 id="h-perk" style="margin: 0; font-size: 20px; font-weight: 800">Hoàn thiện hồ sơ – nhận tài liệu phù hợp với bạn</h2>
+<p style="margin: 0; color: #3A3550">Điền <strong>chức danh, loại tàu và chủ đề quan tâm</strong> để chọn nhận một bộ tài liệu hoặc một bài học thử phù hợp. <span style="color: #5B5670">[Phần thưởng và thời gian áp dụng do anh cấu hình trên trang quản trị]</span></p>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; font-size: 14px; color: #3A3550"><span>Hồ sơ đã hoàn thiện</span><span>{{percent}}%</span></div>
+<div role="progressbar" aria-label="Mức hoàn thiện hồ sơ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{percent}}" style="height: 10px; border-radius: 5px; background: #FFFFFF; overflow: hidden"><div style="width: {{percentCss}}; height: 10px; background: {{primary}}"></div></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<sc-if value="{{perkReady}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{claim}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">Nhận tài liệu</button></sc-if>
+<button type="button" onClick="{{later}}" style="min-height: 44px; padding: 0 18px; border: 1.5px solid #CFC6E6; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-weight: 600; cursor: pointer">Để sau</button>
+</div>
+<sc-if value="{{claimed}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; color: #166534; font-weight: 600">Đã ghi nhận. Tài liệu xuất hiện trong “Khóa học của tôi” (bản thiết kế: chưa có tài liệu thật).</p></sc-if>
+</section>
+</sc-if>
+
+<section aria-labelledby="h-basic" style="padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 14px">
+<h2 id="h-basic" style="margin: 0; font-size: 20px; font-weight: 800">Thông tin cơ bản <span style="font-size: 14px; font-weight: 500; color: #5B5670">· bắt buộc tên và một cách liên hệ</span></h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Tên hiển thị<input value="{{f.name}}" onChange="{{on.name}}" style="min-height: 48px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Liên hệ (điện thoại hoặc email)<input value="{{f.contact}}" onChange="{{on.contact}}" style="min-height: 48px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Ngôn ngữ sử dụng<select value="{{f.lang}}" onChange="{{on.lang}}" style="min-height: 48px; padding: 0 10px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400; background: #FFFFFF"><option value="vi">Tiếng Việt</option><option value="en">English</option></select></label>
+</div>
+</section>
+
+<section aria-labelledby="h-job" style="padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 14px">
+<h2 id="h-job" style="margin: 0; font-size: 20px; font-weight: 800">Nghề nghiệp <span style="font-size: 14px; font-weight: 500; color: #5B5670">· tự nguyện</span></h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Chức danh<select value="{{f.rank}}" onChange="{{on.rank}}" style="min-height: 48px; padding: 0 10px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400; background: #FFFFFF"><option value="">Chưa chọn</option><option value="ce">Máy trưởng</option><option value="2e">Máy hai</option><option value="3e">Máy ba</option><option value="4e">Máy tư</option><option value="fitter">Thợ cả</option><option value="oiler">Thợ máy</option><option value="cadet">Thực tập sinh máy</option><option value="student">Đang học trường hàng hải</option><option value="other">Khác</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Bộ phận<select value="{{f.dept}}" onChange="{{on.dept}}" style="min-height: 48px; padding: 0 10px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400; background: #FFFFFF"><option value="">Chưa chọn</option><option value="engine">Máy</option><option value="deck">Boong</option><option value="other">Khác</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Loại tàu<select value="{{f.ship}}" onChange="{{on.ship}}" style="min-height: 48px; padding: 0 10px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400; background: #FFFFFF"><option value="">Chưa chọn</option><option value="crude">Tàu dầu thô</option><option value="product">Tàu dầu sản phẩm</option><option value="chemical">Tàu hóa chất</option><option value="gas">Tàu LPG / LNG</option><option value="bulk">Tàu hàng rời</option><option value="container">Tàu container</option><option value="other">Khác</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Số năm kinh nghiệm<input inputmode="numeric" value="{{f.years}}" onChange="{{on.years}}" style="min-height: 48px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400"></label>
+</div>
+</section>
+
+<section aria-labelledby="h-need" style="padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 14px">
+<h2 id="h-need" style="margin: 0; font-size: 20px; font-weight: 800">Nhu cầu đào tạo <span style="font-size: 14px; font-weight: 500; color: #5B5670">· tự nguyện, dùng để gợi ý khóa học</span></h2>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0; margin-bottom: 8px; font-weight: 600">Chủ đề quan tâm</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{topics}}" as="t" hint-placeholder-count="5">
+<button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; font-weight: 600; cursor: pointer">{{t.label}}</button>
+</sc-for>
+</div>
+</fieldset>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 600">Mục tiêu nghề nghiệp<input value="{{f.goal}}" onChange="{{on.goal}}" placeholder="Ví dụ: lên máy hai trong năm tới" style="min-height: 48px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CFC6E6; border-radius: 10px; font: inherit; font-weight: 400"></label>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<button type="button" onClick="{{save}}" style="min-height: 52px; padding: 0 28px; border: 0; border-radius: 12px; background: #C2410C; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">Lưu hồ sơ</button>
+<span role="status" style="color: {{saveColor}}; font-weight: 600">{{saveMsg}}</span>
+</div>
+
+<section aria-labelledby="h-consent" style="padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 12px">
+<h2 id="h-consent" style="margin: 0; font-size: 20px; font-weight: 800">Nhận thông báo</h2>
+<label style="display: flex; gap: 12px; align-items: flex-start"><input type="checkbox" checked="{{f.marketing}}" onChange="{{on.marketing}}" style="width: 20px; height: 20px; margin: 3px 0 0; accent-color: #5B21B6"><span><strong>Thông tin khóa học mới và ưu đãi</strong><br><span style="color: #3A3550">Không bắt buộc. Bỏ chọn vẫn học bình thường các khóa đã mua và giữ quyền lợi đã nhận.</span></span></label>
+<p style="margin: 0; font-size: 14px; color: #5B5670">Lần thay đổi gần nhất: {{consentAt}}. Mỗi lần thay đổi được ghi lại, không ghi đè.</p>
+</section>
+
+<section aria-labelledby="h-system" style="padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 10px">
+<h2 id="h-system" style="margin: 0; font-size: 20px; font-weight: 800">Dữ liệu hệ thống ghi <span style="font-size: 14px; font-weight: 500; color: #5B5670">· chỉ xem</span></h2>
+<dl style="margin: 0; display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 8px 16px">
+<dt style="color: #5B5670">Nguồn đăng ký</dt><dd style="margin: 0">Trang chủ · học thử</dd>
+<dt style="color: #5B5670">Khóa đã mua</dt><dd style="margin: 0">Từ vựng buồng máy</dd>
+<dt style="color: #5B5670">Thanh toán</dt><dd style="margin: 0">Đơn đã thanh toán qua VietQR</dd>
+<dt style="color: #5B5670">Tiến độ học</dt><dd style="margin: 0">7/20 bài · <a href="MyCourses.dc.html">xem chi tiết</a></dd>
+<dt style="color: #5B5670">Ưu đãi đã nhận</dt><dd style="margin: 0">{{perkHistory}}</dd>
+</dl>
+</section>
+
+<section aria-labelledby="h-privacy" style="padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 12px">
+<h2 id="h-privacy" style="margin: 0; font-size: 20px; font-weight: 800">Quyền riêng tư</h2>
+<p style="margin: 0; color: #3A3550">Không thu hộ chiếu, căn cước, sổ thuyền viên, thông tin sức khỏe, tài khoản ngân hàng hay ảnh chứng chỉ. Xem <a href="Policies.dc.html">chính sách bảo mật</a>.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" onClick="{{reqView}}" style="min-height: 44px; padding: 0 16px; border: 1.5px solid #CFC6E6; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-weight: 600; cursor: pointer">Yêu cầu xem dữ liệu</button>
+<button type="button" onClick="{{reqEdit}}" style="min-height: 44px; padding: 0 16px; border: 1.5px solid #CFC6E6; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-weight: 600; cursor: pointer">Yêu cầu sửa dữ liệu</button>
+<button type="button" onClick="{{reqDelete}}" style="min-height: 44px; padding: 0 16px; border: 1.5px solid #FCA5A5; border-radius: 10px; background: #FFFFFF; color: #B91C1C; font: inherit; font-weight: 600; cursor: pointer">Yêu cầu xóa tài khoản</button>
+</div>
+<sc-if value="{{confirmDelete}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="padding: 14px; border-radius: 10px; background: #FEF2F2; color: #991B1B; display: flex; flex-direction: column; gap: 10px">
+<strong>Xóa tài khoản sẽ mất quyền vào các khóa đã mua và tiến độ học.</strong>
+<span>Dữ liệu giao dịch được giữ theo thời hạn pháp luật yêu cầu. [Quy trình xóa chờ anh duyệt]</span>
+<div style="display: flex; gap: 10px"><button type="button" onClick="{{doDelete}}" style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: #B91C1C; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">Gửi yêu cầu xóa</button><button type="button" onClick="{{cancelDelete}}" style="min-height: 44px; padding: 0 16px; border: 1.5px solid #FCA5A5; border-radius: 10px; background: #FFFFFF; color: #991B1B; font: inherit; font-weight: 600; cursor: pointer">Giữ tài khoản</button></div>
+</div>
+</sc-if>
+<sc-if value="{{hasRequest}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; color: #166534; font-weight: 600">{{requestMsg}}</p></sc-if>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"$preview":{"width":1440,"height":2300}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      f: { name: 'Minh', contact: '09xx xxx xxx', lang: 'vi', rank: 'oiler', dept: 'engine', ship: '', years: '', goal: '', marketing: false, topics: [] },
+      dismissed: false, claimed: false, saved: null, consentAt: 'chưa thay đổi', request: '', confirmDelete: false
+    };
+  }
+  set(key, value) {
+    const patch = { f: { ...this.state.f, [key]: value }, saved: null };
+    if (key === 'marketing') patch.consentAt = 'vừa xong (' + (value ? 'đồng ý' : 'từ chối') + ')';
+    this.setState(patch);
+  }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const s = this.state; const f = s.f;
+    const filled = [f.name, f.contact, f.rank, f.dept, f.ship, f.years, f.goal, f.topics.length ? 'x' : ''].filter((v) => String(v).trim()).length;
+    const percent = Math.round(filled / 8 * 100);
+    const topicList = ['Giao tiếp trên tàu', 'Từ vựng buồng máy', 'Phỏng vấn', 'Tàu dầu', 'PSC / SIRE 2.0'];
+    const topics = topicList.map((label) => {
+      const on = f.topics.includes(label);
+      return { label, pressed: on ? 'true' : 'false', bd: on ? primary : '#CFC6E6', bg: on ? '#F1ECFB' : '#FFFFFF', fg: on ? primary : '#1C1630',
+        pick: () => this.set('topics', on ? f.topics.filter((t) => t !== label) : [...f.topics, label]) };
+    });
+    const on = Object.fromEntries(['name', 'contact', 'lang', 'rank', 'dept', 'ship', 'years', 'goal'].map((k) => [k, (ev) => this.set(k, ev.target.value)]));
+    on.marketing = (ev) => this.set('marketing', ev.target.checked);
+    const invalid = !f.name.trim() ? 'Cần tên hiển thị.' : !f.contact.trim() ? 'Cần một cách liên hệ.' : '';
+    return {
+      primary, f, on, topics, percent, percentCss: percent + '%',
+      showPerk: !s.dismissed, perkReady: Boolean(f.rank && f.ship && f.topics.length) && !s.claimed, claimed: s.claimed,
+      claim: () => this.setState({ claimed: true }), later: () => this.setState({ dismissed: true }),
+      perkHistory: s.claimed ? 'Bộ tài liệu theo chức danh (vừa nhận)' : 'Chưa có',
+      save: () => this.setState({ saved: invalid ? 'error' : 'ok' }),
+      saveMsg: s.saved === 'ok' ? 'Đã lưu hồ sơ.' : s.saved === 'error' ? invalid : '',
+      saveColor: s.saved === 'error' ? '#B91C1C' : '#166534',
+      consentAt: s.consentAt,
+      reqView: () => this.setState({ request: 'Đã gửi yêu cầu xem dữ liệu. Người quản trị sẽ phản hồi qua kênh liên hệ của bạn.', confirmDelete: false }),
+      reqEdit: () => this.setState({ request: 'Đã gửi yêu cầu sửa dữ liệu. Bạn cũng có thể tự sửa ở các mục trên.', confirmDelete: false }),
+      reqDelete: () => this.setState({ confirmDelete: true, request: '' }),
+      doDelete: () => this.setState({ confirmDelete: false, request: 'Đã gửi yêu cầu xóa tài khoản. Trạng thái: chờ xử lý.' }),
+      cancelDelete: () => this.setState({ confirmDelete: false }),
+      confirmDelete: s.confirmDelete, hasRequest: Boolean(s.request), requestMsg: s.request
+    };
+  }
+}
+</script>
+</body>
+</html>

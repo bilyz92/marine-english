@@ -1,0 +1,69 @@
+HỌC LIỆU PHỎNG VẤN THỰC TẬP SINH MÁY THEO BA MỨC
+
+Phạm vi: 94 bài duy nhất, dùng cho ba tập tàu dầu/hóa chất, tàu hàng khô
+và tàu container. Không phải ba chức danh hoặc ba mức được phép vận hành.
+
+MỨC 1 CHƯA BIẾT HOẶC CÒN YẾU
+Mỗi bài có 3–7 câu hỏi nhỏ và đáp án ngắn bằng Anh–Việt.
+Bài đơn giản bắt đầu bằng ba ý nhỏ. Bài kỹ thuật khó có thêm câu giải thích
+thuật ngữ hoặc bộ phận trước khi học ba ý chính.
+Học một phần mỗi lần: hiểu tiếng Việt -> đọc/nghe nếu có audio -> nói theo
+-> che đáp án -> tự nói -> chuyển bước. Không yêu cầu nhớ nguyên đoạn ngay.
+Ba cụm từ theo bài được luyện bằng bài nhớ cụm hoặc điền từ có đáp án.
+Khi sang ứng dụng, không mở cả 7 bước và mọi đáp án cùng một lúc.
+
+MỨC 2 ĐÃ CÓ TIẾNG ANH CƠ BẢN
+Dùng câu hỏi đầy đủ và ba ý bắt buộc làm dàn ý.
+Tự nói trước khi xem đáp án. Làm một bài chọn câu trả lời đúng câu đang hỏi.
+Đáp án đúng luân phiên A/B/C, không cố định một vị trí.
+So câu của mình với đáp án mẫu Anh–Việt đầy đủ, không chỉ nhắc câu nhỏ.
+
+MỨC 3 TIẾNG ANH KHÁ TỐT
+Chỉ nghe/đọc câu hỏi đầy đủ hoặc cách hỏi thay thế đã biên soạn.
+Không xem dàn ý hoặc bản dịch trước khi thử trả lời.
+Trả lời bằng lời riêng, sau đó luyện câu hỏi phụ có đáp án ở phụ lục.
+Đáp án và góp ý hiện sau khi học viên đã thử nói.
+
+NHỮNG GÌ ĐƯỢC GIỮ NGUYÊN
+94 đáp án chính, 53 đáp án câu phụ và 132 cách hỏi tương đương.
+Ba ý chuyên môn bắt buộc cho mỗi bài.
+Tên tuổi, hồ sơ, nhánh chỉ quan sát/chưa thực hành và quy tắc cá nhân hóa.
+Ví dụ cá nhân chỉ để minh họa; không được nhận là trải nghiệm thật của mình.
+
+KHÁC NHAU VỀ TRỢ GIÚP, KHÔNG KHÁC VỀ AN TOÀN
+Câu nhỏ là để tập ngôn ngữ và hiểu khái niệm. Một câu nhỏ đúng hoặc một
+bài chọn đáp án đúng chưa chứng minh đã trả lời đủ câu phỏng vấn chính.
+Chỉ đánh giá cả bài theo câu đầy đủ, ba ý bắt buộc và quy tắc an toàn cũ.
+Thời lượng nói chỉ là gợi ý, không tự dùng để kết luận đạt/trượt.
+Người học có thể đổi mức theo từng bài, không bị khóa cứng bởi tuổi hoặc
+việc đã từng chọn Mức 1. Chuyển mức không xóa lịch sử trợ giúp đã dùng.
+
+DỮ LIỆU WEB/APP
+File chính: Engine_Cadet_Learning_Data_v6.json.
+learning_material.question_breakdown.units: các câu hỏi nhỏ và đáp án.
+learning_material.useful_phrases: cụm từ theo bài.
+learning_material.levels: thứ tự hiển thị và nhiệm vụ của ba mức.
+learning_exercises: bài tập, phương án lựa chọn, đáp án và giải thích.
+learning_material.common_mistake: lỗi còn thiếu ý hoặc lỗi an toàn và cách sửa.
+learning_material.review_tasks: nhiệm vụ ôn ở từng mức.
+learning_material.audio_scripts: lời đọc cho câu nhỏ, chưa có tệp audio thật.
+learner_state_contract có thêm mức hỗ trợ, mã phần nhỏ và phạm vi đánh giá.
+
+THỐNG KÊ
+343 cặp câu hỏi nhỏ và đáp án song ngữ.
+282 bài nhớ cụm/điền từ có đáp án.
+94 bài kiểm tra hiểu nghĩa có đáp án và giải thích.
+94 bài đều có ba mức và dẫn đến đáp án đầy đủ.
+
+LƯU Ý CHO NGƯỜI SOẠN VÀ GIẢNG VIÊN
+Đây là học liệu ngôn ngữ và phỏng vấn, không phải quy trình độc lập để vận hành.
+Nội dung mới cần giáo viên/người phụ trách rà soát chuyên môn và ngôn ngữ
+trước khi phát hành cho lớp thật hoặc dùng chấm tự động.
+Kiểm tra cấu trúc và đối chiếu Word–JSON nằm trong validation_v6.json.
+
+CÁC ĐÁP ÁN THEO HOÀN CẢNH
+A001 và A017 có thêm short_answer_alternatives để chọn câu đúng khi đã tốt nghiệp,
+chưa thực hành, chỉ quan sát hoặc chưa tham gia bảo dưỡng. Các điều kiện hồ sơ
+dùng tên trường trong profile_contract; trường hợp chưa tham gia bảo dưỡng
+cần học viên xác nhận riêng. Nếu hồ sơ thiếu, yêu cầu chọn/xác nhận; không tự đoán.
+Bài chọn đáp án chỉ kiểm tra hiểu nghĩa ví dụ, không xác nhận kinh nghiệm cá nhân.

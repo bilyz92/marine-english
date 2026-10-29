@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Quản lý nội dung Marine English</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}a:hover{color:#4C1D95}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+button:disabled{opacity:.55;cursor:not-allowed}
+@keyframes me-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.me-spin{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 14px; line-height: 1.5; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<nav aria-label="Menu quản trị" style="flex: 1 1 232px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5EE; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 0 8px">
+<div style="width: 40px; height: 40px; border-radius: 10px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"></circle><path d="M12 7v14"></path><path d="M5 12H3a9 9 0 0 0 18 0h-2"></path><path d="M8 10h8"></path></svg>
+</div>
+<div style="display: flex; flex-direction: column">
+<span style="font-weight: 700; font-size: 16px">Marine English</span>
+<span style="font-size: 12px; color: #5B5670">Trang quản trị</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3A3550; text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+<span>Tổng quan</span>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3A3550; text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2l-1 1-3-2-3 2-3-2-3 2-3-2z"></path><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>
+<span>Đơn hàng</span>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3A3550; text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>
+<span>Học viên</span>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3A3550; text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+<span>Khóa học</span>
+</a>
+<a href="#" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #F1ECFB; color: {{primary}}; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M12 18v-6"></path><path d="M9 15h6"></path></svg>
+<span>Nội dung</span>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3A3550; text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg>
+<span>Thông báo</span>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #3A3550; text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M4.9 4.9l2.1 2.1"></path><path d="M17 17l2.1 2.1"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="M4.9 19.1 7 17"></path><path d="M17 7l2.1-2.1"></path></svg>
+<span>Cài đặt</span>
+</a>
+</div>
+<div style="margin-top: auto; padding: 12px; border-radius: 8px; background: #F8F7FB; font-size: 12px; color: #5B5670">
+<div style="font-weight: 600; color: #1C1630">Đăng nhập: Chủ dự án</div>
+<div>Vai trò quản trị · 2 thiết bị</div>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 700; line-height: 1.3">Nội dung</h1>
+<p style="margin: 0; color: #5B5670">Bài viết, luồng thảo luận và liên kết hiển thị trong app · <span style="padding: 2px 8px; border-radius: 6px; background: #F1F0F5; color: #4B4760; font-size: 12px; font-weight: 600">Dữ liệu mẫu</span></p>
+</div>
+<button type="button" onClick="{{openNew}}" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+Thêm nội dung</button>
+</header>
+
+<nav aria-label="Tab nội dung" style="display: flex; gap: 4px; border-bottom: 1px solid #E7E5EE; overflow-x: auto">
+<button type="button" onClick="{{allTab.pick}}" aria-current="{{allTab.current}}" style="flex: 0 0 auto; min-height: 44px; padding: 0 16px; border: 0; border-bottom: 3px solid {{allTab.line}}; margin-bottom: -1px; background: transparent; color: {{allTab.fg}}; font: inherit; font-weight: {{allTab.weight}}; cursor: pointer">Tất cả nội dung</button>
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+<button type="button" onClick="{{t.pick}}" aria-current="{{t.current}}" style="flex: 0 0 auto; min-height: 44px; padding: 0 16px; border: 0; border-bottom: 3px solid {{t.line}}; margin-bottom: -1px; background: transparent; color: {{t.fg}}; font: inherit; font-weight: {{t.weight}}; cursor: pointer; white-space: nowrap">{{t.label}}</button>
+</sc-for>
+</nav>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<section aria-label="Danh sách nội dung" style="display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="2">
+<article style="padding: 16px 20px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span style="padding: 2px 10px; border-radius: 999px; background: #F1ECFB; color: #5B21B6; font-size: 12px; font-weight: 600">{{r.typeLabel}}</span>
+<span style="font-size: 12px; color: #5B5670">{{r.displayLabel}} · sửa {{r.updated}}</span>
+</div>
+<strong style="font-size: 16px; overflow-wrap: anywhere">{{r.title}}</strong>
+<span style="font-size: 12px; color: #5B5670; overflow-wrap: anywhere">{{r.path}}</span>
+</div>
+<sc-if value="{{r.idle}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" onClick="{{r.open}}" style="min-height: 40px; padding: 0 14px; border: 0; border-radius: 8px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Mở</button>
+<button type="button" onClick="{{r.edit}}" style="min-height: 40px; padding: 0 14px; border: 1px solid #D9D6E3; border-radius: 8px; background: #FFFFFF; color: #3A3550; font: inherit; font-weight: 500; cursor: pointer">Sửa</button>
+<button type="button" onClick="{{r.del}}" style="min-height: 40px; padding: 0 14px; border: 1px solid #D9D6E3; border-radius: 8px; background: #FFFFFF; color: #B91C1C; font: inherit; font-weight: 500; cursor: pointer">Xóa</button>
+</div>
+</sc-if>
+<sc-if value="{{r.confirming}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #FEF2F2; color: #991B1B">
+<span style="font-weight: 600">Xóa nội dung này? Không hoàn tác được.</span>
+<button type="button" onClick="{{r.confirmDel}}" style="min-height: 40px; padding: 0 14px; border: 0; border-radius: 8px; background: #B91C1C; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Xóa</button>
+<button type="button" onClick="{{cancelDel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid #FCA5A5; border-radius: 8px; background: #FFFFFF; color: #991B1B; font: inherit; font-weight: 500; cursor: pointer">Giữ lại</button>
+</div>
+</sc-if>
+</article>
+</sc-for>
+<sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 48px 24px; border-radius: 12px; border: 1px dashed #D9D6E3; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<strong style="font-size: 16px">Chưa có nội dung nào</strong>
+<span style="color: #5B5670; max-width: 420px">Thêm bài viết, luồng thảo luận hoặc liên kết để hiển thị thành trang riêng hoặc tab trong app.</span>
+<button type="button" onClick="{{openNew}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Thêm nội dung</button>
+</div>
+</sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{isItem}}" hint-placeholder-val="{{ false }}">
+<section aria-label="Nội dung đang mở" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-width: 0">
+<sc-if value="{{cur.isPage}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{backToAll}}" style="min-height: 40px; padding: 0 12px; border: 1px solid #D9D6E3; border-radius: 8px; background: #FFFFFF; color: #3A3550; font: inherit; font-weight: 500; cursor: pointer">← Tất cả nội dung</button>
+</sc-if>
+<span style="font-size: 12px; color: #5B5670; overflow-wrap: anywhere">Đường dẫn: <code style="padding: 2px 6px; border-radius: 6px; background: #F1F0F5; color: #3A3550">{{cur.path}}</code></span>
+</div>
+<sc-if value="{{cur.idle}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{cur.edit}}" style="min-height: 40px; padding: 0 14px; border: 1px solid #D9D6E3; border-radius: 8px; background: #FFFFFF; color: #3A3550; font: inherit; font-weight: 500; cursor: pointer">Sửa</button>
+<button type="button" onClick="{{cur.del}}" style="min-height: 40px; padding: 0 14px; border: 1px solid #D9D6E3; border-radius: 8px; background: #FFFFFF; color: #B91C1C; font: inherit; font-weight: 500; cursor: pointer">Xóa</button>
+</div>
+</sc-if>
+<sc-if value="{{cur.confirming}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #FEF2F2; color: #991B1B">
+<span style="font-weight: 600">Xóa nội dung này? Không hoàn tác được.</span>
+<button type="button" onClick="{{cur.confirmDel}}" style="min-height: 40px; padding: 0 14px; border: 0; border-radius: 8px; background: #B91C1C; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Xóa</button>
+<button type="button" onClick="{{cancelDel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid #FCA5A5; border-radius: 8px; background: #FFFFFF; color: #991B1B; font: inherit; font-weight: 500; cursor: pointer">Giữ lại</button>
+</div>
+</sc-if>
+</div>
+<div style="max-width: 760px; width: 100%; box-sizing: border-box; padding: 28px 32px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE">
+<article style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span style="padding: 2px 10px; border-radius: 999px; background: #F1ECFB; color: #5B21B6; font-size: 12px; font-weight: 600">{{cur.typeLabel}}</span>
+<sc-if value="{{cur.isThread}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #5B5670">{{cur.postCount}} mục</span></sc-if>
+</div>
+<h2 style="margin: 0; font-size: 26px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere">{{cur.title}}</h2>
+<sc-if value="{{cur.hasUrl}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 13px; color: #5B5670; overflow-wrap: anywhere">Nguồn: <a href="{{cur.url}}" target="_blank" rel="noopener noreferrer">{{cur.urlShort}}</a></p>
+</sc-if>
+<sc-if value="{{cur.empty}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: 16px; border: 1px dashed #D9D6E3; border-radius: 10px; color: #5B5670">Chưa có nội dung để hiển thị.</p>
+</sc-if>
+<sc-if value="{{cur.showBlocks}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.65">
+<sc-for list="{{cur.blocks}}" as="b" hint-placeholder-count="3">
+<sc-if value="{{b.isH}}" hint-placeholder-val="{{ false }}"><h3 style="margin: 8px 0 0; font-size: 19px; font-weight: 700; overflow-wrap: anywhere">{{b.text}}</h3></sc-if>
+<sc-if value="{{b.isP}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; overflow-wrap: anywhere"><sc-for list="{{b.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></p></sc-if>
+<sc-if value="{{b.isList}}" hint-placeholder-val="{{ false }}"><ul style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px"><sc-for list="{{b.items}}" as="li" hint-placeholder-count="3"><li style="overflow-wrap: anywhere"><sc-for list="{{li.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></li></sc-for></ul></sc-if>
+<sc-if value="{{b.isOl}}" hint-placeholder-val="{{ false }}"><ol style="margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 4px"><sc-for list="{{b.items}}" as="li" hint-placeholder-count="3"><li style="overflow-wrap: anywhere"><sc-for list="{{li.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></li></sc-for></ol></sc-if>
+<sc-if value="{{b.isLink}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; overflow-wrap: anywhere"><a href="{{b.href}}" target="_blank" rel="noopener noreferrer">{{b.text}}</a></p></sc-if>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{cur.isThread}}" hint-placeholder-val="{{ false }}">
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{cur.posts}}" as="p" hint-placeholder-count="3">
+<li style="display: flex; gap: 12px; padding: 14px; border-radius: 12px; background: #F8F7FB; border: 1px solid #E7E5EE">
+<span aria-hidden="true" style="flex: 0 0 28px; height: 28px; border-radius: 14px; background: #F1ECFB; color: #5B21B6; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{p.n}}</span>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<sc-if value="{{p.hasAuthor}}" hint-placeholder-val="{{ true }}"><strong style="font-size: 14px">{{p.author}}</strong></sc-if>
+<span style="white-space: pre-line; overflow-wrap: anywhere; font-size: 15px"><sc-for list="{{p.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></span>
+</div>
+</li>
+</sc-for>
+</ol>
+</sc-if>
+<sc-if value="{{cur.linkCard}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 16px; border-radius: 12px; border: 1px solid #E7E5EE; background: #F8F7FB; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<div style="min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 12px; color: #5B5670">Liên kết ngoài · {{cur.host}}</span>
+<span style="font-weight: 600; overflow-wrap: anywhere">{{cur.urlShort}}</span>
+</div>
+<a href="{{cur.url}}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font-weight: 600; text-decoration: none">Mở trang gốc</a>
+</div>
+</sc-if>
+<sc-if value="{{cur.embedFail}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 20px; border-radius: 12px; border: 1px solid #FDBA74; background: #FFF7ED; color: #7C2D12; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
+<strong>Không nhúng được trang này vào app</strong>
+<span style="font-size: 14px">Website {{cur.host}} không cho phép hiển thị bên trong khung của trang khác. Bạn có thể xem bản gốc ở tab mới.</span>
+<a href="{{cur.url}}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; background: #9A3412; color: #FFFFFF; font-weight: 600; text-decoration: none">Mở trang gốc</a>
+</div>
+</sc-if>
+</article>
+</div>
+</section>
+</sc-if>
+</main>
+
+<sc-if value="{{dialogOpen}}" hint-placeholder-val="{{ true }}">
+<div style="position: fixed; inset: 0; z-index: 20; box-sizing: border-box; padding: 24px 16px; background: rgba(28, 22, 48, 0.45); display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; left: 1px">
+<div role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width: 100%; max-width: 1120px; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 16px; box-shadow: 0 24px 48px rgba(28, 22, 48, 0.18); display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; border-bottom: 1px solid #E7E5EE">
+<h2 id="dlg-title" style="margin: 0; font-size: 18px; font-weight: 700">{{dialogTitle}}</h2>
+<button type="button" onClick="{{onCancel}}" disabled="{{saving}}" aria-label="Đóng biểu mẫu" style="width: 44px; height: 44px; border: 1px solid #E7E5EE; border-radius: 10px; background: #FFFFFF; color: #3A3550; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+</button>
+</header>
+
+<div style="display: flex; flex-wrap: wrap">
+
+<div style="flex: 1 1 440px; min-width: 0; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #E7E5EE">
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0; margin-bottom: 8px; font-weight: 600">Loại nội dung</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{typeOpts}}" as="o" hint-placeholder-count="3">
+<button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" disabled="{{saving}}" style="flex: 1 1 120px; min-height: 44px; padding: 0 12px; border: 1px solid {{o.bd}}; border-radius: 10px; background: {{o.bg}}; color: {{o.fg}}; font: inherit; font-weight: 600; cursor: pointer">{{o.label}}</button>
+</sc-for>
+</div>
+</fieldset>
+
+<sc-if value="{{showSource}}" hint-placeholder-val="{{ true }}">
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0; margin-bottom: 8px; font-weight: 600">Nguồn nhập</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{sourceOpts}}" as="o" hint-placeholder-count="2">
+<button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" disabled="{{saving}}" style="flex: 1 1 140px; min-height: 44px; padding: 0 12px; border: 1px solid {{o.bd}}; border-radius: 10px; background: {{o.bg}}; color: {{o.fg}}; font: inherit; font-weight: 600; cursor: pointer">{{o.label}}</button>
+</sc-for>
+</div>
+</fieldset>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-title" style="font-weight: 600">Tiêu đề</label>
+<input id="f-title" type="text" value="{{form.title}}" onChange="{{onTitle}}" disabled="{{saving}}" aria-invalid="{{err.titleInvalid}}" aria-describedby="f-title-err" style="min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{err.titleBd}}; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-size: 15px">
+<sc-if value="{{err.hasTitle}}" hint-placeholder-val="{{ false }}"><p id="f-title-err" style="margin: 0; color: #B91C1C; font-size: 13px; font-weight: 500">{{err.title}}</p></sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-url" style="font-weight: 600">Đường dẫn nguồn <span style="font-weight: 400; color: #5B5670">{{urlNote}}</span></label>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<input id="f-url" type="url" inputmode="url" placeholder="https://" value="{{form.url}}" onChange="{{onUrl}}" disabled="{{saving}}" aria-invalid="{{err.urlInvalid}}" aria-describedby="f-url-err" style="flex: 1 1 240px; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{err.urlBd}}; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-size: 15px">
+<sc-if value="{{showFetch}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{onFetch}}" disabled="{{fetchBusy}}" style="flex: 0 0 auto; min-height: 44px; padding: 0 14px; border: 1px solid {{primary}}; border-radius: 10px; background: #FFFFFF; color: {{primary}}; font: inherit; font-weight: 600; cursor: pointer">Đọc nội dung</button>
+</sc-if>
+</div>
+<sc-if value="{{err.hasUrl}}" hint-placeholder-val="{{ false }}"><p id="f-url-err" style="margin: 0; color: #B91C1C; font-size: 13px; font-weight: 500">{{err.url}}</p></sc-if>
+<sc-if value="{{fetchReading}}" hint-placeholder-val="{{ false }}">
+<p role="status" style="margin: 0; display: flex; align-items: center; gap: 8px; color: #3A3550; font-size: 13px">
+<span class="me-spin" aria-hidden="true" style="width: 14px; height: 14px; box-sizing: border-box; border-radius: 7px; border: 2px solid #D9D6E3; border-top-color: #5B21B6; animation: me-spin 0.8s linear infinite"></span>
+Đang đọc trang nguồn…</p>
+</sc-if>
+<sc-if value="{{fetchFailed}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="padding: 12px 14px; border-radius: 10px; border: 1px solid #FDBA74; background: #FFF7ED; color: #7C2D12; display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+<strong style="font-size: 14px">Không đọc được nội dung từ trang này</strong>
+<span>Trang có thể yêu cầu đăng nhập, giới hạn quyền truy cập hoặc chặn đọc tự động. Hãy mở trang gốc, sao chép nội dung rồi dán vào ô Nội dung. Đường dẫn nguồn vẫn được giữ lại.</span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<a href="{{fetchUrl}}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid #FDBA74; background: #FFFFFF; color: #7C2D12; font-weight: 600; text-decoration: none">Mở trang gốc</a>
+<button type="button" onClick="{{toPaste}}" style="min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: #9A3412; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Chuyển sang dán nội dung</button>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-body" style="font-weight: 600">{{bodyLabel}}</label>
+<p id="f-body-help" style="margin: 0; color: #5B5670; font-size: 13px">{{bodyHelp}}</p>
+<textarea id="f-body" rows="12" value="{{form.body}}" onChange="{{onBody}}" disabled="{{saving}}" placeholder="{{bodyHint}}" aria-invalid="{{err.bodyInvalid}}" aria-describedby="f-body-help f-body-err" style="box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid {{err.bodyBd}}; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-size: 15px; line-height: 1.6; resize: vertical"></textarea>
+<sc-if value="{{err.hasBody}}" hint-placeholder-val="{{ false }}"><p id="f-body-err" style="margin: 0; color: #B91C1C; font-size: 13px; font-weight: 500">{{err.body}}</p></sc-if>
+</div>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0; margin-bottom: 8px; font-weight: 600">Cách hiển thị</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{displayOpts}}" as="o" hint-placeholder-count="2">
+<button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" disabled="{{saving}}" style="flex: 1 1 140px; min-height: 44px; padding: 0 12px; border: 1px solid {{o.bd}}; border-radius: 10px; background: {{o.bg}}; color: {{o.fg}}; font: inherit; font-weight: 600; cursor: pointer">{{o.label}}</button>
+</sc-for>
+</div>
+</fieldset>
+
+<sc-if value="{{showTabName}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-tab" style="font-weight: 600">Tên tab</label>
+<input id="f-tab" type="text" maxlength="24" value="{{form.tabName}}" onChange="{{onTabName}}" disabled="{{saving}}" aria-invalid="{{err.tabInvalid}}" aria-describedby="f-tab-help f-tab-err" style="min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{err.tabBd}}; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-size: 15px">
+<p id="f-tab-help" style="margin: 0; color: #5B5670; font-size: 13px">Tối đa 24 ký tự. Tab sẽ có đường dẫn <code>{{tabPath}}</code></p>
+<sc-if value="{{err.hasTab}}" hint-placeholder-val="{{ false }}"><p id="f-tab-err" style="margin: 0; color: #B91C1C; font-size: 13px; font-weight: 500">{{err.tabName}}</p></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{showEmbed}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: flex-start; gap: 10px">
+<input id="f-embed" type="checkbox" checked="{{form.embed}}" onChange="{{onEmbed}}" disabled="{{saving}}" style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: #5B21B6">
+<label for="f-embed" style="display: flex; flex-direction: column">
+<span style="font-weight: 600">Nhúng trang gốc vào app</span>
+<span style="font-size: 13px; color: #5B5670">Chỉ hiển thị được khi website nguồn cho phép nhúng. Nếu không, app hiện thông báo và nút “Mở trang gốc”.</span>
+</label>
+</div>
+</sc-if>
+</div>
+
+<section aria-labelledby="pv-title" style="flex: 1 1 380px; min-width: 0; box-sizing: border-box; padding: 24px; background: #F8F7FB; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+<h3 id="pv-title" style="margin: 0; font-size: 15px; font-weight: 700">Xem trước</h3>
+<span style="font-size: 12px; color: #5B5670">{{pvWhere}}</span>
+</div>
+<sc-if value="{{previewStale}}" hint-placeholder-val="{{ false }}">
+<p role="status" style="margin: 0; padding: 8px 12px; border-radius: 8px; background: #E0E7FF; color: #3730A3; font-size: 13px">Biểu mẫu đã thay đổi sau lần xem trước. Bấm “Xem trước” để cập nhật.</p>
+</sc-if>
+<sc-if value="{{noPreview}}" hint-placeholder-val="{{ true }}">
+<div style="flex: 1 1 auto; min-height: 240px; padding: 24px; border-radius: 12px; border: 1px dashed #D9D6E3; display: flex; align-items: center; justify-content: center; text-align: center; color: #5B5670">Bấm “Xem trước” để thấy nội dung đúng như sau khi lưu.</div>
+</sc-if>
+<sc-if value="{{hasPreview}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 24px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE">
+<article style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span style="padding: 2px 10px; border-radius: 999px; background: #F1ECFB; color: #5B21B6; font-size: 12px; font-weight: 600">{{pv.typeLabel}}</span>
+<sc-if value="{{pv.isThread}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #5B5670">{{pv.postCount}} mục</span></sc-if>
+</div>
+<h2 style="margin: 0; font-size: 22px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere">{{pv.title}}</h2>
+<sc-if value="{{pv.hasUrl}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 13px; color: #5B5670; overflow-wrap: anywhere">Nguồn: <a href="{{pv.url}}" target="_blank" rel="noopener noreferrer">{{pv.urlShort}}</a></p>
+</sc-if>
+<sc-if value="{{pv.empty}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: 16px; border: 1px dashed #D9D6E3; border-radius: 10px; color: #5B5670">Chưa có nội dung để hiển thị.</p>
+</sc-if>
+<sc-if value="{{pv.showBlocks}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.65">
+<sc-for list="{{pv.blocks}}" as="b" hint-placeholder-count="3">
+<sc-if value="{{b.isH}}" hint-placeholder-val="{{ false }}"><h3 style="margin: 8px 0 0; font-size: 18px; font-weight: 700; overflow-wrap: anywhere">{{b.text}}</h3></sc-if>
+<sc-if value="{{b.isP}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; overflow-wrap: anywhere"><sc-for list="{{b.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></p></sc-if>
+<sc-if value="{{b.isList}}" hint-placeholder-val="{{ false }}"><ul style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px"><sc-for list="{{b.items}}" as="li" hint-placeholder-count="3"><li style="overflow-wrap: anywhere"><sc-for list="{{li.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></li></sc-for></ul></sc-if>
+<sc-if value="{{b.isOl}}" hint-placeholder-val="{{ false }}"><ol style="margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 4px"><sc-for list="{{b.items}}" as="li" hint-placeholder-count="3"><li style="overflow-wrap: anywhere"><sc-for list="{{li.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></li></sc-for></ol></sc-if>
+<sc-if value="{{b.isLink}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; overflow-wrap: anywhere"><a href="{{b.href}}" target="_blank" rel="noopener noreferrer">{{b.text}}</a></p></sc-if>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{pv.isThread}}" hint-placeholder-val="{{ false }}">
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{pv.posts}}" as="p" hint-placeholder-count="3">
+<li style="display: flex; gap: 12px; padding: 12px; border-radius: 12px; background: #F8F7FB; border: 1px solid #E7E5EE">
+<span aria-hidden="true" style="flex: 0 0 28px; height: 28px; border-radius: 14px; background: #F1ECFB; color: #5B21B6; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{p.n}}</span>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<sc-if value="{{p.hasAuthor}}" hint-placeholder-val="{{ true }}"><strong style="font-size: 14px">{{p.author}}</strong></sc-if>
+<span style="white-space: pre-line; overflow-wrap: anywhere; font-size: 15px"><sc-for list="{{p.segs}}" as="g" hint-placeholder-count="1"><sc-if value="{{g.isText}}" hint-placeholder-val="{{ true }}"><span>{{g.text}}</span></sc-if><sc-if value="{{g.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{g.href}}" target="_blank" rel="noopener noreferrer">{{g.text}}</a></sc-if></sc-for></span>
+</div>
+</li>
+</sc-for>
+</ol>
+</sc-if>
+<sc-if value="{{pv.linkCard}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 16px; border-radius: 12px; border: 1px solid #E7E5EE; background: #F8F7FB; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<div style="min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 12px; color: #5B5670">Liên kết ngoài · {{pv.host}}</span>
+<span style="font-weight: 600; overflow-wrap: anywhere">{{pv.urlShort}}</span>
+</div>
+<a href="{{pv.url}}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font-weight: 600; text-decoration: none">Mở trang gốc</a>
+</div>
+</sc-if>
+<sc-if value="{{pv.embedFail}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 20px; border-radius: 12px; border: 1px solid #FDBA74; background: #FFF7ED; color: #7C2D12; display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
+<strong>Không nhúng được trang này vào app</strong>
+<span style="font-size: 14px">Website {{pv.host}} không cho phép hiển thị bên trong khung của trang khác. Bạn có thể xem bản gốc ở tab mới.</span>
+<a href="{{pv.url}}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; background: #9A3412; color: #FFFFFF; font-weight: 600; text-decoration: none">Mở trang gốc</a>
+</div>
+</sc-if>
+</article>
+</div>
+</sc-if>
+</section>
+</div>
+
+<footer style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E7E5EE">
+<sc-if value="{{hasErrors}}" hint-placeholder-val="{{ false }}">
+<p role="alert" style="flex: 1 1 200px; margin: 0; color: #B91C1C; font-weight: 600">{{errSummary}}</p>
+</sc-if>
+<button type="button" onClick="{{onCancel}}" disabled="{{saving}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: transparent; color: #3A3550; font: inherit; font-weight: 600; cursor: pointer">Hủy</button>
+<button type="button" onClick="{{onPreview}}" disabled="{{saving}}" style="min-height: 44px; padding: 0 18px; border: 1px solid #D9D6E3; border-radius: 10px; background: #FFFFFF; color: #3A3550; font: inherit; font-weight: 600; cursor: pointer">Xem trước</button>
+<button type="button" onClick="{{onSave}}" disabled="{{saving}}" aria-busy="{{savingAria}}" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 22px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">
+<sc-if value="{{saving}}" hint-placeholder-val="{{ false }}"><span class="me-spin" aria-hidden="true" style="width: 14px; height: 14px; box-sizing: border-box; border-radius: 7px; border: 2px solid rgba(255, 255, 255, 0.45); border-top-color: #FFFFFF; animation: me-spin 0.8s linear infinite"></span></sc-if>
+{{saveLabel}}</button>
+</footer>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: fixed; right: 24px; bottom: 24px; z-index: 30; max-width: calc(100% - 48px); box-sizing: border-box; padding: 12px 16px; border-radius: 12px; background: #14532D; color: #FFFFFF; font-weight: 600; box-shadow: 0 12px 24px rgba(20, 83, 45, 0.25)">{{toast}}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"startWith":{"editor":"enum","default":"form","options":["form","list"]},"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.timers = [];
+    this.fetchSeq = 0;
+    this.toastSeq = 0;
+    this.busy = false;
+    this.state = {
+      items: [
+        { id: 'c1', type: 'article', source: 'paste', title: 'Mẹo nhớ từ vựng buồng máy', url: '', body: '# Học theo cụm từ\nĐừng học từng từ riêng lẻ. Học cả cụm như “start the purifier” hoặc “check the lube oil pressure”.\n\n# Mỗi ngày ba bước\n- Nghe câu mẫu ba lần\n- Đọc to theo\n- Ghi âm và so sánh với câu mẫu', display: 'tab', tabName: 'Mẹo học', embed: false, slug: 'meo-hoc', updated: '26/10 21:40' },
+        { id: 'c2', type: 'thread', source: 'paste', title: 'Hỏi đáp: bàn giao ca trực bằng tiếng Anh', url: '', body: 'Minh (thợ máy): Khi bàn giao ca, em nên mở đầu thế nào?\n\nAnh Hùng (máy hai): Nói tình trạng chung trước, ví dụ “All machinery running normally”, rồi mới đến việc bất thường.\n\nMinh (thợ máy): Còn khi có báo động trong ca thì sao ạ?', display: 'page', tabName: '', embed: false, slug: 'hoi-dap-ban-giao-ca', updated: '26/10 20:15' }
+      ],
+      activeTab: 'all',
+      openId: null,
+      dialog: (props.startWith ?? 'form') === 'form' ? { mode: 'new', id: null } : null,
+      form: this.blank(),
+      errors: {},
+      fetch: 'idle',
+      preview: null,
+      saving: false,
+      toast: '',
+      confirmId: null
+    };
+  }
+  componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+  showToast(text) {
+    const seq = ++this.toastSeq;
+    this.later(() => { if (seq === this.toastSeq) this.setState({ toast: '' }); }, 3200);
+    return text;
+  }
+  blank() { return { type: 'article', source: 'paste', title: '', url: '', body: '', display: 'page', tabName: '', embed: false }; }
+  isUrl(s) {
+    try { const u = new URL(s); return (u.protocol === 'http:' || u.protocol === 'https:') && u.hostname.indexOf('.') > 0; } catch (e) { return false; }
+  }
+  slugify(s) {
+    const base = (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+    return base || 'noi-dung';
+  }
+  uniqueSlug(s, selfId) {
+    const taken = this.state.items.filter((i) => i.id !== selfId).map((i) => i.slug);
+    let slug = this.slugify(s); let n = 2; const root = slug;
+    while (taken.indexOf(slug) >= 0) { slug = root + '-' + n; n += 1; }
+    return slug;
+  }
+  pathOf(item) { return item.display === 'tab' ? '/quan-tri/noi-dung?tab=' + item.slug : '/quan-tri/noi-dung/' + item.slug; }
+  segs(text) {
+    const out = []; const re = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|https?:\/\/[^\s<>"']+/g;
+    let last = 0; let m;
+    while ((m = re.exec(text))) {
+      let href = m[2] || m[0]; let label = m[1] || m[0]; let end = re.lastIndex;
+      if (!m[2]) {
+        const trail = href.match(/[.,;:!?)\]]+$/);
+        if (trail) { href = href.slice(0, -trail[0].length); label = href; end -= trail[0].length; re.lastIndex = end; }
+      }
+      if (!this.isUrl(href)) continue;
+      if (m.index > last) out.push({ isText: true, text: text.slice(last, m.index) });
+      out.push({ isLink: true, text: label, href });
+      last = end;
+    }
+    if (last < text.length) out.push({ isText: true, text: text.slice(last) });
+    return out;
+  }
+  parse(type, body) {
+    const text = (body || '').replace(/\r\n/g, '\n');
+    if (type === 'thread') {
+      const posts = text.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean).map((chunk, i) => {
+        const m = chunk.match(/^([^:\n]{1,40}):\s+([\s\S]+)$/);
+        const body2 = m ? m[2].trim() : chunk;
+        return { n: i + 1, hasAuthor: !!m, author: m ? m[1].trim() : '', text: body2, segs: this.segs(body2) };
+      });
+      return { blocks: [], posts };
+    }
+    const blocks = []; let list = null;
+    text.split('\n').forEach((raw) => {
+      const line = raw.trim();
+      const bullet = line.match(/^[-*•]\s+(.+)$/);
+      const num = line.match(/^\d+[.)]\s+(.+)$/);
+      if (bullet || num) {
+        const ordered = !!num;
+        if (!list || !!list.isOl !== ordered) { list = ordered ? { isOl: true, items: [] } : { isList: true, items: [] }; blocks.push(list); }
+        const t = (bullet || num)[1];
+        list.items.push({ text: t, segs: this.segs(t) });
+        return;
+      }
+      list = null;
+      if (!line) return;
+      const h = line.match(/^#{1,3}\s+(.+)$/);
+      if (h) blocks.push({ isH: true, text: h[1] });
+      else if (/^https?:\/\/\S+$/.test(line) && this.isUrl(line)) blocks.push({ isLink: true, text: line, href: line });
+      else blocks.push({ isP: true, text: line, segs: this.segs(line) });
+    });
+    return { blocks, posts: [] };
+  }
+  toDoc(f) {
+    const url = (f.url || '').trim();
+    const ok = this.isUrl(url);
+    let host = ''; let short = '';
+    if (ok) { const u = new URL(url); host = u.hostname.replace(/^www\./, ''); short = (host + u.pathname).replace(/\/$/, ''); if (short.length > 60) short = short.slice(0, 57) + '…'; }
+    const p = this.parse(f.type, f.body);
+    const isLink = f.type === 'link';
+    const labels = { article: 'Bài viết', thread: 'Luồng thảo luận', link: 'Liên kết' };
+    return {
+      typeLabel: labels[f.type],
+      title: (f.title || '').trim() || '(Chưa có tiêu đề)',
+      hasUrl: ok && !isLink, url: ok ? url : '', urlShort: short, host,
+      isThread: f.type === 'thread', postCount: p.posts.length,
+      showBlocks: p.blocks.length > 0, blocks: p.blocks, posts: p.posts,
+      linkCard: isLink && ok && !f.embed, embedFail: isLink && ok && !!f.embed,
+      empty: !isLink && p.blocks.length === 0 && p.posts.length === 0
+    };
+  }
+  validate(f, selfId) {
+    const e = {};
+    const url = f.url.trim();
+    const needUrl = f.type === 'link' || f.source === 'url';
+    const title = f.title.trim();
+    if (!title) e.title = 'Nhập tiêu đề.';
+    else if (title.length > 120) e.title = 'Tiêu đề tối đa 120 ký tự.';
+    if (needUrl && !url) e.url = 'Nhập đường dẫn nguồn.';
+    else if (url && !this.isUrl(url)) e.url = 'Đường dẫn không hợp lệ. Hãy dùng địa chỉ đầy đủ, bắt đầu bằng http:// hoặc https://';
+    if (f.type !== 'link' && !f.body.trim()) e.body = f.source === 'url' ? 'Chưa có nội dung. Bấm “Đọc nội dung” hoặc dán nội dung từ trang gốc vào đây.' : 'Dán hoặc nhập nội dung.';
+    if (f.display === 'tab') {
+      const name = f.tabName.trim();
+      if (!name) e.tabName = 'Nhập tên tab.';
+      else if (name.length > 24) e.tabName = 'Tên tab tối đa 24 ký tự.';
+      else if (this.state.items.some((i) => i.id !== selfId && i.display === 'tab' && i.tabName.trim().toLowerCase() === name.toLowerCase())) e.tabName = 'Đã có tab cùng tên. Hãy chọn tên khác.';
+    }
+    return e;
+  }
+  setField(key, value) {
+    const errors = { ...this.state.errors }; delete errors[key];
+    const patch = { form: { ...this.state.form, [key]: value }, errors };
+    if (key === 'url' || key === 'source' || key === 'type') { patch.fetch = 'idle'; this.fetchSeq += 1; }
+    this.setState(patch);
+  }
+  openNew() { this.fetchSeq += 1; this.setState({ dialog: { mode: 'new', id: null }, form: this.blank(), errors: {}, fetch: 'idle', preview: null, confirmId: null }); }
+  openEdit(id) {
+    const it = this.state.items.find((i) => i.id === id); if (!it) return;
+    this.fetchSeq += 1;
+    const form = { type: it.type, source: it.source, title: it.title, url: it.url, body: it.body, display: it.display, tabName: it.tabName, embed: it.embed };
+    this.setState({ dialog: { mode: 'edit', id }, form, errors: {}, fetch: 'idle', preview: { ...form }, confirmId: null });
+  }
+  close() { if (this.state.saving) return; this.fetchSeq += 1; this.setState({ dialog: null, errors: {}, fetch: 'idle', preview: null }); }
+  doPreview() { this.setState({ preview: { ...this.state.form } }); }
+  doFetch() {
+    const url = this.state.form.url.trim();
+    if (!this.isUrl(url)) { this.setState({ errors: { ...this.state.errors, url: url ? 'Đường dẫn không hợp lệ. Hãy dùng địa chỉ đầy đủ, bắt đầu bằng http:// hoặc https://' : 'Nhập đường dẫn nguồn.' } }); return; }
+    const seq = ++this.fetchSeq;
+    this.setState({ fetch: 'reading' });
+    this.later(() => { if (seq === this.fetchSeq) this.setState({ fetch: 'failed' }); }, 1400);
+  }
+  doSave() {
+    if (this.state.saving || this.busy) return;
+    const d = this.state.dialog; const f = this.state.form;
+    const errors = this.validate(f, d.id);
+    if (Object.keys(errors).length) { this.setState({ errors }); return; }
+    this.busy = true;
+    this.setState({ saving: true, errors: {} });
+    this.later(() => {
+      this.busy = false;
+      const now = new Date(); const pad = (n) => (n < 10 ? '0' : '') + n;
+      const stamp = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+      const clean = { ...f, title: f.title.trim(), url: f.url.trim(), tabName: f.tabName.trim(), embed: f.type === 'link' && f.embed, source: f.type === 'link' ? 'url' : f.source };
+      let items; let id;
+      if (d.mode === 'edit') {
+        id = d.id;
+        items = this.state.items.map((i) => (i.id === id ? { ...i, ...clean, updated: stamp } : i));
+      } else {
+        id = 'c' + Date.now();
+        items = [{ id, ...clean, slug: this.uniqueSlug(clean.display === 'tab' ? clean.tabName : clean.title, null), updated: stamp }].concat(this.state.items);
+      }
+      this.setState({ items, saving: false, dialog: null, preview: null, fetch: 'idle', openId: id, activeTab: clean.display === 'tab' ? id : null, toast: this.showToast('Đã lưu “' + clean.title + '”') });
+    }, 900);
+  }
+  doDelete(id) {
+    const it = this.state.items.find((i) => i.id === id);
+    const items = this.state.items.filter((i) => i.id !== id);
+    const patch = { items, confirmId: null, toast: it ? this.showToast('Đã xóa “' + it.title + '”') : '' };
+    if (this.state.openId === id) { patch.openId = null; patch.activeTab = 'all'; }
+    this.setState(patch);
+  }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const s = this.state; const f = s.form;
+    const tabStyle = (on) => ({ current: on ? 'page' : 'false', line: on ? primary : 'transparent', fg: on ? primary : '#4B4760', weight: on ? '700' : '500' });
+    const allTab = { ...tabStyle(s.activeTab === 'all'), pick: () => this.setState({ activeTab: 'all', openId: null, confirmId: null }) };
+    const tabs = s.items.filter((i) => i.display === 'tab').slice().reverse().map((i) => ({ ...tabStyle(s.activeTab === i.id), label: i.tabName, pick: () => this.setState({ activeTab: i.id, openId: i.id, confirmId: null }) }));
+    const meta = (i) => ({
+      typeLabel: { article: 'Bài viết', thread: 'Luồng thảo luận', link: 'Liên kết' }[i.type],
+      displayLabel: i.display === 'tab' ? 'Tab “' + i.tabName + '”' : 'Trang riêng',
+      path: this.pathOf(i),
+      confirming: s.confirmId === i.id, idle: s.confirmId !== i.id,
+      edit: () => this.openEdit(i.id), del: () => this.setState({ confirmId: i.id }), confirmDel: () => this.doDelete(i.id)
+    });
+    const rows = s.items.map((i) => ({ ...i, ...meta(i), open: () => this.setState({ openId: i.id, activeTab: i.display === 'tab' ? i.id : null, confirmId: null }) }));
+    const curItem = s.items.find((i) => i.id === s.openId);
+    const cur = curItem ? { ...this.toDoc(curItem), ...meta(curItem), isPage: curItem.display !== 'tab' } : { blocks: [], posts: [] };
+    const opt = (cur2, val, label, key) => {
+      const on = cur2 === val;
+      return { label, pressed: on ? 'true' : 'false', bd: on ? primary : '#D9D6E3', bg: on ? '#F1ECFB' : '#FFFFFF', fg: on ? primary : '#3A3550', pick: () => this.setField(key, val) };
+    };
+    const typeOpts = [['article', 'Bài viết'], ['thread', 'Luồng thảo luận'], ['link', 'Liên kết']].map((o) => opt(f.type, o[0], o[1], 'type'));
+    const sourceOpts = [['url', 'Đường dẫn'], ['paste', 'Dán nội dung']].map((o) => opt(f.source, o[0], o[1], 'source'));
+    const displayOpts = [['page', 'Trang riêng'], ['tab', 'Tab mới']].map((o) => opt(f.display, o[0], o[1], 'display'));
+    const e = s.errors;
+    const err = {
+      title: e.title, url: e.url, body: e.body, tabName: e.tabName,
+      hasTitle: !!e.title, hasUrl: !!e.url, hasBody: !!e.body, hasTab: !!e.tabName,
+      titleInvalid: e.title ? 'true' : 'false', urlInvalid: e.url ? 'true' : 'false', bodyInvalid: e.body ? 'true' : 'false', tabInvalid: e.tabName ? 'true' : 'false',
+      titleBd: e.title ? '#B91C1C' : '#D9D6E3', urlBd: e.url ? '#B91C1C' : '#D9D6E3', bodyBd: e.body ? '#B91C1C' : '#D9D6E3', tabBd: e.tabName ? '#B91C1C' : '#D9D6E3'
+    };
+    const errCount = Object.keys(e).length;
+    const isLink = f.type === 'link';
+    const bodyLabel = isLink ? 'Ghi chú (không bắt buộc)' : f.type === 'thread' ? 'Nội dung luồng' : 'Nội dung bài viết';
+    const bodyHelp = isLink ? 'Hiển thị bên dưới liên kết. Có thể để trống.'
+      : f.type === 'thread' ? 'Mỗi mục cách nhau một dòng trống. Viết “Tên người viết: nội dung” để giữ thông tin người viết. Thứ tự được giữ nguyên.'
+      : 'Dòng bắt đầu bằng # là tiêu đề mục, bằng - là ý trong danh sách. Dòng chỉ có địa chỉ web sẽ thành liên kết.';
+    const bodyHint = f.type === 'thread' ? 'Minh: Khi bàn giao ca em nói gì?\n\nAnh Hùng: Nói tình trạng chung trước…' : isLink ? '' : '# Tiêu đề mục\nĐoạn văn…\n- Ý thứ nhất\n- Ý thứ hai';
+    const stale = !!s.preview && JSON.stringify(s.preview) !== JSON.stringify(f);
+    const pvSrc = s.preview;
+    const editingId = s.dialog ? s.dialog.id : null;
+    const editing = editingId ? s.items.find((i) => i.id === editingId) : null;
+    const tabSlug = editing && editing.slug ? editing.slug : this.slugify(f.tabName || f.title);
+    return {
+      primary,
+      isList: !curItem, isItem: !!curItem, cur,
+      allTab, tabs, rows, noRows: rows.length === 0,
+      cancelDel: () => this.setState({ confirmId: null }),
+      backToAll: () => this.setState({ openId: null, activeTab: 'all', confirmId: null }),
+      openNew: () => this.openNew(),
+      dialogOpen: !!s.dialog,
+      dialogTitle: s.dialog && s.dialog.mode === 'edit' ? 'Sửa nội dung' : 'Thêm nội dung',
+      form: f, typeOpts, sourceOpts, displayOpts,
+      showSource: !isLink,
+      urlNote: isLink || f.source === 'url' ? '(bắt buộc)' : '(nếu có)',
+      showFetch: !isLink && f.source === 'url',
+      fetchBusy: s.fetch === 'reading' || s.saving,
+      fetchReading: s.fetch === 'reading', fetchFailed: s.fetch === 'failed',
+      fetchUrl: this.isUrl(f.url.trim()) ? f.url.trim() : '#',
+      toPaste: () => { this.fetchSeq += 1; this.setState({ form: { ...f, source: 'paste' }, fetch: 'idle' }); },
+      bodyLabel, bodyHelp, bodyHint,
+      showTabName: f.display === 'tab', tabPath: '/quan-tri/noi-dung?tab=' + tabSlug,
+      showEmbed: isLink,
+      err, hasErrors: errCount > 0, errSummary: errCount === 1 ? 'Còn 1 mục cần sửa.' : 'Còn ' + errCount + ' mục cần sửa.',
+      onTitle: (ev) => this.setField('title', ev.target.value),
+      onUrl: (ev) => this.setField('url', ev.target.value),
+      onBody: (ev) => this.setField('body', ev.target.value),
+      onTabName: (ev) => this.setField('tabName', ev.target.value),
+      onEmbed: (ev) => this.setField('embed', ev.target.checked),
+      onFetch: () => this.doFetch(),
+      onPreview: () => this.doPreview(),
+      onSave: () => this.doSave(),
+      onCancel: () => this.close(),
+      saving: s.saving, savingAria: s.saving ? 'true' : 'false', saveLabel: s.saving ? 'Đang lưu…' : 'Lưu',
+      hasPreview: !!pvSrc, noPreview: !pvSrc, previewStale: stale,
+      pv: pvSrc ? this.toDoc(pvSrc) : { blocks: [], posts: [] },
+      pvWhere: f.display === 'tab' ? 'Sẽ mở ở tab “' + (f.tabName.trim() || '…') + '”' : 'Sẽ mở thành trang riêng',
+      hasToast: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

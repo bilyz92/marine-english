@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.codex-review/
+coverage/
+src/generated/
+.superpowers/

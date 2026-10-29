@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thanh toán trên điện thoại</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}a:hover{color:#4C1D95}
+a:focus-visible,button:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 1300px; box-sizing: border-box; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 16px; line-height: 1.55; display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 4px; background: #FFFFFF; border-bottom: 1px solid #EEECF3">
+<a href="Course.dc.html" aria-label="Quay lại trang khóa học" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #1C1630"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+<span style="font-weight: 700; font-size: 17px">Thanh toán</span>
+<span role="timer" aria-label="Còn 14 phút 32 giây" style="margin-left: auto; padding: 4px 10px; border-radius: 999px; background: #FFEDD5; color: #9A3412; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums">Còn 14:32</span>
+</header>
+
+<div style="flex: 1 1 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+
+<section aria-label="Đơn hàng" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span style="font-weight: 600">Từ vựng buồng máy</span><span style="font-variant-numeric: tabular-nums">249.000đ</span></div>
+<div style="display: flex; justify-content: space-between; gap: 8px; color: #166534; font-size: 15px"><span>Mã EARLY100 (−20%)</span><span style="font-variant-numeric: tabular-nums">−49.800đ</span></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; border-top: 1px solid #F1F0F5; padding-top: 8px"><strong>Cần thanh toán</strong><span style="font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums">199.200đ</span></div>
+</section>
+
+<section aria-labelledby="h-way" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 12px">
+<h1 id="h-way" style="margin: 0; font-size: 18px; font-weight: 800">Đang dùng điện thoại? Chọn 1 trong 2 cách</h1>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 600">Cách 1: Mở thẳng app ngân hàng</span>
+<span style="font-size: 14px; color: #5B5670">Số tiền và nội dung tự điền sẵn.</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px">
+<sc-for list="{{banks}}" as="b" hint-placeholder-count="6">
+<a href="#" style="min-height: 48px; padding: 0 6px; border-radius: 10px; border: 1px solid #D9D6E3; color: #1C1630; font-size: 13px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; text-align: center">{{b}}</a>
+</sc-for>
+</div>
+<a href="#" style="font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center">Ngân hàng khác</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #F1F0F5; padding-top: 12px">
+<span style="font-weight: 600">Cách 2: Lưu ảnh QR, quét từ ảnh</span>
+<div style="display: flex; gap: 14px; align-items: center">
+<div role="img" aria-label="Mã VietQR của đơn ME1055, số tiền 199.200 đồng" style="flex: 0 0 auto; width: 128px; height: 128px; box-sizing: border-box; padding: 8px; border-radius: 10px; border: 2px solid #1C1630; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 5px">
+<span style="border: 6px solid #1C1630; border-radius: 3px"></span>
+<span style="background: repeating-linear-gradient(90deg, #1C1630 0 4px, transparent 4px 7px)"></span>
+<span style="border: 6px solid #1C1630; border-radius: 3px"></span>
+<span style="background: repeating-linear-gradient(0deg, #1C1630 0 4px, transparent 4px 7px)"></span>
+<span style="background: repeating-linear-gradient(45deg, #1C1630 0 3px, transparent 3px 6px)"></span>
+<span style="background: repeating-linear-gradient(135deg, #1C1630 0 3px, transparent 3px 6px)"></span>
+<span style="border: 6px solid #1C1630; border-radius: 3px"></span>
+<span style="background: repeating-linear-gradient(90deg, #1C1630 0 3px, transparent 3px 6px)"></span>
+<span style="background: repeating-linear-gradient(0deg, #1C1630 0 3px, transparent 3px 6px)"></span>
+</div>
+<span style="font-size: 14px; color: #3A3550">Lưu ảnh, mở app ngân hàng, chọn <strong>Quét QR</strong> rồi chọn ảnh vừa lưu.</span>
+</div>
+<button type="button" onClick="{{saveQr}}" style="min-height: 48px; border: 0; border-radius: 12px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">{{saveLabel}}</button>
+</div>
+</section>
+
+<section aria-labelledby="h-manual" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 4px">
+<h2 id="h-manual" style="margin: 0 0 4px; font-size: 16px; font-weight: 700">Hoặc chuyển khoản thủ công</h2>
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px; border-top: 1px solid #F1F0F5">
+<div style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-size: 13px; color: #5B5670">{{f.label}}</span>
+<span style="font-weight: 700">{{f.value}}</span>
+</div>
+<button type="button" onClick="{{f.copy}}" aria-label="{{f.aria}}" style="flex: 0 0 auto; min-height: 40px; min-width: 76px; padding: 0 12px; border: 1px solid {{f.border}}; border-radius: 8px; background: {{f.bg}}; color: {{f.fg}}; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">{{f.btn}}</button>
+</div>
+</sc-for>
+<span style="margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: #FFF7ED; color: #7C2D12; font-size: 14px">Ghi đúng nội dung <strong>ME1055</strong> để khóa học tự mở.</span>
+</section>
+
+<div role="status" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: #F7F4FD; color: #3B1D7A">
+<span aria-hidden="true" style="flex: 0 0 auto; width: 12px; height: 12px; border-radius: 6px; background: {{primary}}; box-shadow: 0 0 0 6px #E4D9FB"></span>
+<span>Chuyển xong quay lại đây, trang tự chuyển sang "Thành công".</span>
+</div>
+<a href="#" style="align-self: center; min-height: 44px; display: flex; align-items: center; font-weight: 600">Cần hỗ trợ? Nhắn Zalo</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"$preview":{"width":390,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { copied: '', saved: false };
+  }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const copied = this.state.copied;
+    const defs = [
+      { id: 'bank', label: 'Ngân hàng', value: '[Tên ngân hàng]' },
+      { id: 'acc', label: 'Số tài khoản', value: '[Số tài khoản]' },
+      { id: 'amount', label: 'Số tiền', value: '199.200đ' },
+      { id: 'memo', label: 'Nội dung', value: 'ME1055' }
+    ];
+    const fields = defs.map((f) => {
+      const on = copied === f.id;
+      return {
+        label: f.label,
+        value: f.value,
+        aria: 'Sao chép ' + f.label.toLowerCase(),
+        btn: on ? 'Đã chép' : 'Chép',
+        bg: on ? '#DCFCE7' : '#FFFFFF',
+        fg: on ? '#166534' : '#3A3550',
+        border: on ? '#86EFAC' : '#D9D6E3',
+        copy: () => this.setState({ copied: f.id })
+      };
+    });
+    return {
+      primary,
+      banks: ['Vietcombank', 'MB Bank', 'BIDV', 'VietinBank', 'Techcombank', 'ACB'],
+      fields,
+      saveLabel: this.state.saved ? 'Đã lưu ảnh vào máy' : 'Lưu ảnh mã QR',
+      saveQr: () => this.setState({ saved: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

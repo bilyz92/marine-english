@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "active_lessons": 94,
+  "levels_per_lesson": 3,
+  "bilingual_micro_questions_and_answers": 343,
+  "word_exercises_with_keys": 282,
+  "meaning_exercises_with_keys": 94,
+  "main_model_answers_preserved": 94,
+  "follow_up_answers_preserved": 53,
+  "question_variants_preserved": 132,
+  "technical_required_points_unchanged": true,
+  "checks": [
+    "all original lesson ids covered",
+    "three levels for every lesson",
+    "actual short Q and A for every micro unit",
+    "every exercise has an answer and explanation",
+    "Word short and full answers exactly match JSON",
+    "active follow-up answers retained",
+    "no automatic mastery from supported work"
+  ],
+  "technical_and_language_approval": "pending_training_reviewer",
+  "final_word_hashes_verified": true,
+  "personal_experience_alternatives_verified": true,
+  "meaning_answer_distribution": {
+    "B": 32,
+    "A": 31,
+    "C": 31
+  },
+  "rendered_layout_checked": true,
+  "page_counts": {
+    "Engine_Cadet_01_Tankers_Bilingual_Lessons_Three_Levels_v6": 205,
+    "Engine_Cadet_02_Dry_Cargo_Bilingual_Lessons_Three_Levels_v6": 209,
+    "Engine_Cadet_03_Container_Bilingual_Lessons_Three_Levels_v6": 207
+  }
+}

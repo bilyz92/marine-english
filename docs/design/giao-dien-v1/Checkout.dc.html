@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thanh toán VietQR</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}a:hover{color:#4C1D95}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #EEECF3">
+<div style="max-width: 1100px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="Home.dc.html" style="display: flex; align-items: center; gap: 10px; color: #1C1630; text-decoration: none">
+<span style="width: 40px; height: 40px; border-radius: 10px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"></circle><path d="M12 7v14"></path><path d="M5 12H3a9 9 0 0 0 18 0h-2"></path><path d="M8 10h8"></path></svg>
+</span>
+<span style="font-weight: 800; font-size: 18px">Marine English</span>
+</a>
+<span style="display: flex; align-items: center; gap: 8px; color: #3A3550; font-size: 14px"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Thanh toán an toàn qua payOS · Napas 24/7</span>
+</div>
+</header>
+
+<div style="max-width: 1100px; margin: 0 auto; padding: 24px 24px 64px; display: flex; flex-direction: column; gap: 20px">
+
+<div role="group" aria-label="Chọn trạng thái để xem thiết kế" style="align-self: flex-start; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 1.5px dashed #B9A5E8; background: #FFFFFF; font-size: 13px; color: #5B5670">
+<span>Xem trạng thái (chỉ để duyệt):</span>
+<sc-for list="{{views}}" as="v" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{v.pressed}}" onClick="{{v.pick}}" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid {{v.border}}; background: {{v.bg}}; color: {{v.fg}}; font: inherit; font-weight: 600; cursor: pointer">{{v.label}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{isPay}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+<section aria-labelledby="h-qr" style="flex: 999 1 520px; min-width: 0; padding: 28px; border-radius: 20px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h1 id="h-qr" style="margin: 0; font-size: 24px; font-weight: 800">Quét mã để thanh toán</h1>
+<span role="timer" aria-label="Mã QR còn hiệu lực 14 phút 32 giây" style="padding: 6px 12px; border-radius: 999px; background: #FFEDD5; color: #9A3412; font-weight: 700; font-variant-numeric: tabular-nums">Còn 14:32</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: center">
+<div role="img" aria-label="Mã VietQR của đơn {{orderCode}}, số tiền {{total}}" style="flex: 0 0 auto; width: 260px; height: 260px; box-sizing: border-box; padding: 16px; border-radius: 16px; border: 2px solid #1C1630; background: #FFFFFF; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 10px">
+<span style="border: 10px solid #1C1630; border-radius: 6px"></span>
+<span style="background: repeating-linear-gradient(90deg, #1C1630 0 8px, transparent 8px 14px); opacity: 0.85"></span>
+<span style="border: 10px solid #1C1630; border-radius: 6px"></span>
+<span style="background: repeating-linear-gradient(0deg, #1C1630 0 8px, transparent 8px 14px); opacity: 0.85"></span>
+<span style="display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #4C1D95; text-align: center; line-height: 1.2">[VietQR do payOS tạo]</span>
+<span style="background: repeating-linear-gradient(45deg, #1C1630 0 6px, transparent 6px 12px); opacity: 0.85"></span>
+<span style="border: 10px solid #1C1630; border-radius: 6px"></span>
+<span style="background: repeating-linear-gradient(135deg, #1C1630 0 6px, transparent 6px 12px); opacity: 0.85"></span>
+<span style="background: repeating-linear-gradient(90deg, #1C1630 0 5px, transparent 5px 11px); opacity: 0.85"></span>
+</div>
+<ol style="flex: 1 1 240px; margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; color: #3A3550">
+<li>Mở app ngân hàng bất kỳ, chọn <strong>Quét QR</strong>.</li>
+<li>Quét mã bên cạnh. Số tiền và nội dung đã điền sẵn, <strong>không sửa nội dung</strong>.</li>
+<li>Xác nhận chuyển. Trang này tự chuyển sang "Thành công" sau vài giây.</li>
+</ol>
+</div>
+<div role="status" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: #F7F4FD; color: #3B1D7A">
+<span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 6px; background: {{primary}}; box-shadow: 0 0 0 6px #E4D9FB"></span>
+<span>Đang chờ tiền về… Không cần tải lại trang.</span>
+</div>
+<details style="border-top: 1px solid #F1F0F5; padding-top: 12px">
+<summary style="min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer">Không quét được? Chuyển khoản thủ công</summary>
+<dl style="margin: 8px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px">
+<div><dt style="font-size: 13px; color: #5B5670">Ngân hàng</dt><dd style="margin: 0; font-weight: 600">[Tên ngân hàng]</dd></div>
+<div><dt style="font-size: 13px; color: #5B5670">Chủ tài khoản</dt><dd style="margin: 0; font-weight: 600">[TÊN HỘ KINH DOANH]</dd></div>
+<div><dt style="font-size: 13px; color: #5B5670">Số tài khoản</dt><dd style="margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px">[Số tài khoản] <button type="button" style="min-height: 32px; padding: 0 10px; border: 1px solid #D9D6E3; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Sao chép</button></dd></div>
+<div><dt style="font-size: 13px; color: #5B5670">Nội dung (bắt buộc đúng)</dt><dd style="margin: 0; font-weight: 700; display: flex; align-items: center; gap: 8px">{{orderCode}} <button type="button" style="min-height: 32px; padding: 0 10px; border: 1px solid #D9D6E3; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer">Sao chép</button></dd></div>
+</dl>
+</details>
+</section>
+
+<aside aria-labelledby="h-order" style="flex: 1 1 320px; min-width: 0; padding: 24px; border-radius: 20px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 16px">
+<h2 id="h-order" style="margin: 0; font-size: 18px; font-weight: 800">Đơn hàng {{orderCode}}</h2>
+<div style="display: flex; justify-content: space-between; gap: 12px">
+<span>Từ vựng buồng máy<br><span style="font-size: 13px; color: #5B5670">20 bài · học trọn đời</span></span>
+<span style="font-weight: 600; font-variant-numeric: tabular-nums">249.000đ</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="coupon" style="font-weight: 600; font-size: 14px">Mã giảm giá</label>
+<div style="display: flex; gap: 8px">
+<input id="coupon" type="text" value="{{coupon}}" onChange="{{onCoupon}}" placeholder="Ví dụ EARLY100" aria-describedby="coupon-msg" style="flex: 1 1 auto; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{couponBorder}}; border-radius: 10px; font: inherit; text-transform: uppercase">
+<button type="button" onClick="{{applyCoupon}}" style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: #1C1630; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Áp dụng</button>
+</div>
+<span id="coupon-msg" role="status" style="font-size: 13px; color: {{couponMsgColor}}">{{couponMsg}}</span>
+</div>
+<sc-if value="{{hasDiscount}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; justify-content: space-between; gap: 12px; color: #166534">
+<span>Giảm giá (EARLY100, 20%)</span>
+<span style="font-weight: 600; font-variant-numeric: tabular-nums">−49.800đ</span>
+</div>
+</sc-if>
+<div style="border-top: 1px solid #E7E5EE; padding-top: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+<strong>Cần thanh toán</strong>
+<span style="font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums">{{total}}</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5B5670">Áp mã sẽ tạo lại mã QR với số tiền mới. Hoàn 100% trong 7 ngày nếu học dưới 3 bài.</p>
+<a href="#" style="font-size: 14px">Cần hỗ trợ? Nhắn Zalo</a>
+</aside>
+</div>
+</sc-if>
+
+<sc-if value="{{isPaid}}" hint-placeholder-val="{{ false }}">
+<section role="status" aria-labelledby="h-ok" style="max-width: 640px; width: 100%; align-self: center; box-sizing: border-box; padding: 40px 32px; border-radius: 24px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center">
+<span style="width: 72px; height: 72px; border-radius: 36px; background: #DCFCE7; color: #166534; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<h1 id="h-ok" style="margin: 0; font-size: 28px; font-weight: 800">Thanh toán thành công</h1>
+<p style="margin: 0; color: #3A3550">Khóa <strong>Từ vựng buồng máy</strong> đã mở cho tài khoản của anh. Email xác nhận đơn {{orderCode}} đã gửi tới [email học viên].</p>
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px">
+<a href="#" style="min-height: 52px; padding: 0 24px; border-radius: 12px; background: #C2410C; color: #FFFFFF; font-weight: 700; text-decoration: none; display: flex; align-items: center">Vào học ngay</a>
+<a href="#" style="min-height: 52px; padding: 0 24px; border-radius: 12px; border: 1.5px solid #CFC6E6; color: #1C1630; font-weight: 600; text-decoration: none; display: flex; align-items: center">Cài app lên điện thoại</a>
+</div>
+<p style="margin: 8px 0 0; font-size: 14px; color: #5B5670">Mẹo: tải trước vài bài khi còn mạng bờ để học trên tàu.</p>
+</section>
+</sc-if>
+
+<sc-if value="{{isExpired}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="h-exp" style="max-width: 640px; width: 100%; align-self: center; box-sizing: border-box; padding: 40px 32px; border-radius: 24px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center">
+<span style="width: 72px; height: 72px; border-radius: 36px; background: #F1F0F5; color: #4B4760; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+<h1 id="h-exp" style="margin: 0; font-size: 28px; font-weight: 800">Mã QR đã hết hạn</h1>
+<p style="margin: 0; color: #3A3550">Mã chỉ dùng được trong 15 phút. Bấm nút dưới để tạo mã mới với cùng số tiền.</p>
+<div style="width: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 12px; background: #FFF7ED; border: 1px solid #FDBA74; color: #7C2D12; text-align: left">
+<strong>Đã chuyển tiền rồi?</strong> Đừng chuyển lại. Chúng tôi sẽ đối chiếu và mở khóa trong 24 giờ, hoặc nhắn Zalo kèm ảnh chuyển khoản để được xử lý nhanh hơn.
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px">
+<button type="button" onClick="{{restart}}" style="min-height: 52px; padding: 0 24px; border: 0; border-radius: 12px; background: #C2410C; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">Tạo mã QR mới</button>
+<a href="#" style="min-height: 52px; padding: 0 24px; border-radius: 12px; border: 1.5px solid #CFC6E6; color: #1C1630; font-weight: 600; text-decoration: none; display: flex; align-items: center">Nhắn Zalo hỗ trợ</a>
+</div>
+</section>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: 'pay', coupon: '', applied: false, couponError: false };
+  }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const s = this.state;
+    const viewDefs = [
+      { id: 'pay', label: 'Đang chờ' },
+      { id: 'paid', label: 'Thành công' },
+      { id: 'expired', label: 'Hết hạn' }
+    ];
+    const views = viewDefs.map((v) => {
+      const on = v.id === s.view;
+      return {
+        label: v.label,
+        pressed: on ? 'true' : 'false',
+        bg: on ? '#1C1630' : '#FFFFFF',
+        fg: on ? '#FFFFFF' : '#3A3550',
+        border: on ? '#1C1630' : '#D9D6E3',
+        pick: () => this.setState({ view: v.id })
+      };
+    });
+    let couponMsg = 'Nhập mã trước khi quét QR.';
+    let couponMsgColor = '#5B5670';
+    let couponBorder = '#D9D6E3';
+    if (s.applied) {
+      couponMsg = 'Đã áp mã EARLY100. Mã QR đã được tạo lại.';
+      couponMsgColor = '#166534';
+      couponBorder = '#16A34A';
+    } else if (s.couponError) {
+      couponMsg = 'Mã không đúng, đã hết hạn hoặc đã hết lượt.';
+      couponMsgColor = '#B91C1C';
+      couponBorder = '#B91C1C';
+    }
+    return {
+      primary,
+      views,
+      isPay: s.view === 'pay',
+      isPaid: s.view === 'paid',
+      isExpired: s.view === 'expired',
+      orderCode: 'ME1055',
+      coupon: s.coupon,
+      onCoupon: (e) => this.setState({ coupon: e.target.value, couponError: false, applied: false }),
+      applyCoupon: () => {
+        const ok = s.coupon.trim().toUpperCase() === 'EARLY100';
+        this.setState({ applied: ok, couponError: !ok });
+      },
+      hasDiscount: s.applied,
+      total: s.applied ? '199.200đ' : '249.000đ',
+      couponMsg,
+      couponMsgColor,
+      couponBorder,
+      restart: () => this.setState({ view: 'pay' })
+    };
+  }
+}
+</script>
+</body>
+</html>

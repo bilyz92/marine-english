@@ -1,0 +1,50 @@
+{
+  "Engine_Cadet_01_Tankers_Bilingual_Lessons_Three_Levels_v6": {
+    "page_count": 205,
+    "locations": {
+      "A001 Mức 1": 3,
+      "A001 Mức 2": 4,
+      "A014 Mức 1": 43,
+      "A037-2 Mức 1": 106,
+      "A046 Mức 1": 137,
+      "A046 Mức 2": 139,
+      "A052-STCW Mức 1": 167,
+      "T001 Mức 1": 191,
+      "Follow up practice": 195
+    },
+    "edge_warnings": [],
+    "near_blank_pages": []
+  },
+  "Engine_Cadet_02_Dry_Cargo_Bilingual_Lessons_Three_Levels_v6": {
+    "page_count": 209,
+    "locations": {
+      "A001 Mức 1": 3,
+      "A001 Mức 2": 4,
+      "A014 Mức 1": 43,
+      "A037-2 Mức 1": 106,
+      "A046 Mức 1": 137,
+      "A046 Mức 2": 139,
+      "A052-STCW Mức 1": 167,
+      "H001 Mức 1": 191,
+      "Follow up practice": 199
+    },
+    "edge_warnings": [],
+    "near_blank_pages": []
+  },
+  "Engine_Cadet_03_Container_Bilingual_Lessons_Three_Levels_v6": {
+    "page_count": 207,
+    "locations": {
+      "A001 Mức 1": 3,
+      "A001 Mức 2": 4,
+      "A014 Mức 1": 43,
+      "A037-2 Mức 1": 106,
+      "A046 Mức 1": 137,
+      "A046 Mức 2": 139,
+      "A052-STCW Mức 1": 167,
+      "K001 Mức 1": 191,
+      "Follow up practice": 197
+    },
+    "edge_warnings": [],
+    "near_blank_pages": []
+  }
+}

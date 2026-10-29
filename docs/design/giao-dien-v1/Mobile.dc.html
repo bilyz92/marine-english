@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Dashboard quản trị trên điện thoại</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}a:hover{color:#4C1D95}
+button:focus-visible,a:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 1700px; box-sizing: border-box; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 15px; line-height: 1.5; display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: #FFFFFF; border-bottom: 1px solid #E7E5EE">
+<div style="display: flex; align-items: center; gap: 10px">
+<div style="width: 36px; height: 36px; border-radius: 9px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"></circle><path d="M12 7v14"></path><path d="M5 12H3a9 9 0 0 0 18 0h-2"></path><path d="M8 10h8"></path></svg>
+</div>
+<div style="display: flex; flex-direction: column">
+<span style="font-weight: 700">Tổng quan</span>
+<span style="font-size: 12px; color: #5B5670">7 ngày · cập nhật 11:25</span>
+</div>
+</div>
+<button type="button" aria-label="Thông báo, 4 mục mới" style="position: relative; width: 44px; height: 44px; border: 1px solid #E7E5EE; border-radius: 10px; background: #FFFFFF; color: #3A3550; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg>
+<span aria-hidden="true" style="position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 5px; background: #C2410C"></span>
+</button>
+</header>
+
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 16px; padding: 16px">
+
+<section aria-label="Việc cần làm ngay" style="padding: 16px; border-radius: 12px; background: #FFF7ED; border: 1px solid #FDBA74; display: flex; flex-direction: column; gap: 8px">
+<strong style="color: #7C2D12">3 đơn cần xử lý tay · 1 yêu cầu hoàn tiền</strong>
+<span style="color: #7C2D12; font-size: 14px">Đơn cũ nhất đã chờ 27 giờ.</span>
+</section>
+
+<section aria-label="Chỉ số chính" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #5B5670">Doanh thu</span>
+<span style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums">10,30 tr</span>
+<span style="font-size: 12px; color: #166534; font-weight: 600">▲ 18%</span>
+</div>
+<div style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #5B5670">Đơn đã thanh toán</span>
+<span style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums">35</span>
+<span style="font-size: 12px; color: #3A3550">32 tự động · 3 tay</span>
+</div>
+<div style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #5B5670">Mở khóa tự động</span>
+<span style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums">91%</span>
+<div aria-hidden="true" style="height: 6px; border-radius: 3px; background: #EDEAF4; overflow: hidden"><div style="width: 91%; height: 6px; background: {{primary}}"></div></div>
+</div>
+<div style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #5B5670">Học viên mới</span>
+<span style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums">41</span>
+<span style="font-size: 12px; color: #3A3550">28 đã mua</span>
+</div>
+</section>
+
+<section aria-labelledby="m-manual" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="m-manual" style="margin: 0; font-size: 16px; font-weight: 700">Cần xử lý tay</h2>
+<sc-for list="{{manual}}" as="m" hint-placeholder-count="3">
+<article style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<strong>{{m.code}}</strong>
+<span style="font-size: 12px; color: #5B5670">chờ {{m.waiting}}</span>
+</div>
+<span>{{m.name}} · {{m.course}}</span>
+<div style="display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; font-size: 14px">
+<span style="color: #5B5670">Giá {{m.price}}</span>
+<span style="font-weight: 600; color: {{m.receivedColor}}">Nhận {{m.received}}</span>
+</div>
+<span style="align-self: flex-start; padding: 3px 10px; border-radius: 999px; background: #FFEDD5; color: #9A3412; font-size: 12px; font-weight: 600">{{m.reason}}</span>
+<sc-if value="{{m.open}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{m.grant}}" style="flex: 1 1 0; min-height: 44px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Cấp khóa</button>
+<button type="button" style="flex: 1 1 0; min-height: 44px; border: 1px solid #D9D6E3; border-radius: 10px; background: #FFFFFF; color: #3A3550; font: inherit; font-weight: 500; cursor: pointer">Hoàn tiền</button>
+</div>
+</sc-if>
+<sc-if value="{{m.done}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #DCFCE7; color: #166534; font-weight: 600">
+<span>Đã cấp khóa · đã gửi email</span>
+<button type="button" onClick="{{m.undo}}" style="min-height: 36px; padding: 0 10px; border: 0; background: transparent; color: #166534; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer">Hoàn tác</button>
+</div>
+</sc-if>
+</article>
+</sc-for>
+</section>
+
+<section aria-labelledby="m-refund" style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 8px">
+<h2 id="m-refund" style="margin: 0; font-size: 16px; font-weight: 700">Yêu cầu hoàn tiền</h2>
+<div style="display: flex; justify-content: space-between; gap: 8px"><strong>ME-1012</strong><span style="font-weight: 600">199.000đ</span></div>
+<span style="font-size: 14px">Hoàng Văn E · đã học 1/20 bài · mua 22/10</span>
+<span style="align-self: flex-start; padding: 3px 10px; border-radius: 999px; background: #DCFCE7; color: #166534; font-size: 12px; font-weight: 600">Đủ điều kiện BR-09</span>
+<div style="display: flex; gap: 8px">
+<button type="button" style="flex: 1 1 0; min-height: 44px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Duyệt</button>
+<button type="button" style="flex: 1 1 0; min-height: 44px; border: 1px solid #D9D6E3; border-radius: 10px; background: #FFFFFF; color: #3A3550; font: inherit; font-weight: 500; cursor: pointer">Từ chối</button>
+</div>
+</section>
+
+<section aria-labelledby="m-recent" style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px">
+<h2 id="m-recent" style="margin: 0; font-size: 16px; font-weight: 700">Đơn gần đây</h2>
+<a href="#" style="font-size: 14px; font-weight: 600">Tất cả</a>
+</div>
+<sc-for list="{{orders}}" as="o" hint-placeholder-count="5">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 56px; border-top: 1px solid #F1F0F5">
+<div style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-weight: 600">{{o.code}} · <span style="font-weight: 400">{{o.name}}</span></span>
+<span style="font-size: 12px; color: #5B5670">{{o.course}} · {{o.time}}</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+<span style="font-weight: 600; font-variant-numeric: tabular-nums">{{o.amount}}</span>
+<span style="padding: 1px 8px; border-radius: 999px; background: {{o.bg}}; color: {{o.fg}}; font-size: 11.5px; font-weight: 600; white-space: nowrap">{{o.status}}</span>
+</div>
+</div>
+</sc-for>
+</section>
+
+<section aria-label="Tình trạng hệ thống" style="padding: 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 5px; background: #EA580C; flex: 0 0 auto"></span>
+<div style="display: flex; flex-direction: column">
+<span style="font-weight: 600">Hệ thống: 4/5 bình thường</span>
+<span style="font-size: 12px; color: #5B5670">1 email đang gửi lại (lần 2/3)</span>
+</div>
+</section>
+</div>
+
+<nav aria-label="Điều hướng chính" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: #FFFFFF; border-top: 1px solid #E7E5EE; padding: 6px 4px 10px">
+<a href="#" aria-current="page" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: {{primary}}; font-size: 11.5px; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Tổng quan</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #4B4760; font-size: 11.5px; font-weight: 500; text-decoration: none">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2l-1 1-3-2-3 2-3-2-3 2-3-2z"></path><path d="M8 8h8"></path><path d="M8 12h8"></path></svg>Đơn hàng</a>
+<a href="#" style="position: relative; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #4B4760; font-size: 11.5px; font-weight: 500; text-decoration: none">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Xử lý (3)</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #4B4760; font-size: 11.5px; font-weight: 500; text-decoration: none">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>Học viên</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #4B4760; font-size: 11.5px; font-weight: 500; text-decoration: none">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>Thêm</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"$preview":{"width":390,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { granted: {} };
+  }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const granted = this.state.granted;
+    const setGranted = (code, on) => this.setState({ granted: { ...granted, [code]: on } });
+    const base = [
+      { code: 'ME-1051', name: 'Trần Văn B', course: 'Từ vựng buồng máy', price: '249.000đ', received: '240.000đ', receivedColor: '#9A3412', reason: 'Thiếu 9.000đ', waiting: '43 phút' },
+      { code: 'ME-1047', name: 'Lê Minh C', course: 'Phỏng vấn xin việc', price: '349.000đ', received: '349.000đ', receivedColor: '#1C1630', reason: 'Sai nội dung chuyển khoản', waiting: '14 giờ' },
+      { code: 'ME-1039', name: 'Phạm Đức D', course: 'Giao tiếp trên tàu', price: '199.000đ', received: '199.000đ', receivedColor: '#1C1630', reason: 'Tiền về sau hạn 15 phút', waiting: '27 giờ' }
+    ];
+    const manual = base.map((m) => ({
+      ...m,
+      done: !!granted[m.code],
+      open: !granted[m.code],
+      grant: () => setGranted(m.code, true),
+      undo: () => setGranted(m.code, false)
+    }));
+    const st = {
+      paid: { label: 'Đã thanh toán', bg: '#DCFCE7', fg: '#166534' },
+      pending: { label: 'Chờ thanh toán', bg: '#E0E7FF', fg: '#3730A3' },
+      expired: { label: 'Hết hạn', bg: '#F1F0F5', fg: '#4B4760' },
+      manual: { label: 'Cần xử lý tay', bg: '#FFEDD5', fg: '#9A3412' }
+    };
+    const orders = [
+      { code: 'ME-1054', name: 'Nguyễn Văn A', course: 'Phỏng vấn', amount: '349.000đ', s: 'paid', time: '11:20' },
+      { code: 'ME-1053', name: 'Đỗ Thị F', course: 'Giao tiếp', amount: '159.200đ', s: 'paid', time: '11:05' },
+      { code: 'ME-1052', name: 'Vũ Văn G', course: 'Từ vựng', amount: '249.000đ', s: 'pending', time: '10:58' },
+      { code: 'ME-1051', name: 'Trần Văn B', course: 'Từ vựng', amount: '249.000đ', s: 'manual', time: '10:42' },
+      { code: 'ME-1049', name: 'Ngô Văn I', course: 'Giao tiếp', amount: '199.000đ', s: 'expired', time: '08:12' }
+    ].map((o) => ({ ...o, status: st[o.s].label, bg: st[o.s].bg, fg: st[o.s].fg }));
+    return { primary, manual, orders };
+  }
+}
+</script>
+</body>
+</html>

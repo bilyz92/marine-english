@@ -1,0 +1,15 @@
+{
+  "output": "D:\\project-marine-english\\Quy_trinh_xay_dung_app_tieng_Anh_cho_thuyen_vien_may_bo_sung_ho_so_hoc_vien.docx",
+  "original_paragraphs": 236,
+  "updated_paragraphs": 310,
+  "replaced_paragraphs": 11,
+  "inserted_paragraphs": 74,
+  "tables": 11,
+  "inline_images": 2,
+  "backup_sha256": "8930663b20539c7b74f20a8e84c375f29ef1056d371d398b482e67d2fcab4cac",
+  "sha256": "04c5fb74e630bc804c8f902d74f7febed2e06e3ed2333e69d3c83d1b6228cf04",
+  "content_checks": "passed",
+  "xml_validation": "passed",
+  "original_media_unchanged": true,
+  "render_status": "unavailable: LibreOffice not installed"
+}

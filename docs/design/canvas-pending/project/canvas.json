@@ -1,0 +1,234 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "About.dc.html": {
+      "expand": "fill",
+      "h": 3000,
+      "page": "ban-hang",
+      "title": "5 · Giới thiệu về tôi",
+      "w": 1440,
+      "x": 5030,
+      "y": 0
+    },
+    "Account.dc.html": {
+      "expand": "fill",
+      "h": 2300,
+      "is_interactive": true,
+      "page": "ban-hang",
+      "title": "9 · Tài khoản của tôi (hồ sơ thuyền viên)",
+      "w": 1440,
+      "x": 4560,
+      "y": 4020
+    },
+    "Artboard-zd48.dc.html": {
+      "h": 600,
+      "page": "page-vq9ezs",
+      "title": "Artboard 1",
+      "w": 800,
+      "x": 0,
+      "y": 0
+    },
+    "BuyerInfo.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "is_interactive": true,
+      "page": "ban-hang",
+      "title": "12 · Thông tin người mua (khi bấm Mua khóa học)",
+      "w": 1440,
+      "x": 9120,
+      "y": 4020
+    },
+    "Catalog.dc.html": {
+      "expand": "fill",
+      "h": 1700,
+      "is_interactive": true,
+      "page": "ban-hang",
+      "title": "6 · Danh sách khóa học",
+      "w": 1440,
+      "x": 0,
+      "y": 4020
+    },
+    "Checkout.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "is_interactive": true,
+      "page": "ban-hang",
+      "title": "3 · Thanh toán VietQR",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Contact.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "page": "ban-hang",
+      "title": "11 · Liên hệ",
+      "w": 1440,
+      "x": 7600,
+      "y": 4020
+    },
+    "Content.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "is_interactive": true,
+      "page": "quan-tri",
+      "title": "Nội dung · máy tính (thêm bài viết, luồng, liên kết)",
+      "w": 1440,
+      "x": 1990,
+      "y": 0
+    },
+    "ContentMobile.dc.html": {
+      "h": 1600,
+      "is_interactive": true,
+      "page": "quan-tri",
+      "title": "Nội dung · điện thoại",
+      "w": 390,
+      "x": 3510,
+      "y": 0
+    },
+    "Course.dc.html": {
+      "expand": "fill",
+      "h": 2300,
+      "page": "ban-hang",
+      "title": "2 · Chi tiết khóa học",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "CadetCourse.dc.html": {
+      "h": 1900,
+      "is_interactive": true,
+      "page": "app-hoc",
+      "title": "A · Engine Cadet · tổng quan khóa (điện thoại)",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "CadetLesson.dc.html": {
+      "h": 2200,
+      "is_interactive": true,
+      "page": "app-hoc",
+      "title": "B · Bài A023-1 · ba mức học (điện thoại)",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "Home.dc.html": {
+      "expand": "fill",
+      "h": 3900,
+      "page": "ban-hang",
+      "title": "1 · Trang chủ",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Login.dc.html": {
+      "expand": "fill",
+      "h": 1400,
+      "is_interactive": true,
+      "page": "ban-hang",
+      "title": "7 · Đăng ký / đăng nhập (biểu mẫu ngắn 3 trường)",
+      "w": 1440,
+      "x": 1520,
+      "y": 4020
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 1760,
+      "is_interactive": true,
+      "page": "quan-tri",
+      "title": "Dashboard quản trị · máy tính",
+      "w": 1440,
+      "x": -333,
+      "y": 0
+    },
+    "Mobile.dc.html": {
+      "h": 1700,
+      "is_interactive": true,
+      "page": "quan-tri",
+      "title": "Dashboard quản trị · điện thoại (dùng trên tàu)",
+      "w": 390,
+      "x": 1520,
+      "y": 0
+    },
+    "MobileCheckout.dc.html": {
+      "h": 1300,
+      "is_interactive": true,
+      "page": "ban-hang",
+      "title": "4 · Thanh toán trên điện thoại",
+      "w": 390,
+      "x": 4560,
+      "y": 0
+    },
+    "MyCourses.dc.html": {
+      "expand": "fill",
+      "h": 1400,
+      "page": "ban-hang",
+      "title": "8 · Khóa học của tôi",
+      "w": 1440,
+      "x": 3040,
+      "y": 4020
+    },
+    "Policies.dc.html": {
+      "expand": "fill",
+      "h": 1600,
+      "is_interactive": true,
+      "page": "ban-hang",
+      "title": "10 · Chính sách",
+      "w": 1440,
+      "x": 6080,
+      "y": 4020
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-26T14:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "page": "ban-hang",
+    "view": "canvas"
+  },
+  "notes": {},
+  "order": [
+    "Main.dc.html",
+    "Mobile.dc.html",
+    "Content.dc.html",
+    "ContentMobile.dc.html",
+    "Artboard-zd48.dc.html",
+    "Home.dc.html",
+    "Course.dc.html",
+    "Checkout.dc.html",
+    "MobileCheckout.dc.html",
+    "About.dc.html",
+    "Catalog.dc.html",
+    "Login.dc.html",
+    "MyCourses.dc.html",
+    "Account.dc.html",
+    "Policies.dc.html",
+    "Contact.dc.html",
+    "BuyerInfo.dc.html",
+    "CadetCourse.dc.html",
+    "CadetLesson.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "ban-hang",
+      "name": "Bán hàng"
+    },
+    {
+      "id": "quan-tri",
+      "name": "Quản trị"
+    },
+    {
+      "id": "app-hoc",
+      "name": "App học"
+    },
+    {
+      "id": "page-vq9ezs",
+      "name": "Page 3"
+    }
+  ],
+  "title": "Marine English – Dashboard quản trị"
+}

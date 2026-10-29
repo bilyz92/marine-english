@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Bài A023-1 chu trình diesel hai kỳ</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+button:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 2200px; box-sizing: border-box; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 15px; line-height: 1.55; display: flex; flex-direction: column">
+
+<header style="padding: 12px 16px; background: #FFFFFF; border-bottom: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px">
+<a href="CadetCourse.dc.html" aria-label="Quay lại danh sách bài" style="width: 44px; height: 44px; border-radius: 10px; border: 1px solid #E7E5EE; color: #3A3550; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+<div style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-size: 12px; color: #5B5670; font-weight: 600">A4 · Động cơ diesel · Bài A023-1</span>
+<strong style="font-size: 15px">Chu trình động cơ diesel hai kỳ</strong>
+</div>
+</div>
+<div role="tablist" aria-label="Mức trợ giúp" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #F1F0F5">
+<sc-for list="{{levelTabs}}" as="t" hint-placeholder-count="3">
+<button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="flex: 1 1 0; min-height: 44px; border: 0; border-radius: 9px; background: {{t.bg}}; color: {{t.fg}}; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer">{{t.label}}</button>
+</sc-for>
+</div>
+</header>
+
+<main style="padding: 16px; display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto">
+<p style="margin: 0; font-size: 13px; color: #5B5670">{{levelLabel}}</p>
+<p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #F1ECFB; color: #2A1F4D; font-size: 14px">{{levelTask}}</p>
+
+<!-- Main question: always present; Vietnamese first only in Level 1 -->
+<section aria-label="Câu hỏi chính" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 700; color: #5B5670; text-transform: uppercase; letter-spacing: 0.05em">Câu hỏi phỏng vấn</span>
+<sc-if value="{{showViFirst}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 16px; font-weight: 600">Giải thích chu trình động cơ diesel hai kỳ.</p></sc-if>
+<p style="margin: 0; font-size: 18px; font-weight: 800; color: {{primary}}">Explain the two-stroke diesel engine cycle.</p>
+<sc-if value="{{viToggleVisible}}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{viShown}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; color: #3A3550">Giải thích chu trình động cơ diesel hai kỳ.</p></sc-if>
+<button type="button" onClick="{{toggleVi}}" style="align-self: flex-start; min-height: 40px; padding: 0 12px; border: 1px solid #CFC6E6; border-radius: 8px; background: #FFFFFF; color: #3A3550; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{viToggleLabel}}</button>
+</sc-if>
+<button type="button" disabled aria-label="Nghe câu hỏi, chưa có audio" style="align-self: flex-start; min-height: 40px; padding: 0 12px; border: 1px solid #E7E5EE; border-radius: 8px; background: #F8F7FB; color: #4B4760; font: inherit; font-size: 13px">▶ Nghe · chưa có audio</button>
+</section>
+
+<!-- ===== LEVEL 1 ===== -->
+<sc-if value="{{isL1}}" hint-placeholder-val="{{ true }}">
+<section aria-label="Cụm từ của bài" style="display: flex; flex-wrap: wrap; gap: 6px">
+<span style="padding: 6px 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E7E5EE"><strong>strokes</strong> · hành trình</span>
+<span style="padding: 6px 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E7E5EE"><strong>revolution</strong> · vòng quay</span>
+<span style="padding: 6px 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E7E5EE"><strong>scavenging</strong> · quét khí</span>
+</section>
+
+<section aria-labelledby="h-unit" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 2px solid {{primary}}; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="padding: 3px 10px; border-radius: 999px; background: {{unit.tagBg}}; color: {{unit.tagFg}}; font-size: 12px; font-weight: 700">{{unit.tag}}</span>
+<span style="font-size: 13px; color: #5B5670">Phần {{unit.no}}/6</span>
+</div>
+<div role="progressbar" aria-label="Tiến độ câu nhỏ" aria-valuemin="0" aria-valuemax="6" aria-valuenow="{{unit.no}}" style="height: 6px; border-radius: 3px; background: #EDEAF4; overflow: hidden"><div style="width: {{unit.pct}}; height: 6px; background: {{primary}}"></div></div>
+<p id="h-unit" style="margin: 0; font-weight: 600">{{unit.qVi}}</p>
+<p style="margin: 0; font-size: 17px; font-weight: 800; color: {{primary}}">{{unit.qEn}}</p>
+<sc-if value="{{unit.answerShown}}" hint-placeholder-val="{{ true }}">
+<div style="padding: 12px; border-radius: 10px; background: #F0FDF4; border: 1px solid #BBF7D0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; font-weight: 700; color: #166534">Đáp án ngắn</span>
+<span style="font-weight: 700">{{unit.aEn}}</span>
+<span style="color: #3A3550">{{unit.aVi}}</span>
+</div>
+</sc-if>
+<sc-if value="{{unit.answerHidden}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 14px; border-radius: 10px; background: #F8F7FB; border: 1px dashed #CFC6E6; color: #3A3550; text-align: center">Đáp án đang che. Tự nói câu trả lời bằng tiếng Anh.</div>
+</sc-if>
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{toggleCover}}" style="flex: 1 1 0; min-height: 48px; border: 1.5px solid #CFC6E6; border-radius: 10px; background: #FFFFFF; color: #1C1630; font: inherit; font-weight: 600; cursor: pointer">{{coverLabel}}</button>
+<button type="button" onClick="{{nextUnit}}" style="flex: 1 1 0; min-height: 48px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">{{nextLabel}}</button>
+</div>
+<button type="button" onClick="{{prevUnit}}" disabled="{{atFirst}}" style="min-height: 40px; border: 0; background: transparent; color: #3A3550; font: inherit; font-size: 14px; cursor: pointer">← Phần trước</button>
+</section>
+
+<section aria-labelledby="h-gap" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 12px">
+<h2 id="h-gap" style="margin: 0; font-size: 16px; font-weight: 800">Điền cụm từ</h2>
+<sc-for list="{{gaps}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid #F1F0F5">
+<label for="{{g.inputId}}" style="font-weight: 600">{{g.promptEn}}</label>
+<span style="font-size: 13px; color: #5B5670">{{g.promptVi}}</span>
+<div style="display: flex; gap: 8px">
+<input id="{{g.inputId}}" value="{{g.value}}" onChange="{{g.onInput}}" autocomplete="off" autocapitalize="off" style="flex: 1 1 auto; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{g.bd}}; border-radius: 10px; font: inherit">
+<button type="button" onClick="{{g.check}}" style="flex: 0 0 auto; min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: {{primary}}; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">Kiểm tra</button>
+</div>
+<sc-if value="{{g.hasResult}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; font-size: 14px; color: {{g.resultColor}}">{{g.result}}</p></sc-if>
+</div>
+</sc-for>
+</section>
+<p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; font-size: 14px"><strong>Xong Mức 1:</strong> Dùng các câu ngắn để giải thích chủ đề rồi học đáp án đầy đủ ở Mức 2.</p>
+</sc-if>
+
+<!-- ===== LEVEL 2 ===== -->
+<sc-if value="{{isL2}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="h-outline" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 10px">
+<h2 id="h-outline" style="margin: 0; font-size: 16px; font-weight: 800">Dàn ý · ba ý bắt buộc</h2>
+<ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px">
+<li><strong>One cycle uses two piston strokes and one crankshaft revolution.</strong><sc-if value="{{viShown}}" hint-placeholder-val="{{ false }}"><br><span style="color: #3A3550">Một chu trình gồm hai hành trình piston và một vòng trục khuỷu.</span></sc-if></li>
+<li><strong>Compression and combustion expansion produce mechanical work.</strong><sc-if value="{{viShown}}" hint-placeholder-val="{{ false }}"><br><span style="color: #3A3550">Nén và cháy giãn nở tạo công cơ học.</span></sc-if></li>
+<li><strong>Exhaust and scavenging exchange gases according to the engine design.</strong><sc-if value="{{viShown}}" hint-placeholder-val="{{ false }}"><br><span style="color: #3A3550">Xả và quét khí thực hiện trao đổi khí theo thiết kế động cơ.</span></sc-if></li>
+</ol>
+<p style="margin: 0; font-size: 13px; color: #5B5670">Gợi ý thời lượng nói 20–60 giây. Chỉ là gợi ý, không dùng để kết luận đạt hay chưa đạt.</p>
+</section>
+</sc-if>
+
+<!-- Attempt gate for Level 2 and 3 -->
+<sc-if value="{{showAttempt}}" hint-placeholder-val="{{ false }}">
+<section aria-label="Tự trả lời" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-weight: 600">{{attemptPrompt}}</p>
+<button type="button" disabled style="min-height: 48px; border: 1px solid #E7E5EE; border-radius: 10px; background: #F8F7FB; color: #4B4760; font: inherit">Ghi âm · chưa nối dịch vụ</button>
+<button type="button" onClick="{{markAttempted}}" style="min-height: 52px; border: 0; border-radius: 12px; background: #C2410C; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">{{attemptButton}}</button>
+<sc-if value="{{isL2}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{askHelp}}" style="min-height: 44px; border: 0; background: transparent; color: #3A3550; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Cần trợ giúp: xem đáp án ngay</button></sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{showMeaning}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="h-mc" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 10px">
+<h2 id="h-mc" style="margin: 0; font-size: 16px; font-weight: 800">Chọn câu trả lời đúng câu đang hỏi</h2>
+<p style="margin: 0; font-weight: 700">How many crankshaft revolutions are needed?</p>
+<sc-if value="{{viShown}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; color: #3A3550">Cần mấy vòng trục khuỷu?</p></sc-if>
+<div role="radiogroup" aria-labelledby="h-mc" style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{options}}" as="o" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="min-height: 52px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid {{o.bd}}; background: {{o.bg}}; color: #1C1630; font: inherit; text-align: left; cursor: pointer; display: flex; gap: 10px"><strong style="flex: 0 0 auto">{{o.id}}</strong><span>{{o.text}}</span></button>
+</sc-for>
+</div>
+<sc-if value="{{mcAnswered}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: {{mcBg}}; color: {{mcFg}}; font-size: 14px">{{mcFeedback}}</p></sc-if>
+</section>
+</sc-if>
+
+<!-- Feedback and model answer: after attempt (L2/L3) -->
+<sc-if value="{{showAnswer}}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{isL3}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="h-self" style="padding: 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 8px">
+<h2 id="h-self" style="margin: 0; font-size: 16px; font-weight: 800">Tự đối chiếu ba ý bắt buộc</h2>
+<sc-for list="{{selfChecks}}" as="c" hint-placeholder-count="3">
+<label style="display: flex; gap: 10px; align-items: flex-start"><input type="checkbox" checked="{{c.on}}" onChange="{{c.toggle}}" style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: #5B21B6"><span>{{c.text}}</span></label>
+</sc-for>
+<p style="margin: 0; font-size: 13px; color: #5B5670">Tự đánh dấu để ôn, không phải kết quả chấm.</p>
+</section>
+</sc-if>
+<section aria-labelledby="h-mistake" style="padding: 16px; border-radius: 14px; background: #FFF7ED; border: 1px solid #FDBA74; display: flex; flex-direction: column; gap: 6px; color: #7C2D12">
+<h2 id="h-mistake" style="margin: 0; font-size: 16px; font-weight: 800">Lỗi hay gặp: trả lời thiếu</h2>
+<p style="margin: 0">Chỉ trả lời rồi dừng ở: Chu trình có hai hành trình piston.</p>
+<p style="margin: 0">Đây mới là phần đầu. Cần bổ sung: Một chu trình cần một vòng trục khuỷu. Xả và quét khí trao đổi khí theo thiết kế.</p>
+</section>
+<section aria-labelledby="h-model" style="padding: 16px; border-radius: 14px; background: #F0FDF4; border: 1px solid #BBF7D0; display: flex; flex-direction: column; gap: 8px">
+<h2 id="h-model" style="margin: 0; font-size: 16px; font-weight: 800; color: #166534">Đáp án mẫu</h2>
+<p style="margin: 0; font-weight: 600">One cycle uses two piston strokes and one crankshaft revolution. Compression and combustion expansion produce mechanical work. Exhaust and scavenging exchange gases according to the engine design.</p>
+<p style="margin: 0; color: #3A3550">Một chu trình gồm hai hành trình piston và một vòng trục khuỷu. Nén và cháy giãn nở tạo công cơ học. Xả và quét khí thực hiện trao đổi khí theo thiết kế động cơ.</p>
+<button type="button" disabled style="align-self: flex-start; min-height: 40px; padding: 0 12px; border: 1px solid #BBF7D0; border-radius: 8px; background: #FFFFFF; color: #4B4760; font: inherit; font-size: 13px">▶ Nghe đáp án · chưa có audio</button>
+</section>
+<sc-if value="{{isL3}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #CFC6E6; font-size: 14px; color: #3A3550">Bài này chỉ có câu hỏi gốc và chưa có câu hỏi phụ được duyệt.</p>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{hasHelp}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 13px; color: #5B5670">Đã dùng trợ giúp: {{helpUsed}}</p>
+</sc-if>
+<p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E7E5EE; font-size: 13px; color: #3A3550">Câu nhỏ hoặc bài chọn đáp án đúng chưa chứng minh đã trả lời đủ câu phỏng vấn chính. Cả bài chỉ được đánh giá theo câu đầy đủ, ba ý bắt buộc và quy tắc an toàn. Học liệu đang chờ giảng viên duyệt.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"startLevel":{"editor":"enum","default":"foundation","options":["foundation","developing","independent"]},"$preview":{"width":390,"height":2200}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { level: props.startLevel || 'foundation', unit: 0, covered: false, gaps: {}, gapResults: {}, viShown: false, attempted: {}, mc: null, checks: {}, help: [] };
+  }
+  useHelp(text) { if (!this.state.help.includes(text)) this.setState({ help: [...this.state.help, text] }); }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const s = this.state;
+    // Content copied verbatim from Engine_Cadet_Learning_Data_v6.json, lesson A023-1.
+    const units = [
+      ['pre', 'What is a piston stroke?', 'Hành trình piston là gì?', 'It is one movement between the top and bottom positions.', 'Đó là một lần chuyển động giữa vị trí trên và dưới.'],
+      ['pre', 'What is a revolution?', 'Một vòng quay là gì?', 'It is one complete turn of the shaft.', 'Đó là một vòng quay trọn của trục.'],
+      ['pre', 'What is scavenging?', 'Quét khí là gì?', 'Fresh air helps remove exhaust gas from the cylinder.', 'Không khí mới giúp đẩy khí xả khỏi xi lanh.'],
+      ['core', 'How many strokes are in a two-stroke cycle?', 'Chu trình hai kỳ có mấy hành trình?', 'It has two piston strokes.', 'Chu trình có hai hành trình piston.'],
+      ['core', 'How many crankshaft revolutions are needed?', 'Cần mấy vòng trục khuỷu?', 'One cycle takes one crankshaft revolution.', 'Một chu trình cần một vòng trục khuỷu.'],
+      ['core', 'How are the gases exchanged?', 'Trao đổi khí thế nào?', 'Exhaust and scavenging exchange the gases according to the design.', 'Xả và quét khí trao đổi khí theo thiết kế.']
+    ];
+    const gapsData = [
+      ['g1', 'It has two piston ____.', 'Điền cụm tiếng Anh có nghĩa: hành trình', 'strokes', 'Dùng cụm strokes có nghĩa hành trình.'],
+      ['g2', 'One cycle takes one crankshaft ____.', 'Điền cụm tiếng Anh có nghĩa: vòng quay', 'revolution', 'Dùng cụm revolution có nghĩa vòng quay.'],
+      ['g3', 'Exhaust and ____ exchange the gases according to the design.', 'Điền cụm tiếng Anh có nghĩa: quét khí', 'scavenging', 'Dùng cụm scavenging có nghĩa quét khí.']
+    ];
+    const levelMeta = {
+      foundation: ['Mức 1', 'Mức 1 Chưa biết hoặc còn yếu', 'Học một câu nhỏ và đáp án mỗi lần. Câu kỹ thuật khó có thêm phần giải thích thuật ngữ trước. Che đáp án rồi tự nói lại; không cần nhớ cả đoạn ngay.'],
+      developing: ['Mức 2', 'Mức 2 Đã có tiếng Anh cơ bản', 'Trả lời câu đầy đủ theo ba ý. Tự nói trước, sau đó so với đáp án mẫu Anh–Việt đầy đủ.'],
+      independent: ['Mức 3', 'Mức 3 Tiếng Anh khá tốt', 'Trả lời không nhìn dàn ý. Luyện cách hỏi khác nếu có rồi trả lời câu phụ được duyệt.']
+    };
+    const isL1 = s.level === 'foundation', isL2 = s.level === 'developing', isL3 = s.level === 'independent';
+    const levelTabs = Object.entries(levelMeta).map(([id, v]) => {
+      const on = s.level === id;
+      return { label: v[0], sel: on ? 'true' : 'false', bg: on ? primary : 'transparent', fg: on ? '#FFFFFF' : '#1C1630', pick: () => this.setState({ level: id, viShown: false }) };
+    });
+    const u = units[s.unit];
+    const last = s.unit === units.length - 1;
+    const gaps = gapsData.map(([id, en, vi, answer, feedback]) => {
+      const value = s.gaps[id] || ''; const result = s.gapResults[id];
+      return { inputId: 'gap-' + id, promptEn: en, promptVi: vi, value,
+        onInput: (ev) => this.setState({ gaps: { ...s.gaps, [id]: ev.target.value }, gapResults: { ...s.gapResults, [id]: undefined } }),
+        check: () => this.setState({ gapResults: { ...s.gapResults, [id]: value.trim().toLowerCase() === answer ? 'ok' : 'wrong' } }),
+        hasResult: Boolean(result), result: result === 'ok' ? 'Đúng. ' + feedback : 'Chưa đúng. Gợi ý: ' + vi.replace('Điền cụm tiếng Anh có nghĩa: ', '') + '. ' + feedback,
+        resultColor: result === 'ok' ? '#166534' : '#B91C1C', bd: result === 'ok' ? '#16A34A' : result === 'wrong' ? '#B91C1C' : '#CFC6E6' };
+    });
+    const optionsData = [
+      ['A', 'Exhaust and scavenging exchange the gases according to the design.', 'Xả và quét khí trao đổi khí theo thiết kế.'],
+      ['B', 'It has two piston strokes.', 'Chu trình có hai hành trình piston.'],
+      ['C', 'One cycle takes one crankshaft revolution.', 'Một chu trình cần một vòng trục khuỷu.']
+    ];
+    const options = optionsData.map(([id, en, vi]) => {
+      const on = s.mc === id; const answered = s.mc !== null; const correct = id === 'C';
+      return { id, text: s.viShown ? en + ' · ' + vi : en, checked: on ? 'true' : 'false',
+        bd: answered && correct ? '#16A34A' : on ? '#B91C1C' : '#CFC6E6', bg: answered && correct ? '#F0FDF4' : on ? '#FEF2F2' : '#FFFFFF',
+        pick: () => this.setState({ mc: id }) };
+    });
+    const attempted = Boolean(s.attempted[s.level]);
+    const points = ['One cycle uses two piston strokes and one crankshaft revolution.', 'Compression and combustion expansion produce mechanical work.', 'Exhaust and scavenging exchange gases according to the engine design.'];
+    const selfChecks = points.map((text, i) => ({ text, on: Boolean(s.checks[i]), toggle: (ev) => this.setState({ checks: { ...s.checks, [i]: ev.target.checked } }) }));
+    return {
+      primary, levelTabs, isL1, isL2, isL3, levelLabel: levelMeta[s.level][1], levelTask: levelMeta[s.level][2],
+      showViFirst: isL1, viToggleVisible: !isL1, viShown: s.viShown,
+      viToggleLabel: s.viShown ? 'Ẩn tiếng Việt' : 'Hiện tiếng Việt',
+      toggleVi: () => { if (!s.viShown) this.useHelp('xem tiếng Việt (' + levelMeta[s.level][0] + ')'); this.setState({ viShown: !s.viShown }); },
+      unit: { no: s.unit + 1, pct: Math.round((s.unit + 1) / units.length * 100) + '%', tag: u[0] === 'pre' ? 'Thuật ngữ trước' : 'Ý chính',
+        tagBg: u[0] === 'pre' ? '#E0E7FF' : '#DCFCE7', tagFg: u[0] === 'pre' ? '#3730A3' : '#166534',
+        qEn: u[1], qVi: u[2], aEn: u[3], aVi: u[4], answerShown: !s.covered, answerHidden: s.covered },
+      coverLabel: s.covered ? 'Mở đáp án' : 'Che đáp án, tự nói',
+      toggleCover: () => this.setState({ covered: !s.covered }),
+      nextLabel: last ? 'Về phần 1' : 'Phần tiếp',
+      nextUnit: () => this.setState({ unit: last ? 0 : s.unit + 1, covered: false }),
+      prevUnit: () => this.setState({ unit: Math.max(0, s.unit - 1), covered: false }),
+      atFirst: s.unit === 0, gaps,
+      showAttempt: !isL1 && !attempted,
+      attemptPrompt: isL2 ? 'Nhìn dàn ý, tự nói câu trả lời đầy đủ trước khi xem đáp án.' : 'Tự trả lời bằng lời của mình. Không có dàn ý hay bản dịch.',
+      attemptButton: 'Tôi đã thử nói',
+      markAttempted: () => this.setState({ attempted: { ...s.attempted, [s.level]: true } }),
+      askHelp: () => { this.useHelp('xem đáp án trước khi tự nói (Mức 2)'); this.setState({ attempted: { ...s.attempted, [s.level]: true } }); },
+      showMeaning: isL2, options, mcAnswered: s.mc !== null,
+      mcFeedback: s.mc === 'C' ? 'C trả lời đúng câu đang hỏi. Các lựa chọn còn lại nói về phần khác của bài.' : 'Chưa đúng. C trả lời đúng câu đang hỏi. Các lựa chọn còn lại nói về phần khác của bài.',
+      mcBg: s.mc === 'C' ? '#F0FDF4' : '#FEF2F2', mcFg: s.mc === 'C' ? '#166534' : '#991B1B',
+      showAnswer: !isL1 && attempted, selfChecks,
+      hasHelp: s.help.length > 0, helpUsed: s.help.join('; ')
+    };
+  }
+}
+</script>
+</body>
+</html>

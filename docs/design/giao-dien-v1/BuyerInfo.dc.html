@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thông tin người mua</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}a:hover{color:#4C1D95}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="border-bottom: 1px solid #EEECF3; background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="Home.dc.html" style="display: flex; align-items: center; gap: 10px; color: #1C1630; text-decoration: none">
+<span style="width: 40px; height: 40px; border-radius: 10px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"></circle><path d="M12 7v14"></path><path d="M5 12H3a9 9 0 0 0 18 0h-2"></path><path d="M8 10h8"></path></svg></span>
+<span style="font-weight: 800; font-size: 18px">Marine English</span>
+</a>
+<ol aria-label="Các bước mua" style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; font-size: 14px">
+<li aria-current="step" style="padding: 6px 12px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; font-weight: 700">1 · Thông tin</li>
+<li style="padding: 6px 12px; border-radius: 999px; background: #EDEAF4; color: #4B4760; font-weight: 600">2 · Quét VietQR</li>
+<li style="padding: 6px 12px; border-radius: 999px; background: #EDEAF4; color: #4B4760; font-weight: 600">3 · Vào học</li>
+</ol>
+</div>
+</header>
+
+<main style="max-width: 1100px; margin: 0 auto; padding: 40px 24px 72px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+
+<section aria-labelledby="h-buyer" style="flex: 999 1 520px; min-width: 0; box-sizing: border-box; padding: 28px; border-radius: 20px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 18px">
+<sc-if value="{{editing}}" hint-placeholder-val="{{ true }}">
+<h1 id="h-buyer" style="margin: 0; font-size: 28px; line-height: 1.25; font-weight: 800">Thông tin người mua</h1>
+<p style="margin: 0; color: #3A3550">Dùng để tạo tài khoản học, gửi xác nhận đơn và mở khóa học đúng người.</p>
+<sc-if value="{{signedIn}}" hint-placeholder-val="{{ false }}">
+<p role="note" style="margin: 0; padding: 10px 14px; border-radius: 10px; background: #F1ECFB; color: #4C1D95; font-size: 15px">Đã điền sẵn từ tài khoản của bạn. Sửa nếu cần.</p>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="b-name" style="font-weight: 600">Họ và tên <span style="color: #B91C1C">*</span></label>
+<input id="b-name" autocomplete="name" maxlength="80" value="{{f.name}}" onChange="{{on.name}}" aria-invalid="{{e.nameInv}}" aria-describedby="b-name-err" style="min-height: 48px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{e.nameBd}}; border-radius: 10px; font: inherit">
+<sc-if value="{{e.hasName}}" hint-placeholder-val="{{ false }}"><p id="b-name-err" style="margin: 0; color: #B91C1C; font-size: 14px">{{e.name}}</p></sc-if>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="b-phone" style="font-weight: 600">Số điện thoại <span style="color: #B91C1C">*</span></label>
+<input id="b-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="09xx xxx xxx" value="{{f.phone}}" onChange="{{on.phone}}" aria-invalid="{{e.phoneInv}}" aria-describedby="b-phone-help b-phone-err" style="min-height: 48px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{e.phoneBd}}; border-radius: 10px; font: inherit">
+<p id="b-phone-help" style="margin: 0; color: #5B5670; font-size: 13px">Dùng làm tên đăng nhập vào app.</p>
+<sc-if value="{{e.hasPhone}}" hint-placeholder-val="{{ false }}"><p id="b-phone-err" style="margin: 0; color: #B91C1C; font-size: 14px">{{e.phone}}</p></sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="b-email" style="font-weight: 600">Email <sc-if value="{{emailRequired}}" hint-placeholder-val="{{ false }}"><span style="color: #B91C1C">*</span></sc-if><sc-if value="{{emailOptional}}" hint-placeholder-val="{{ true }}"><span style="font-weight: 400; color: #5B5670">(không bắt buộc)</span></sc-if></label>
+<input id="b-email" type="email" inputmode="email" autocomplete="email" placeholder="ten@email.com" value="{{f.email}}" onChange="{{on.email}}" aria-invalid="{{e.emailInv}}" aria-describedby="b-email-help b-email-err" style="min-height: 48px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{e.emailBd}}; border-radius: 10px; font: inherit">
+<p id="b-email-help" style="margin: 0; color: #5B5670; font-size: 13px">Nhận xác nhận đơn và link vào app.</p>
+<sc-if value="{{e.hasEmail}}" hint-placeholder-val="{{ false }}"><p id="b-email-err" style="margin: 0; color: #B91C1C; font-size: 14px">{{e.email}}</p></sc-if>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="b-rank" style="font-weight: 600">Chức danh <span style="color: #B91C1C">*</span></label>
+<select id="b-rank" value="{{f.rank}}" onChange="{{on.rank}}" aria-invalid="{{e.rankInv}}" aria-describedby="b-rank-err" style="min-height: 48px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{e.rankBd}}; border-radius: 10px; font: inherit; background: #FFFFFF">
+<option value="">Chọn chức danh</option>
+<option value="ce">Máy trưởng</option><option value="2e">Máy hai</option><option value="3e">Máy ba</option><option value="4e">Máy tư</option>
+<option value="eto">Sĩ quan điện</option><option value="fitter">Thợ cả</option><option value="oiler">Thợ máy</option><option value="wiper">Thợ máy phụ</option>
+<option value="cadet">Thực tập sinh máy</option><option value="student">Đang học trường hàng hải</option><option value="deck">Bộ phận boong</option><option value="other">Khác / chưa xác định</option>
+</select>
+<sc-if value="{{e.hasRank}}" hint-placeholder-val="{{ false }}"><p id="b-rank-err" style="margin: 0; color: #B91C1C; font-size: 14px">{{e.rank}}</p></sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px">
+<label style="display: flex; gap: 10px; align-items: flex-start"><input type="checkbox" checked="{{f.terms}}" onChange="{{on.terms}}" aria-invalid="{{e.termsInv}}" style="width: 20px; height: 20px; margin: 3px 0 0; accent-color: #5B21B6"><span>Tôi đồng ý <a href="Policies.dc.html">điều khoản sử dụng</a> và <a href="Policies.dc.html">chính sách hoàn tiền</a>. <span style="color: #B91C1C">*</span></span></label>
+<sc-if value="{{e.hasTerms}}" hint-placeholder-val="{{ false }}"><p style="margin: 0 0 0 30px; color: #B91C1C; font-size: 14px">{{e.terms}}</p></sc-if>
+<label style="display: flex; gap: 10px; align-items: flex-start"><input type="checkbox" checked="{{f.marketing}}" onChange="{{on.marketing}}" style="width: 20px; height: 20px; margin: 3px 0 0; accent-color: #5B21B6"><span>Nhận thông tin khóa học mới và ưu đãi <span style="color: #5B5670">(không bắt buộc, không ảnh hưởng việc mua)</span></span></label>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5B5670">Thông tin chỉ dùng cho đơn hàng, tài khoản học và các lựa chọn bạn đánh dấu. Xem <a href="Policies.dc.html">chính sách bảo mật</a>.</p>
+
+<button type="button" onClick="{{submit}}" style="min-height: 56px; border: 0; border-radius: 12px; background: #C2410C; color: #FFFFFF; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Tiếp tục thanh toán</button>
+<sc-if value="{{hasErrors}}" hint-placeholder-val="{{ false }}"><p role="alert" style="margin: 0; color: #B91C1C; font-weight: 600">{{errorSummary}}</p></sc-if>
+</sc-if>
+
+<sc-if value="{{confirmed}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; flex-direction: column; gap: 14px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 800">Kiểm tra lại trước khi tạo mã QR</h1>
+<dl style="margin: 0; display: grid; grid-template-columns: minmax(120px, 160px) 1fr; gap: 8px 16px">
+<dt style="color: #5B5670">Họ và tên</dt><dd style="margin: 0; font-weight: 600">{{f.name}}</dd>
+<dt style="color: #5B5670">Số điện thoại</dt><dd style="margin: 0; font-weight: 600">{{f.phone}}</dd>
+<dt style="color: #5B5670">Email</dt><dd style="margin: 0; font-weight: 600">{{emailShown}}</dd>
+<dt style="color: #5B5670">Chức danh</dt><dd style="margin: 0; font-weight: 600">{{rankLabel}}</dd>
+</dl>
+<a href="Checkout.dc.html" style="min-height: 56px; border-radius: 12px; background: #C2410C; color: #FFFFFF; font-weight: 700; font-size: 18px; text-decoration: none; display: flex; align-items: center; justify-content: center">Tạo mã VietQR</a>
+<button type="button" onClick="{{edit}}" style="min-height: 44px; border: 0; background: transparent; color: #3A3550; font: inherit; font-weight: 600; cursor: pointer">← Sửa thông tin</button>
+</div>
+</sc-if>
+</section>
+
+<aside aria-labelledby="h-order" style="flex: 1 1 300px; min-width: 0; box-sizing: border-box; padding: 24px; border-radius: 20px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 14px">
+<h2 id="h-order" style="margin: 0; font-size: 20px; font-weight: 800">Đơn hàng</h2>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: #DCFCE7; color: #166534; font-size: 13px; font-weight: 600">Chuyên ngành</span>
+<strong style="font-size: 18px">Từ vựng buồng máy</strong>
+<span style="color: #5B5670; font-size: 14px">20 bài · học trọn đời</span>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid #F1F0F5">
+<span>Tổng thanh toán</span><span style="font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums">249.000đ</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5B5670">Giá do hệ thống tính theo khóa học, không lấy từ trình duyệt. Mã QR hết hạn sau 15 phút.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: #3A3550">
+<li>Thanh toán bằng VietQR, mọi ngân hàng Việt Nam</li>
+<li>Mở khóa ngay khi hệ thống nhận được tiền</li>
+<li>Hoàn 100% trong 7 ngày nếu học dưới 3 bài</li>
+</ul>
+</aside>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"emailRequired":{"editor":"boolean","default":false},"signedIn":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const signedIn = props.signedIn === true;
+    this.state = {
+      step: 'form', errors: {},
+      f: signedIn ? { name: 'Nguyễn Văn Minh', phone: '0912 345 678', email: '', rank: 'oiler', terms: false, marketing: false }
+                  : { name: '', phone: '', email: '', rank: '', terms: false, marketing: false }
+    };
+  }
+  set(key, value) { const errors = { ...this.state.errors }; delete errors[key]; this.setState({ f: { ...this.state.f, [key]: value }, errors }); }
+  validate(emailRequired) {
+    const f = this.state.f; const e = {};
+    if (!f.name.trim()) e.name = 'Nhập họ và tên.';
+    else if (f.name.trim().length < 2) e.name = 'Họ và tên quá ngắn.';
+    const phone = f.phone.replace(/[\s.()-]/g, '');
+    if (!phone) e.phone = 'Nhập số điện thoại.';
+    else if (!/^(0|\+84)[35789]\d{8}$/.test(phone)) e.phone = 'Số điện thoại chưa đúng. Ví dụ: 0912 345 678.';
+    const email = f.email.trim();
+    if (!email && emailRequired) e.email = 'Nhập email.';
+    else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Email chưa đúng định dạng.';
+    if (!f.rank) e.rank = 'Chọn chức danh, hoặc “Khác / chưa xác định”.';
+    if (!f.terms) e.terms = 'Cần đồng ý điều khoản để mua.';
+    return e;
+  }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const emailRequired = this.props.emailRequired === true;
+    const s = this.state; const err = s.errors; const f = s.f;
+    const e = {};
+    for (const k of ['name', 'phone', 'email', 'rank', 'terms']) {
+      const cap = k[0].toUpperCase() + k.slice(1);
+      e['has' + cap] = Boolean(err[k]); e[k] = err[k] || ''; e[k + 'Inv'] = err[k] ? 'true' : 'false'; e[k + 'Bd'] = err[k] ? '#B91C1C' : '#CFC6E6';
+    }
+    const ranks = { ce: 'Máy trưởng', '2e': 'Máy hai', '3e': 'Máy ba', '4e': 'Máy tư', eto: 'Sĩ quan điện', fitter: 'Thợ cả', oiler: 'Thợ máy', wiper: 'Thợ máy phụ', cadet: 'Thực tập sinh máy', student: 'Đang học trường hàng hải', deck: 'Bộ phận boong', other: 'Khác / chưa xác định' };
+    const on = Object.fromEntries(['name', 'phone', 'email', 'rank'].map((k) => [k, (ev) => this.set(k, ev.target.value)]));
+    on.terms = (ev) => this.set('terms', ev.target.checked);
+    on.marketing = (ev) => this.set('marketing', ev.target.checked);
+    const count = Object.keys(err).length;
+    return {
+      primary, f, e, on, emailRequired, emailOptional: !emailRequired, signedIn: this.props.signedIn === true,
+      editing: s.step === 'form', confirmed: s.step === 'confirm',
+      hasErrors: count > 0, errorSummary: count === 1 ? 'Còn 1 mục cần sửa.' : 'Còn ' + count + ' mục cần sửa.',
+      rankLabel: ranks[f.rank] || '', emailShown: f.email.trim() || 'Không cung cấp',
+      submit: () => { const errors = this.validate(emailRequired); if (Object.keys(errors).length) this.setState({ errors }); else this.setState({ step: 'confirm', errors: {} }); },
+      edit: () => this.setState({ step: 'form' })
+    };
+  }
+}
+</script>
+</body>
+</html>

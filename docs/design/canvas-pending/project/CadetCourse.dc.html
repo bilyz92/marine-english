@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Engine Cadet tổng quan khóa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F8F7FB}
+a{color:#5B21B6}
+a:focus-visible,button:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1900px; box-sizing: border-box; background: #F8F7FB; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 15px; line-height: 1.5; display: flex; flex-direction: column">
+
+<header style="padding: 16px; background: #FFFFFF; border-bottom: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: {{primary}}">Engine Cadet · Thực tập sinh máy</span>
+<h1 style="margin: 0; font-size: 21px; line-height: 1.3; font-weight: 800">Luyện phỏng vấn song ngữ theo ba mức</h1>
+</header>
+
+<div style="padding: 16px; display: flex; flex-direction: column; gap: 16px; flex: 1 1 auto">
+<p role="note" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #FFF7ED; border: 1px solid #FDBA74; color: #7C2D12; font-size: 13px">Học liệu bản nháp v6: chờ giảng viên duyệt chuyên môn và ngôn ngữ trước khi phát hành. Chưa có tệp audio.</p>
+
+<section aria-labelledby="h-ship" style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="h-ship" style="margin: 0; font-size: 15px; font-weight: 700">Chọn loại tàu</h2>
+<div role="radiogroup" aria-labelledby="h-ship" style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{ships}}" as="s" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{s.checked}}" onClick="{{s.pick}}" style="min-height: 52px; padding: 8px 14px; border-radius: 12px; border: 1.5px solid {{s.bd}}; background: {{s.bg}}; color: #1C1630; font: inherit; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-weight: 700">{{s.label}}</span><span style="font-size: 13px; color: #5B5670; white-space: nowrap">{{s.count}} bài</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="h-level" style="padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 10px">
+<h2 id="h-level" style="margin: 0; font-size: 15px; font-weight: 700">Mức trợ giúp mặc định</h2>
+<div role="radiogroup" aria-labelledby="h-level" style="display: flex; gap: 6px">
+<sc-for list="{{levels}}" as="lv" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{lv.checked}}" onClick="{{lv.pick}}" style="flex: 1 1 0; min-height: 44px; border-radius: 10px; border: 1.5px solid {{lv.bd}}; background: {{lv.bg}}; color: {{lv.fg}}; font: inherit; font-weight: 700; cursor: pointer">{{lv.short}}</button>
+</sc-for>
+</div>
+<p style="margin: 0; font-weight: 600">{{level.label}}</p>
+<p style="margin: 0; color: #3A3550; font-size: 14px">{{level.desc}}</p>
+<p style="margin: 0; color: #5B5670; font-size: 13px">Đổi mức được ở từng bài. Đổi mức không xóa lịch sử trợ giúp đã dùng.</p>
+</section>
+
+<section aria-labelledby="h-mod" style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h2 id="h-mod" style="margin: 0; font-size: 15px; font-weight: 700">{{moduleCount}} chủ đề</h2>
+<span style="font-size: 13px; color: #5B5670">Tiến độ: 0/{{total}} bài</span>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{modules}}" as="m" hint-placeholder-count="9">
+<li style="border-radius: 12px; background: #FFFFFF; border: 1px solid {{m.bd}}; overflow: hidden">
+<button type="button" onClick="{{m.toggle}}" aria-expanded="{{m.expanded}}" style="width: 100%; min-height: 56px; padding: 8px 14px; border: 0; background: transparent; color: #1C1630; font: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px">
+<span style="flex: 0 0 40px; height: 32px; border-radius: 8px; background: {{m.tagBg}}; color: {{m.tagFg}}; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{m.id}}</span>
+<span style="flex: 1 1 auto; min-width: 0; font-weight: 600">{{m.title}}</span>
+<span style="flex: 0 0 auto; font-size: 13px; color: #5B5670">{{m.count}} bài</span>
+</button>
+<sc-if value="{{m.open}}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{m.hasLessons}}" hint-placeholder-val="{{ true }}">
+<ol style="margin: 0; padding: 0 14px 10px; list-style: none; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{m.lessons}}" as="l" hint-placeholder-count="8">
+<li><a href="{{l.href}}" style="min-height: 48px; padding: 6px 10px; border-radius: 10px; background: {{l.bg}}; color: #1C1630; text-decoration: none; display: flex; gap: 10px; align-items: center"><span style="flex: 0 0 auto; font-size: 12px; font-weight: 700; color: #5B5670; font-variant-numeric: tabular-nums">{{l.id}}</span><span style="flex: 1 1 auto; font-size: 14px">{{l.title}}</span></a></li>
+</sc-for>
+</ol>
+</sc-if>
+<sc-if value="{{m.noLessons}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: 0 14px 12px; font-size: 13px; color: #5B5670">Bản thiết kế chỉ liệt kê bài của chủ đề A4; danh sách đầy đủ đọc từ dữ liệu khi làm app.</p>
+</sc-if>
+</sc-if>
+</li>
+</sc-for>
+</ul>
+</section>
+</div>
+
+<nav aria-label="Điều hướng app" style="position: sticky; bottom: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #FFFFFF; border-top: 1px solid #E7E5EE; padding: 6px 4px 10px">
+<a href="CadetCourse.dc.html" aria-current="page" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: {{primary}}; font-size: 12px; font-weight: 700; text-decoration: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>Bài học</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #4B4760; font-size: 12px; font-weight: 500; text-decoration: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>Ôn tập</a>
+<a href="Account.dc.html" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #4B4760; font-size: 12px; font-weight: 500; text-decoration: none"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"></path></svg>Hồ sơ</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"$preview":{"width":390,"height":1900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ship: 'tanker', level: 'foundation', open: 'A4' }; }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const s = this.state;
+    // Module titles and lesson counts from Engine_Cadet_Learning_Data_v6.json (catalog.modules, courses).
+    const common = [
+      ['A1', 'Học vấn và mục tiêu nghề nghiệp', 17], ['A2', 'Nhiệm vụ thực tập trực ca và thực hành', 8],
+      ['A3', 'Sổ TRB và kế hoạch huấn luyện', 3], ['A4', 'Động cơ diesel và hệ động lực chính', 8],
+      ['A5', 'Máy phụ và hệ thống buồng máy', 13], ['A6', 'Điện cơ bản dụng cụ và kỹ năng xưởng', 10],
+      ['A7', 'An toàn và ứng phó sự cố', 11], ['A8', 'Công ước và bảo vệ môi trường', 17]
+    ];
+    const ships = {
+      tanker: { label: 'Tàu dầu và hóa chất', extra: ['B1', 'Tàu dầu và hóa chất', 2] },
+      dry_cargo: { label: 'Tàu hàng rời, bách hóa, hàng nặng, Ro-Ro', extra: ['C1', 'Tàu hàng rời hàng nặng và Ro Ro', 3] },
+      container: { label: 'Tàu container', extra: ['D1', 'Tàu container', 2] }
+    };
+    const a4 = [
+      ['A022', 'Động cơ diesel tàu biển là gì và máy chính có chức năng gì?'],
+      ['A023-1', 'Giải thích chu trình động cơ diesel hai kỳ.'],
+      ['A023-2', 'Giải thích chu trình động cơ diesel bốn kỳ.'],
+      ['A023-3', 'So sánh động cơ diesel tàu biển hai kỳ và bốn kỳ.'],
+      ['A024', 'Nêu các chi tiết chính của động cơ và chức năng của chúng.'],
+      ['A025', 'Xéc măng piston có chức năng gì?'],
+      ['A026', 'Tua bin tăng áp là gì và hoạt động ra sao?'],
+      ['A027', 'Động cơ diesel và động cơ dùng nhiên liệu khí khác nhau cơ bản thế nào?']
+    ];
+    const list = [...common, ships[s.ship].extra];
+    const total = list.reduce((sum, m) => sum + m[2], 0);
+    const shipItems = Object.entries(ships).map(([id, v]) => {
+      const on = s.ship === id;
+      return { label: v.label, count: 87 + v.extra[2], checked: on ? 'true' : 'false', bd: on ? primary : '#E7E5EE', bg: on ? '#F1ECFB' : '#FFFFFF', pick: () => this.setState({ ship: id }) };
+    });
+    const levelInfo = {
+      foundation: ['Mức 1', 'Mức 1 · Chưa biết hoặc còn yếu', 'Học từng câu hỏi nhỏ và đáp án ngắn Anh–Việt. Hiểu tiếng Việt, nói theo, che đáp án rồi tự nói.'],
+      developing: ['Mức 2', 'Mức 2 · Đã có tiếng Anh cơ bản', 'Dùng câu hỏi đầy đủ và ba ý bắt buộc làm dàn ý. Tự nói trước rồi so với đáp án mẫu.'],
+      independent: ['Mức 3', 'Mức 3 · Tiếng Anh khá tốt', 'Chỉ có câu hỏi, không xem dàn ý hay bản dịch trước. Đáp án hiện sau khi đã thử nói.']
+    };
+    const levels = Object.entries(levelInfo).map(([id, v]) => {
+      const on = s.level === id;
+      return { short: v[0], checked: on ? 'true' : 'false', bd: on ? primary : '#CFC6E6', bg: on ? primary : '#FFFFFF', fg: on ? '#FFFFFF' : '#1C1630', pick: () => this.setState({ level: id }) };
+    });
+    const modules = list.map(([id, title, count]) => {
+      const open = s.open === id; const special = !id.startsWith('A');
+      const lessons = id === 'A4' ? a4.map(([lid, lt]) => ({ id: lid, title: lt, href: lid === 'A023-1' ? 'CadetLesson.dc.html' : '#', bg: lid === 'A023-1' ? '#F1ECFB' : '#F8F7FB' })) : [];
+      return { id, title, count, open, expanded: open ? 'true' : 'false', bd: open ? primary : '#E7E5EE',
+        tagBg: special ? '#FFEDD5' : '#EDE5FB', tagFg: special ? '#9A3412' : '#4C1D95',
+        lessons, hasLessons: lessons.length > 0, noLessons: lessons.length === 0,
+        toggle: () => this.setState({ open: open ? null : id }) };
+    });
+    return { primary, ships: shipItems, levels, level: { label: levelInfo[s.level][1], desc: levelInfo[s.level][2] }, modules, moduleCount: list.length, total };
+  }
+}
+</script>
+</body>
+</html>

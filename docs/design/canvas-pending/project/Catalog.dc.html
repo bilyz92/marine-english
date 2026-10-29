@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Danh sách khóa học</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#5B21B6}a:hover{color:#4C1D95}
+a:focus-visible,button:focus-visible{outline:2px solid #5B21B6;outline-offset:2px}
+</style>
+</helmet>
+<div style="background: #FFFFFF; color: #1C1630; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="border-bottom: 1px solid #EEECF3; background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="Home.dc.html" style="display: flex; align-items: center; gap: 10px; color: #1C1630; text-decoration: none">
+<span style="width: 40px; height: 40px; border-radius: 10px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"></circle><path d="M12 7v14"></path><path d="M5 12H3a9 9 0 0 0 18 0h-2"></path><path d="M8 10h8"></path></svg></span>
+<span style="font-weight: 800; font-size: 18px">Marine English</span>
+</a>
+<nav aria-label="Menu chính" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<a href="Catalog.dc.html" aria-current="page" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; color: {{primary}}; text-decoration: none; font-weight: 700">Khóa học</a>
+<a href="About.dc.html" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; color: #3A3550; text-decoration: none; font-weight: 500">Về tôi</a>
+<a href="Contact.dc.html" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; color: #3A3550; text-decoration: none; font-weight: 500">Liên hệ</a>
+<a href="Login.dc.html" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; color: #3A3550; text-decoration: none; font-weight: 500">Đăng nhập</a>
+<a href="Course.dc.html" style="min-height: 44px; padding: 0 18px; border-radius: 10px; background: #C2410C; color: #FFFFFF; font-weight: 700; text-decoration: none; display: flex; align-items: center">Học thử miễn phí</a>
+</nav>
+</div>
+</header>
+
+<main style="max-width: 1200px; margin: 0 auto; padding: 56px 24px 72px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 760px">
+<h1 style="margin: 0; font-size: 40px; line-height: 1.2; font-weight: 800">Danh sách khóa học</h1>
+<p style="margin: 0; font-size: 18px; color: #3A3550">Mỗi khóa một chủ đề, mỗi bài 5 đến 10 phút, giải thích bằng tiếng Việt. Khóa nào cũng có 3 bài học thử miễn phí.</p>
+</div>
+
+<div role="group" aria-label="Lọc theo nhóm" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+<button type="button" onClick="{{f.pick}}" aria-pressed="{{f.pressed}}" style="min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1.5px solid {{f.bd}}; background: {{f.bg}}; color: {{f.fg}}; font: inherit; font-weight: 600; cursor: pointer">{{f.label}}</button>
+</sc-for>
+</div>
+<p role="status" style="margin: 0; color: #5B5670">{{countText}}</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+<sc-for list="{{shown}}" as="c" hint-placeholder-count="4">
+<article style="padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E7E5EE; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="padding: 4px 10px; border-radius: 999px; background: {{c.tagBg}}; color: {{c.tagFg}}; font-size: 13px; font-weight: 600">{{c.group}}</span>
+<sc-if value="{{c.soon}}" hint-placeholder-val="{{ false }}"><span style="padding: 4px 10px; border-radius: 999px; background: #F1F0F5; color: #4B4760; font-size: 13px; font-weight: 600">Sắp ra mắt</span></sc-if>
+</div>
+<h2 style="margin: 0; font-size: 22px; font-weight: 800; line-height: 1.3">{{c.title}}</h2>
+<p style="margin: 0; color: #3A3550">{{c.desc}}</p>
+<span style="font-size: 14px; color: #5B5670">{{c.meta}}</span>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums">{{c.price}}</span>
+<sc-if value="{{c.open}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 8px">
+<a href="Course.dc.html" style="flex: 1 1 0; min-height: 48px; border-radius: 10px; border: 1.5px solid #CFC6E6; color: #1C1630; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">Xem chi tiết</a>
+<a href="BuyerInfo.dc.html" style="flex: 1 1 0; min-height: 48px; border-radius: 10px; background: #C2410C; color: #FFFFFF; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">Mua khóa</a>
+</div>
+</sc-if>
+<sc-if value="{{c.soon}}" hint-placeholder-val="{{ false }}">
+<a href="Login.dc.html" style="min-height: 48px; border-radius: 10px; border: 1.5px solid #CFC6E6; color: #1C1630; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">Tạo tài khoản để nhận tin khi mở bán</a>
+</sc-if>
+</div>
+</article>
+</sc-for>
+</div>
+
+<section aria-labelledby="h-combo" style="padding: 28px; border-radius: 16px; background: {{primary}}; color: #FFFFFF; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 420px">
+<span style="font-size: 14px; font-weight: 600; color: #E9DDFD">Combo trọn bộ</span>
+<h2 id="h-combo" style="margin: 0; font-size: 24px; line-height: 1.3; font-weight: 800">Tất cả các khóa, học trọn đời</h2>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<span style="font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums">999.000đ</span>
+<a href="BuyerInfo.dc.html" style="min-height: 52px; padding: 0 24px; border-radius: 12px; background: #FFFFFF; color: #4C1D95; font-weight: 700; text-decoration: none; display: flex; align-items: center">Mua combo</a>
+</div>
+</section>
+<p style="margin: 0; font-size: 14px; color: #5B5670">Giá trên là giá đề xuất trong quy trình, đang chờ anh chốt.</p>
+</main>
+
+<footer style="border-top: 1px solid #EEECF3">
+<div style="max-width: 1200px; margin: 0 auto; padding: 40px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; color: #5B5670; font-size: 14px">
+<strong style="color: #1C1630">Marine English</strong>
+<nav aria-label="Liên kết cuối trang" style="display: flex; flex-wrap: wrap; gap: 4px 20px">
+<a href="Policies.dc.html" style="min-height: 44px; display: flex; align-items: center">Chính sách bảo mật, hoàn tiền, điều khoản</a>
+<a href="Contact.dc.html" style="min-height: 44px; display: flex; align-items: center">Liên hệ</a>
+</nav>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#5B21B6","options":["#5B21B6","#6D28D9","#4338CA","#0F766E"]},"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { group: 'all' }; }
+  renderVals() {
+    const primary = this.props.primary ?? '#5B21B6';
+    const tags = { 'Giao tiếp': ['#E0E7FF', '#3730A3'], 'Chuyên ngành': ['#DCFCE7', '#166534'], 'Phỏng vấn': ['#FFEDD5', '#9A3412'] };
+    const courses = [
+      { title: 'Tiếng Anh giao tiếp trên tàu', group: 'Giao tiếp', desc: 'Chào hỏi, báo cáo ca trực, nhận lệnh, số liệu, giờ giấc, nói chuyện qua bộ đàm.', meta: '20 bài · 3 bài học thử', price: '199.000đ', open: true },
+      { title: 'Từ vựng buồng máy', group: 'Chuyên ngành', desc: 'Tên thiết bị: máy chính, máy đèn, nồi hơi, bơm, máy lọc dầu, máy nén khí.', meta: '20 bài · 3 bài học thử', price: '249.000đ', open: true },
+      { title: 'Phỏng vấn xin việc thuyền viên máy', group: 'Phỏng vấn', desc: 'Giới thiệu bản thân, kinh nghiệm, kiến thức chuyên ngành, kiến thức và nghiệp vụ cá nhân.', meta: '20–60 câu tùy chức danh · 3 bài học thử', price: '349.000đ', open: true },
+      { title: 'Tìm hiểu tàu dầu', group: 'Chuyên ngành', desc: 'Bơm hàng, hệ thống khí trơ, rửa két, làm hàng tại cảng.', meta: 'Đang soạn', price: '299.000đ', open: false }
+    ].map((c) => ({ ...c, soon: !c.open, tagBg: tags[c.group][0], tagFg: tags[c.group][1] }));
+    const groups = ['all', 'Giao tiếp', 'Chuyên ngành', 'Phỏng vấn'];
+    const filters = groups.map((g) => {
+      const on = this.state.group === g;
+      return { label: g === 'all' ? 'Tất cả' : g, pressed: on ? 'true' : 'false', bd: on ? primary : '#CFC6E6', bg: on ? primary : '#FFFFFF', fg: on ? '#FFFFFF' : '#1C1630', pick: () => this.setState({ group: g }) };
+    });
+    const shown = courses.filter((c) => this.state.group === 'all' || c.group === this.state.group);
+    return { primary, filters, shown, countText: shown.length + ' khóa' };
+  }
+}
+</script>
+</body>
+</html>
