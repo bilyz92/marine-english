@@ -33,7 +33,7 @@ export async function changeAdmin(
   ctx: AdminCtx,
   adminId: string,
   change: { role?: AdminRole; status?: AdminStatus },
-): Promise<"ok" | "last_owner" | "not_owner"> {
+): Promise<"ok" | "last_owner" | "not_owner" | "not_found"> {
   const entry = { adminId: ctx.adminId, action: "admin_change", targetType: "admin_user", targetId: adminId, after: change, ip: ctx.ip };
   try {
     await withTx(async (tx) => {
@@ -45,6 +45,7 @@ export async function changeAdmin(
     });
     return "ok";
   } catch (error) {
+    if (raisedBy(error, "admin_not_found")) return "not_found";
     // not_owner: người thực hiện vừa mất quyền owner (ví dụ hai owner hạ quyền nhau cùng lúc).
     const denied = (["last_owner", "not_owner"] as const).find((marker) => raisedBy(error, marker));
     if (!denied) throw error;
