@@ -214,4 +214,12 @@ Sau đó chủ dự án yêu cầu **chỉ làm cho dự án này**. Phần đó
 
 ### 30/10/2026 — đang chạy tự động giai đoạn 1
 Chủ dự án yêu cầu “làm hết all plan” (P1→P5). Theo dõi tiến độ ở `PROGRESS.md` (gốc dự án). Thiết kế kỹ thuật đã được Codex
-APPROVE; plan P1 đang review. Không push/deploy; dịch vụ thật của G4/G6/G7/G8 để tắt/giả lập.
+APPROVE; plan P1 được APPROVE. Không push/deploy; dịch vụ thật của G4/G6/G7/G8 để tắt/giả lập.
+
+**P1 đã cài đặt xong (30/10/2026)** trên nhánh git cục bộ `phase1` (12 task, 224 test xanh, lint/typecheck/build sạch); lệnh chạy ở
+`CLAUDE.md`. Có: Docker Postgres dev, Prisma + 2 migration (bảng đăng nhập; hàm SQL quản trị + chặn mất chủ cuối), phiên tự quản lý
+(xoay token, phong bì 2 phút, CSRF), phân loại đường dẫn trong `src/proxy.ts`, OTP email (hộp thư giả `/dev/thu`), đăng nhập/đăng ký
+email, giới hạn 2 thiết bị + vé thay máy, Google OIDC (học viên + quản trị), liên kết/gỡ định danh, mời/đổi/thu hồi quản trị viên, link
+email quản trị, nhật ký quản trị, ma trận quyền (đề xuất G11), CLI `admin:bootstrap`/`admin:recover`. Zalo chỉ có adapter tắt (G6).
+Đổi thư viện OIDC sang `oauth4webapi` (lý do trong sổ `.superpowers/sdd/…/progress.md`). Mọi quyết định khi chạy tự động ghi ở dòng
+`Ruling:` của sổ đó. Tiếp theo: review toàn nhánh P1, rồi viết plan P2.
