@@ -238,3 +238,74 @@ model AdminAuditLog {
   @@index([at])
   @@map("admin_audit_log")
 }
+
+// ===== Nội dung (migration content) =====
+
+model Course {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug             String          @unique
+  titleVi          String          @map("title_vi")
+  titleEn          String          @map("title_en")
+  status           String          @default("draft")
+  priceVnd         Int?            @map("price_vnd")
+  currentVersionId String?         @map("current_version_id") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime        @default(now()) @map("updated_at") @db.Timestamptz(6)
+  currentVersion   CourseVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: Restrict)
+  versions         CourseVersion[] @relation("CourseVersions")
+
+  @@map("courses")
+}
+
+model CourseVersion {
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId       String                @map("course_id") @db.Uuid
+  version        Int
+  contentVersion String                @map("content_version")
+  sourceHash     String                @map("source_hash")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  course         Course                @relation("CourseVersions", fields: [courseId], references: [id], onDelete: Restrict)
+  currentOf      Course[]              @relation("CurrentVersion")
+  lessons        CourseVersionLesson[]
+
+  @@unique([courseId, version])
+  @@unique([courseId, sourceHash])
+  @@map("course_versions")
+}
+
+model Lesson {
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId String          @unique @map("external_id")
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  versions   LessonVersion[]
+
+  @@map("lessons")
+}
+
+model LessonVersion {
+  id          String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lessonId    String                @map("lesson_id") @db.Uuid
+  version     Int
+  content     Json
+  contentHash String                @map("content_hash")
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  lesson      Lesson                @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  courses     CourseVersionLesson[]
+
+  @@unique([lessonId, version])
+  @@unique([lessonId, contentHash])
+  @@map("lesson_versions")
+}
+
+model CourseVersionLesson {
+  courseVersionId String        @map("course_version_id") @db.Uuid
+  lessonVersionId String        @map("lesson_version_id") @db.Uuid
+  position        Int
+  isFreeTrial     Boolean       @map("is_free_trial")
+  courseVersion   CourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Restrict)
+  lessonVersion   LessonVersion @relation(fields: [lessonVersionId], references: [id], onDelete: Restrict)
+
+  @@id([courseVersionId, position])
+  @@unique([courseVersionId, lessonVersionId])
+  @@map("course_version_lessons")
+}

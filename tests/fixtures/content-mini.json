@@ -1,0 +1,3815 @@
+{
+ "dataset_id": "engine_cadet_three_level_learning_v6",
+ "schema_version": "3.0.0",
+ "content_version": "6.0.0",
+ "created_on": "2026-10-29",
+ "title": {
+  "en": "Engine Cadet atomic bilingual interview lessons",
+  "vi": "Bài học phỏng vấn thực tập sinh máy song ngữ tách chủ đề"
+ },
+ "publication": {
+  "status": "draft",
+  "importable": true,
+  "publishable_without_review": false,
+  "scope_vi": "Bộ học liệu thực tập sinh máy gồm ba mức trợ giúp tiếng Anh cho từng câu; không hạ yêu cầu an toàn hoặc thay thế huấn luyện thực hành được duyệt.",
+  "review_requirements": [
+   "technical_review",
+   "language_review",
+   "reference_applicability_review",
+   "audio_generation_and_review"
+  ]
+ },
+ "courses": [
+  {
+   "id": "engine_cadet_tanker",
+   "title": {
+    "en": "Engine Cadet Tankers",
+    "vi": "Thực tập sinh máy tàu dầu và hóa chất"
+   },
+   "rank_id": "engine_cadet",
+   "vessel_group_id": "tanker",
+   "lesson_ids": [
+    "A001",
+    "A002",
+    "A003-1",
+    "T001"
+   ],
+   "module_ids": [
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5",
+    "A6",
+    "A7",
+    "A8",
+    "B1"
+   ],
+   "lesson_count": 4,
+   "completion_rule_id": "course_completion_v1",
+   "status": "draft",
+   "version": 6,
+   "word_export": {
+    "filename": "Engine_Cadet_01_Tankers_Bilingual_Lessons_Three_Levels_v6.docx",
+    "sha256": "73d448155349a1d42e49438bc9d30606ac17706f981e27ed9354185d092dbabe",
+    "levels_match_json": true,
+    "micro_answers_match_json": true,
+    "main_and_followup_answers_preserved": true
+   }
+  },
+  {
+   "id": "engine_cadet_dry_cargo",
+   "title": {
+    "en": "Engine Cadet Dry Cargo",
+    "vi": "Thực tập sinh máy tàu hàng khô"
+   },
+   "rank_id": "engine_cadet",
+   "vessel_group_id": "dry_cargo",
+   "lesson_ids": [
+    "A001",
+    "A002",
+    "A003-1",
+    "H001"
+   ],
+   "module_ids": [
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5",
+    "A6",
+    "A7",
+    "A8",
+    "C1"
+   ],
+   "lesson_count": 4,
+   "completion_rule_id": "course_completion_v1",
+   "status": "draft",
+   "version": 6,
+   "word_export": {
+    "filename": "Engine_Cadet_02_Dry_Cargo_Bilingual_Lessons_Three_Levels_v6.docx",
+    "sha256": "518dfe50077281ec4b862a45c6ec6ba4a83a3882a0d2c7bca87b1cb36f3a017a",
+    "levels_match_json": true,
+    "micro_answers_match_json": true,
+    "main_and_followup_answers_preserved": true
+   }
+  }
+ ],
+ "lessons": [
+  {
+   "id": "A001",
+   "version": 6,
+   "rank_id": "engine_cadet",
+   "module_id": "A1",
+   "vessel_group_ids": [
+    "tanker",
+    "dry_cargo",
+    "container"
+   ],
+   "status": "draft",
+   "review": {
+    "technical": "pending",
+    "language": "pending",
+    "approved_by": null,
+    "approved_at": null,
+    "regulatory_verification": "scope_checked_for_convention_summaries_only"
+   },
+   "question": {
+    "id": "A001.question",
+    "text": {
+     "en": "Please introduce yourself and describe your university education in marine engineering in English.",
+     "vi": "Hãy giới thiệu bản thân và quá trình học ngành máy tàu biển bằng tiếng Anh."
+    },
+    "parts": [
+     {
+      "id": "A001.question.part.1",
+      "order": 1,
+      "text": {
+       "en": "Please introduce yourself and describe your university education in marine engineering in English.",
+       "vi": "Hãy giới thiệu bản thân và quá trình học ngành máy tàu biển bằng tiếng Anh."
+      }
+     }
+    ],
+    "audio_asset_id": "audio.A001.question.en",
+    "variants": [
+     {
+      "id": "A001.variant.1",
+      "order": 1,
+      "text": {
+       "en": "Can you introduce yourself and tell me about your marine engineering studies?",
+       "vi": "Bạn giới thiệu bản thân và việc học ngành máy tàu được không?"
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A001.kp.1",
+       "A001.kp.2",
+       "A001.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A001.variant.1.en"
+     },
+     {
+      "id": "A001.variant.2",
+      "order": 2,
+      "text": {
+       "en": "Tell me about yourself and your education in marine engineering.",
+       "vi": "Hãy nói về bản thân và quá trình học ngành máy tàu của bạn."
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A001.kp.1",
+       "A001.kp.2",
+       "A001.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A001.variant.2.en"
+     },
+     {
+      "id": "A001.variant.3",
+      "order": 3,
+      "text": {
+       "en": "Could you talk us through your background and marine engineering education?",
+       "vi": "Bạn có thể trình bày về bản thân và nền tảng học vấn ngành máy tàu không?"
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A001.kp.1",
+       "A001.kp.2",
+       "A001.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A001.variant.3.en"
+     }
+    ],
+    "variant_coverage": "selected_common_question",
+    "variant_selection": {
+     "modes": [
+      "canonical",
+      "choose_variant",
+      "random_variant"
+     ],
+     "variant_ids": [
+      "A001.variant.1",
+      "A001.variant.2",
+      "A001.variant.3"
+     ],
+     "shared_answer_and_rubric": true,
+     "selection_changes_mastery_requirements": false
+    }
+   },
+   "learning_objectives": [
+    {
+     "id": "A001.objective.1",
+     "text": {
+      "en": "Give your actual name and education",
+      "vi": "Nêu tên và quá trình học thực tế"
+     },
+     "key_point_ids": [
+      "A001.kp.1"
+     ]
+    },
+    {
+     "id": "A001.objective.2",
+     "text": {
+      "en": "Describe only training you actually attended",
+      "vi": "Chỉ mô tả huấn luyện thực sự đã tham gia"
+     },
+     "key_point_ids": [
+      "A001.kp.2"
+     ]
+    },
+    {
+     "id": "A001.objective.3",
+     "text": {
+      "en": "State whether you are studying or have graduated.",
+      "vi": "Nêu đang học hay đã tốt nghiệp."
+     },
+     "key_point_ids": [
+      "A001.kp.3"
+     ]
+    }
+   ],
+   "key_points": [
+    {
+     "id": "A001.kp.1",
+     "order": 1,
+     "text": {
+      "en": "Give your actual name and education",
+      "vi": "Nêu tên và quá trình học thực tế"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "A001.kp.2",
+     "order": 2,
+     "text": {
+      "en": "Describe only training you actually attended",
+      "vi": "Chỉ mô tả huấn luyện thực sự đã tham gia"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "A001.kp.3",
+     "order": 3,
+     "text": {
+      "en": "State whether you are studying or have graduated.",
+      "vi": "Nêu đang học hay đã tốt nghiệp."
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    }
+   ],
+   "vocabulary": [
+    {
+     "id": "A001.vocab.1",
+     "text": {
+      "en": "marine engineering",
+      "vi": "máy tàu biển"
+     }
+    },
+    {
+     "id": "A001.vocab.2",
+     "text": {
+      "en": "workshop practice",
+      "vi": "thực hành xưởng"
+     }
+    },
+    {
+     "id": "A001.vocab.3",
+     "text": {
+      "en": "onboard training",
+      "vi": "huấn luyện trên tàu"
+     }
+    }
+   ],
+   "model_answer": {
+    "id": "A001.answer",
+    "text": {
+     "en": "My name is [name]. I study marine engineering at [university]. My relevant training includes [actual workshop or onboard experience].",
+     "vi": "Tôi tên là [tên], học ngành máy tàu biển tại [trường]. Tôi đã tham gia [thực hành xưởng hoặc huấn luyện trên tàu thực tế]."
+    },
+    "audio_asset_id": "audio.A001.model_answer.en",
+    "personalisation": {
+     "required": true,
+     "placeholder_keys_en": [
+      "actual workshop or onboard experience",
+      "name",
+      "university"
+     ],
+     "instructions": {
+      "en": "Replace bracketed details with truthful personal information before recording.",
+      "vi": "Thay nội dung trong ngoặc bằng thông tin cá nhân trung thực trước ghi âm."
+     }
+    },
+    "personalized_rendering": {
+     "enabled": true,
+     "template_id": "A001.answer.personalized",
+     "missing_field_policy": "ask_learner_and_keep_generic_reference_visible",
+     "source_reference_answer": {
+      "en": "My name is [name]. I study marine engineering at [university]. My relevant training includes [actual workshop or onboard experience].",
+      "vi": "Tôi tên là [tên], học ngành máy tàu biển tại [trường]. Tôi đã tham gia [thực hành xưởng hoặc huấn luyện trên tàu thực tế]."
+     },
+     "technical_key_points_unchanged": true,
+     "personalization_source": "authenticated_learner_profile_not_shared_course_data"
+    },
+    "format": "spoken_example_answer",
+    "display_in_word": true,
+    "experience_example_only": false,
+    "experience_note": null,
+    "review": {
+     "content": "editorially_checked_for_answer_presence",
+     "technical": "pending_instructor_approval"
+    }
+   },
+   "coaching": {
+    "interviewer_intent": {
+     "en": "Demonstrate the three required points for this question.",
+     "vi": "Thể hiện ba ý bắt buộc của câu hỏi này."
+    },
+    "answer_structure": [
+     {
+      "order": 1,
+      "key_point_id": "A001.kp.1"
+     },
+     {
+      "order": 2,
+      "key_point_id": "A001.kp.2"
+     },
+     {
+      "order": 3,
+      "key_point_id": "A001.kp.3"
+     }
+    ],
+    "follow_up_guidance": {
+     "vi": "Nêu trường, chuyên ngành, tình trạng học tập hoặc tốt nghiệp và các đợt thực hành xưởng, mô phỏng, huấn luyện trên tàu đã thực sự tham gia.",
+     "scope": "whole_lesson"
+    },
+    "response_hint": {
+     "en": "Answer directly, add relevant technical detail, and state your actual experience or limits when relevant.",
+     "vi": "Trả lời thẳng câu hỏi, bổ sung ý kỹ thuật phù hợp và nêu kinh nghiệm thật hoặc giới hạn nhiệm vụ khi liên quan."
+    }
+   },
+   "follow_up_questions": [
+    {
+     "id": "A001.probe.1",
+     "kind": "follow_up",
+     "prompt": {
+      "en": "State your university, specialisation and whether you are studying or have graduated. Describe workshop practice, simulator training and onboard training in which you have actually participated.",
+      "vi": "Nêu trường, chuyên ngành, tình trạng học tập hoặc tốt nghiệp và các đợt thực hành xưởng, mô phỏng, huấn luyện trên tàu đã thực sự tham gia."
+     },
+     "vi_translation_mode": "adapted_learning_summary",
+     "source_locations": [
+      {
+       "source_id": "doc-01",
+       "paragraph_index_0_based": 26
+      },
+      {
+       "source_id": "doc-02",
+       "paragraph_index_0_based": 26
+      },
+      {
+       "source_id": "doc-03",
+       "paragraph_index_0_based": 26
+      }
+     ],
+     "reference_ids": [],
+     "response_mode": "spoken_open_response",
+     "assessment_key_point_ids": [
+      "A001.kp.1",
+      "A001.kp.2",
+      "A001.kp.3"
+     ],
+     "assessment_note_vi": "Dùng các ý liên quan đến câu hỏi phụ; không bắt học viên nhắc toàn bộ đáp án chính. Giảng viên cần duyệt chi tiết trước chấm tự động.",
+     "model_answer_ref": "A001.probe.1.answer",
+     "model_answer_scope": "this_follow_up_question",
+     "model_answer": {
+      "id": "A001.probe.1.answer",
+      "text": {
+       "en": "I am currently studying marine engineering at [university]. My practical training includes [actual workshop or onboard experience]. I distinguish observation from work I personally performed under supervision.",
+       "vi": "Tôi hiện đang học ngành máy tàu tại [trường]. Huấn luyện thực tế đã tham gia gồm [thực hành xưởng hoặc huấn luyện trên tàu thực tế]. Tôi phân biệt quan sát với công việc chính mình làm dưới giám sát."
+      },
+      "format": "spoken_example_answer",
+      "experience_example_only": false,
+      "review_status": "pending_instructor_approval",
+      "audio_asset_id": "audio.A001.probe.1.answer.en",
+      "personalized_template_ref": "A001.answer.personalized"
+     }
+    }
+   ],
+   "assessment": {
+    "rubric_id": "engine_cadet_three_points_v2",
+    "required_key_point_ids": [
+     "A001.kp.1",
+     "A001.kp.2",
+     "A001.kp.3"
+    ],
+    "critical_errors": [],
+    "accept_paraphrase": true,
+    "exact_wording_required": false,
+    "technical_review_required_before_automated_grading": true,
+    "short_model_answer_is_exhaustive": false,
+    "scope_vi": "Chấm ba ý bắt buộc theo phạm vi câu này. Chấp nhận diễn đạt tương đương; với câu hỏi phụ chỉ xét ý liên quan. Không cộng điểm ngôn ngữ để bù hành động nguy hiểm."
+   },
+   "practice": {
+    "estimated_minutes": 7,
+    "suggested_response_seconds": {
+     "min": 20,
+     "max": 60
+    },
+    "time_limit_is_hard_fail": false,
+    "silent_mode_supported": true,
+    "speaking_completion_required_for_mastery": true,
+    "activity_ids": [
+     "A001.activity.listen_question",
+     "A001.activity.understand",
+     "A001.activity.key_points",
+     "A001.activity.listen_model",
+     "A001.activity.recall",
+     "A001.activity.record",
+     "A001.activity.reflect",
+     "A001.activity.retry"
+    ]
+   },
+   "prerequisite_lesson_ids": [],
+   "provenance": {
+    "source_locations": [
+     {
+      "source_id": "doc-01",
+      "paragraph_index_0_based": 25
+     },
+     {
+      "source_id": "doc-02",
+      "paragraph_index_0_based": 25
+     },
+     {
+      "source_id": "doc-03",
+      "paragraph_index_0_based": 25
+     }
+    ],
+    "model_answer_source_locations": [
+     {
+      "source_id": "bilingual-01",
+      "paragraph_index_0_based": 36,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-01",
+      "paragraph_index_0_based": 37,
+      "field": "model_answer.vi"
+     },
+     {
+      "source_id": "bilingual-02",
+      "paragraph_index_0_based": 36,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-02",
+      "paragraph_index_0_based": 37,
+      "field": "model_answer.vi"
+     },
+     {
+      "source_id": "bilingual-03",
+      "paragraph_index_0_based": 36,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-03",
+      "paragraph_index_0_based": 37,
+      "field": "model_answer.vi"
+     }
+    ],
+    "original_source_bank_codes": [
+     "S01",
+     "S02",
+     "S03"
+    ],
+    "extension_reference_ids": [],
+    "editorial_fields": [
+     "learning_objectives",
+     "key_points",
+     "vocabulary",
+     "coaching",
+     "assessment",
+     "practice"
+    ],
+    "editorial_review_status": "pending",
+    "change_summary_vi": "Tổ chức lại thành câu hỏi độc lập với ba ý bắt buộc Anh–Việt; giữ mã nguồn cha để đối chiếu.",
+    "answer_revision_vi": "Phiên bản 5 kiểm tra đáp án thực chất; mọi câu chính và câu phụ đang hoạt động có đáp án mẫu riêng."
+   },
+   "recall_cards": [
+    {
+     "id": "A001.card.1",
+     "key_point_id": "A001.kp.1",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Give your actual name and education",
+      "vi": "Nêu tên và quá trình học thực tế"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "A001.card.2",
+     "key_point_id": "A001.kp.2",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Describe only training you actually attended",
+      "vi": "Chỉ mô tả huấn luyện thực sự đã tham gia"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "A001.card.3",
+     "key_point_id": "A001.kp.3",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "State whether you are studying or have graduated.",
+      "vi": "Nêu đang học hay đã tốt nghiệp."
+     },
+     "answer_visibility": "hidden_until_attempt"
+    }
+   ],
+   "legacy_parent_id": "A001",
+   "mandatory_point_count": 3,
+   "learning_material": {
+    "version": 1,
+    "interviewer_intent": {
+     "en": "Demonstrate an understanding of the question and give the three required points within the cadet role.",
+     "vi": "Hiểu và trả lời lần lượt: Bạn tên gì; Bạn học ngành gì; Bạn đã thực hành gì."
+    },
+    "question_breakdown": {
+     "method": "three_short_concept_questions",
+     "is_word_for_word_translation_of_fragments": false,
+     "units": [
+      {
+       "id": "A001.micro.1",
+       "order": 1,
+       "question": {
+        "en": "What is your name?",
+        "vi": "Bạn tên gì?"
+       },
+       "short_answer": {
+        "en": "My name is [name].",
+        "vi": "Tôi tên là [tên]."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "A001.micro.2",
+       "order": 2,
+       "question": {
+        "en": "What do you study?",
+        "vi": "Bạn học ngành gì?"
+       },
+       "short_answer": {
+        "en": "I study marine engineering at [university].",
+        "vi": "Tôi học ngành máy tàu tại [trường]."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment",
+       "short_answer_alternatives": [
+        {
+         "when_vi": "Nếu đã tốt nghiệp",
+         "condition": {
+          "profile_field": "education_status",
+          "equals": "graduated"
+         },
+         "text": {
+          "en": "I graduated in marine engineering from [university].",
+          "vi": "Tôi đã tốt nghiệp ngành máy tàu tại [trường]."
+         }
+        }
+       ]
+      },
+      {
+       "id": "A001.micro.3",
+       "order": 3,
+       "question": {
+        "en": "What practical training have you had?",
+        "vi": "Bạn đã thực hành gì?"
+       },
+       "short_answer": {
+        "en": "My training includes [actual workshop or onboard experience].",
+        "vi": "Tôi đã tham gia [thực hành xưởng hoặc huấn luyện trên tàu thực tế]."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment",
+       "short_answer_alternatives": [
+        {
+         "when_vi": "Nếu chưa thực hành",
+         "condition": {
+          "profile_field": "training_status",
+          "equals": "no_practical_training_yet"
+         },
+         "text": {
+          "en": "I have not had practical training yet.",
+          "vi": "Tôi chưa tham gia huấn luyện thực hành."
+         }
+        }
+       ]
+      }
+     ],
+     "core_unit_ids": [
+      "A001.micro.1",
+      "A001.micro.2",
+      "A001.micro.3"
+     ]
+    },
+    "useful_phrases": [
+     {
+      "en": "name",
+      "vi": "tên"
+     },
+     {
+      "en": "study",
+      "vi": "học"
+     },
+     {
+      "en": "training",
+      "vi": "huấn luyện"
+     }
+    ],
+    "levels": [
+     {
+      "id": "foundation",
+      "label_vi": "Mức 1 Chưa biết hoặc còn yếu",
+      "support": "maximum",
+      "display_order": [
+       "main_question_vi",
+       "main_question_en",
+       "useful_phrases",
+       "micro_questions_with_translations",
+       "short_answers",
+       "word_exercises",
+       "word_answer_key"
+      ],
+      "task": {
+       "en": "Learn one short question and answer at a time. Cover the answer, say it, then practise the next part.",
+       "vi": "Học một câu nhỏ và đáp án mỗi lần. Câu kỹ thuật khó có thêm phần giải thích thuật ngữ trước. Che đáp án rồi tự nói lại; không cần nhớ cả đoạn ngay."
+      },
+      "micro_unit_ids": [
+       "A001.micro.1",
+       "A001.micro.2",
+       "A001.micro.3"
+      ],
+      "exercise_ids": [
+       "A001.exercise.word.1",
+       "A001.exercise.word.2",
+       "A001.exercise.word.3"
+      ],
+      "show_translation_by_default": true,
+      "show_answer_by_default_in_study": true,
+      "completion_evidence": "supported_practice_only",
+      "full_model_answer_ref": "A001.answer",
+      "beginner_exit_task": {
+       "en": "Use the short answers to explain the topic, then study the complete answer at Level 2.",
+       "vi": "Dùng các câu ngắn để giải thích chủ đề rồi học đáp án đầy đủ ở Mức 2."
+      },
+      "technical_scope_note_vi": "Câu nhỏ chỉ giúp tiếp cận từng khái niệm; chưa thay thế toàn bộ yêu cầu chuyên môn của câu chính."
+     },
+     {
+      "id": "developing",
+      "label_vi": "Mức 2 Đã có tiếng Anh cơ bản",
+      "support": "outline_only",
+      "display_order": [
+       "main_question_en",
+       "three_required_points",
+       "meaning_exercise",
+       "model_answer_after_attempt"
+      ],
+      "task": {
+       "en": "Answer the full question using the three-point outline. Try first, then compare with the complete bilingual model.",
+       "vi": "Trả lời câu đầy đủ theo ba ý. Tự nói trước, sau đó so với đáp án mẫu Anh–Việt đầy đủ."
+      },
+      "required_point_ids": [
+       "A001.kp.1",
+       "A001.kp.2",
+       "A001.kp.3"
+      ],
+      "exercise_ids": [
+       "A001.exercise.meaning"
+      ],
+      "model_answer_ref": "A001.answer",
+      "show_translation_by_default": false,
+      "answer_visibility": "after_attempt_or_explicit_help",
+      "suggested_seconds": {
+       "min": 20,
+       "max": 60
+      },
+      "timing_is_hard_pass_fail": false
+     },
+     {
+      "id": "independent",
+      "label_vi": "Mức 3 Tiếng Anh khá tốt",
+      "support": "minimal",
+      "display_order": [
+       "full_question_or_reviewed_variant",
+       "unassisted_response",
+       "follow_up_questions",
+       "feedback_then_model_answer"
+      ],
+      "task": {
+       "en": "Answer without looking at the outline. Use a different question wording where available, then respond to an approved follow-up.",
+       "vi": "Trả lời không nhìn dàn ý. Luyện cách hỏi khác nếu có rồi trả lời câu phụ được duyệt."
+      },
+      "variant_ids": [
+       "A001.variant.1",
+       "A001.variant.2",
+       "A001.variant.3"
+      ],
+      "follow_up_ids": [
+       "A001.probe.1"
+      ],
+      "model_answer_ref": "A001.answer",
+      "answer_visibility": "after_submission",
+      "show_translation_by_default": false,
+      "assessment_rule": "same_three_required_points_and_safety_rules",
+      "suggested_seconds": {
+       "min": 30,
+       "max": 90
+      },
+      "timing_is_hard_pass_fail": false
+     }
+    ],
+    "common_mistake": {
+     "type": "incomplete_answer",
+     "description": {
+      "en": "Stopping after: My name is [name].",
+      "vi": "Chỉ trả lời rồi dừng ở: Tôi tên là [tên]."
+     },
+     "feedback": {
+      "en": "That is only the first part. Also address: I study marine engineering at [university]. My training includes [actual workshop or onboard experience].",
+      "vi": "Đây mới là phần đầu. Cần bổ sung: Tôi học ngành máy tàu tại [trường]. Tôi đã tham gia [thực hành xưởng hoặc huấn luyện trên tàu thực tế]."
+     },
+     "correct_answer_ref": "A001.answer"
+    },
+    "review_tasks": [
+     {
+      "id": "A001.review.foundation",
+      "prompt": {
+       "en": "What is your name?",
+       "vi": "Bạn tên gì?"
+      },
+      "mode": "supported_short_recall",
+      "answer_ref": "A001.micro.1"
+     },
+     {
+      "id": "A001.review.developing",
+      "prompt": {
+       "en": "Please introduce yourself and describe your university education in marine engineering in English.",
+       "vi": "Hãy giới thiệu bản thân và quá trình học ngành máy tàu biển bằng tiếng Anh."
+      },
+      "mode": "outline_hidden_until_requested",
+      "answer_ref": "A001.answer"
+     },
+     {
+      "id": "A001.review.independent",
+      "prompt_ref": "A001.question",
+      "mode": "full_question_or_unseen_approved_variant",
+      "answer_ref": "A001.answer"
+     }
+    ],
+    "audio_scripts": {
+     "micro_questions": [
+      {
+       "micro_unit_id": "A001.micro.1",
+       "question_text": "What is your name?",
+       "answer_text": "My name is [name].",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "A001.micro.2",
+       "question_text": "What do you study?",
+       "answer_text": "I study marine engineering at [university].",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "A001.micro.3",
+       "question_text": "What practical training have you had?",
+       "answer_text": "My training includes [actual workshop or onboard experience].",
+       "status": "not_generated"
+      }
+     ],
+     "directions_vi": "Tạo giọng rõ và tốc độ chậm cho Mức 1, giọng tự nhiên cho Mức 2/3; chưa có tệp audio thực trong lần soạn này."
+    },
+    "experience_note_vi": "Các ví dụ cá nhân phải thay bằng kinh nghiệm thật. Nếu chưa có thực hành, nêu chưa có; không nhận ví dụ trong sách là việc mình đã làm."
+   }
+  },
+  {
+   "id": "A002",
+   "version": 6,
+   "rank_id": "engine_cadet",
+   "module_id": "A1",
+   "vessel_group_ids": [
+    "tanker",
+    "dry_cargo",
+    "container"
+   ],
+   "status": "draft",
+   "review": {
+    "technical": "pending",
+    "language": "pending",
+    "approved_by": null,
+    "approved_at": null,
+    "regulatory_verification": "scope_checked_for_convention_summaries_only"
+   },
+   "question": {
+    "id": "A002.question",
+    "text": {
+     "en": "Why did you choose marine engineering, and why do you want to work at sea?",
+     "vi": "Vì sao bạn chọn ngành máy tàu biển và muốn làm việc trên biển?"
+    },
+    "parts": [
+     {
+      "id": "A002.question.part.1",
+      "order": 1,
+      "text": {
+       "en": "Why did you choose marine engineering, and why do you want to work at sea?",
+       "vi": "Vì sao bạn chọn ngành máy tàu biển và muốn làm việc trên biển?"
+      }
+     }
+    ],
+    "audio_asset_id": "audio.A002.question.en",
+    "variants": [
+     {
+      "id": "A002.variant.1",
+      "order": 1,
+      "text": {
+       "en": "Why did you decide to study marine engineering and go to sea?",
+       "vi": "Vì sao bạn quyết định học máy tàu và đi biển?"
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A002.kp.1",
+       "A002.kp.2",
+       "A002.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A002.variant.1.en"
+     },
+     {
+      "id": "A002.variant.2",
+      "order": 2,
+      "text": {
+       "en": "What made you choose marine engineering and a career at sea?",
+       "vi": "Điều gì khiến bạn chọn ngành máy tàu và nghề đi biển?"
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A002.kp.1",
+       "A002.kp.2",
+       "A002.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A002.variant.2.en"
+     },
+     {
+      "id": "A002.variant.3",
+      "order": 3,
+      "text": {
+       "en": "Tell me why you want to work at sea as a marine engineer.",
+       "vi": "Hãy cho biết vì sao bạn muốn làm việc trên biển trong ngành máy tàu."
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A002.kp.1",
+       "A002.kp.2",
+       "A002.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A002.variant.3.en"
+     }
+    ],
+    "variant_coverage": "selected_common_question",
+    "variant_selection": {
+     "modes": [
+      "canonical",
+      "choose_variant",
+      "random_variant"
+     ],
+     "variant_ids": [
+      "A002.variant.1",
+      "A002.variant.2",
+      "A002.variant.3"
+     ],
+     "shared_answer_and_rubric": true,
+     "selection_changes_mastery_requirements": false
+    }
+   },
+   "learning_objectives": [
+    {
+     "id": "A002.objective.1",
+     "text": {
+      "en": "Explain your technical interest",
+      "vi": "Giải thích sở thích kỹ thuật"
+     },
+     "key_point_ids": [
+      "A002.kp.1"
+     ]
+    },
+    {
+     "id": "A002.objective.2",
+     "text": {
+      "en": "Connect your motivation with learning and responsible teamwork",
+      "vi": "Liên hệ động lực với học hỏi và làm việc nhóm có trách nhiệm"
+     },
+     "key_point_ids": [
+      "A002.kp.2"
+     ]
+    },
+    {
+     "id": "A002.objective.3",
+     "text": {
+      "en": "Give a truthful reason for accepting the demands of life at sea.",
+      "vi": "Nêu lý do thật khiến bạn chấp nhận yêu cầu đời sống đi biển."
+     },
+     "key_point_ids": [
+      "A002.kp.3"
+     ]
+    }
+   ],
+   "key_points": [
+    {
+     "id": "A002.kp.1",
+     "order": 1,
+     "text": {
+      "en": "Explain your technical interest",
+      "vi": "Giải thích sở thích kỹ thuật"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "A002.kp.2",
+     "order": 2,
+     "text": {
+      "en": "Connect your motivation with learning and responsible teamwork",
+      "vi": "Liên hệ động lực với học hỏi và làm việc nhóm có trách nhiệm"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "A002.kp.3",
+     "order": 3,
+     "text": {
+      "en": "Give a truthful reason for accepting the demands of life at sea.",
+      "vi": "Nêu lý do thật khiến bạn chấp nhận yêu cầu đời sống đi biển."
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    }
+   ],
+   "vocabulary": [
+    {
+     "id": "A002.vocab.1",
+     "text": {
+      "en": "machinery",
+      "vi": "máy móc"
+     }
+    },
+    {
+     "id": "A002.vocab.2",
+     "text": {
+      "en": "practical skills",
+      "vi": "kỹ năng thực hành"
+     }
+    },
+    {
+     "id": "A002.vocab.3",
+     "text": {
+      "en": "international crew",
+      "vi": "thuyền bộ đa quốc tịch"
+     }
+    }
+   ],
+   "model_answer": {
+    "id": "A002.answer",
+    "text": {
+     "en": "I chose marine engineering because I enjoy machinery and practical problem-solving. Working at sea lets me develop these skills in an international team. I understand that sea life requires discipline, teamwork and time away from family.",
+     "vi": "Tôi chọn ngành máy tàu vì thích máy móc và giải quyết vấn đề thực tế. Làm việc trên biển giúp tôi phát triển kỹ năng trong tập thể đa quốc tịch. Tôi hiểu đời sống đi biển đòi hỏi kỷ luật hợp tác và chấp nhận xa gia đình."
+    },
+    "audio_asset_id": "audio.A002.model_answer.en",
+    "personalisation": {
+     "required": false,
+     "placeholder_keys_en": [],
+     "instructions": {
+      "en": "Replace bracketed details with truthful personal information before recording.",
+      "vi": "Thay nội dung trong ngoặc bằng thông tin cá nhân trung thực trước ghi âm."
+     }
+    },
+    "personalized_rendering": {
+     "enabled": false,
+     "template_id": null,
+     "missing_field_policy": "ask_learner_and_keep_generic_reference_visible",
+     "source_reference_answer": {
+      "en": "I chose marine engineering because I enjoy machinery and practical problem-solving. Working at sea lets me develop these skills in an international team. I understand that sea life requires discipline, teamwork and time away from family.",
+      "vi": "Tôi chọn ngành máy tàu vì thích máy móc và giải quyết vấn đề thực tế. Làm việc trên biển giúp tôi phát triển kỹ năng trong tập thể đa quốc tịch. Tôi hiểu đời sống đi biển đòi hỏi kỷ luật hợp tác và chấp nhận xa gia đình."
+     },
+     "technical_key_points_unchanged": true,
+     "personalization_source": "authenticated_learner_profile_not_shared_course_data"
+    },
+    "format": "spoken_example_answer",
+    "display_in_word": true,
+    "experience_example_only": false,
+    "experience_note": null,
+    "review": {
+     "content": "editorially_checked_for_answer_presence",
+     "technical": "pending_instructor_approval"
+    }
+   },
+   "coaching": {
+    "interviewer_intent": {
+     "en": "Demonstrate the three required points for this question.",
+     "vi": "Thể hiện ba ý bắt buộc của câu hỏi này."
+    },
+    "answer_structure": [
+     {
+      "order": 1,
+      "key_point_id": "A002.kp.1"
+     },
+     {
+      "order": 2,
+      "key_point_id": "A002.kp.2"
+     },
+     {
+      "order": 3,
+      "key_point_id": "A002.kp.3"
+     }
+    ],
+    "follow_up_guidance": {
+     "vi": "Trình bày sở thích kỹ thuật, động lực đi biển, môi trường quốc tế và mong muốn phát triển kỹ năng.",
+     "scope": "whole_lesson"
+    },
+    "response_hint": {
+     "en": "Answer directly, add relevant technical detail, and state your actual experience or limits when relevant.",
+     "vi": "Trả lời thẳng câu hỏi, bổ sung ý kỹ thuật phù hợp và nêu kinh nghiệm thật hoặc giới hạn nhiệm vụ khi liên quan."
+    }
+   },
+   "follow_up_questions": [
+    {
+     "id": "A002.probe.1",
+     "kind": "follow_up",
+     "prompt": {
+      "en": "Discuss your technical interests, motivation for going to sea, interest in an international working environment and desire to develop your skills.",
+      "vi": "Trình bày sở thích kỹ thuật, động lực đi biển, môi trường quốc tế và mong muốn phát triển kỹ năng."
+     },
+     "vi_translation_mode": "adapted_learning_summary",
+     "source_locations": [
+      {
+       "source_id": "doc-01",
+       "paragraph_index_0_based": 29
+      },
+      {
+       "source_id": "doc-02",
+       "paragraph_index_0_based": 29
+      },
+      {
+       "source_id": "doc-03",
+       "paragraph_index_0_based": 29
+      }
+     ],
+     "reference_ids": [],
+     "response_mode": "spoken_open_response",
+     "assessment_key_point_ids": [
+      "A002.kp.1",
+      "A002.kp.2",
+      "A002.kp.3"
+     ],
+     "assessment_note_vi": "Dùng các ý liên quan đến câu hỏi phụ; không bắt học viên nhắc toàn bộ đáp án chính. Giảng viên cần duyệt chi tiết trước chấm tự động.",
+     "model_answer_ref": "A002.probe.1.answer",
+     "model_answer_scope": "this_follow_up_question",
+     "model_answer": {
+      "id": "A002.probe.1.answer",
+      "text": {
+       "en": "I enjoy understanding machinery and solving practical problems. Going to sea gives me a chance to develop these skills and work with an international crew. I am prepared to learn, communicate clearly and follow the discipline required on board.",
+       "vi": "Tôi thích tìm hiểu máy móc và giải quyết vấn đề thực tế. Đi biển cho tôi cơ hội phát triển kỹ năng và làm việc với thuyền bộ đa quốc tịch. Tôi sẵn sàng học hỏi giao tiếp rõ và tuân thủ kỷ luật trên tàu."
+      },
+      "format": "spoken_example_answer",
+      "experience_example_only": false,
+      "review_status": "pending_instructor_approval",
+      "audio_asset_id": "audio.A002.probe.1.answer.en"
+     }
+    }
+   ],
+   "assessment": {
+    "rubric_id": "engine_cadet_three_points_v2",
+    "required_key_point_ids": [
+     "A002.kp.1",
+     "A002.kp.2",
+     "A002.kp.3"
+    ],
+    "critical_errors": [],
+    "accept_paraphrase": true,
+    "exact_wording_required": false,
+    "technical_review_required_before_automated_grading": true,
+    "short_model_answer_is_exhaustive": false,
+    "scope_vi": "Chấm ba ý bắt buộc theo phạm vi câu này. Chấp nhận diễn đạt tương đương; với câu hỏi phụ chỉ xét ý liên quan. Không cộng điểm ngôn ngữ để bù hành động nguy hiểm."
+   },
+   "practice": {
+    "estimated_minutes": 7,
+    "suggested_response_seconds": {
+     "min": 20,
+     "max": 60
+    },
+    "time_limit_is_hard_fail": false,
+    "silent_mode_supported": true,
+    "speaking_completion_required_for_mastery": true,
+    "activity_ids": [
+     "A002.activity.listen_question",
+     "A002.activity.understand",
+     "A002.activity.key_points",
+     "A002.activity.listen_model",
+     "A002.activity.recall",
+     "A002.activity.record",
+     "A002.activity.reflect",
+     "A002.activity.retry"
+    ]
+   },
+   "prerequisite_lesson_ids": [],
+   "provenance": {
+    "source_locations": [
+     {
+      "source_id": "doc-01",
+      "paragraph_index_0_based": 28
+     },
+     {
+      "source_id": "doc-02",
+      "paragraph_index_0_based": 28
+     },
+     {
+      "source_id": "doc-03",
+      "paragraph_index_0_based": 28
+     }
+    ],
+    "model_answer_source_locations": [
+     {
+      "source_id": "bilingual-01",
+      "paragraph_index_0_based": 43,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-01",
+      "paragraph_index_0_based": 44,
+      "field": "model_answer.vi"
+     },
+     {
+      "source_id": "bilingual-02",
+      "paragraph_index_0_based": 43,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-02",
+      "paragraph_index_0_based": 44,
+      "field": "model_answer.vi"
+     },
+     {
+      "source_id": "bilingual-03",
+      "paragraph_index_0_based": 43,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-03",
+      "paragraph_index_0_based": 44,
+      "field": "model_answer.vi"
+     }
+    ],
+    "original_source_bank_codes": [
+     "S01",
+     "S02",
+     "S03"
+    ],
+    "extension_reference_ids": [],
+    "editorial_fields": [
+     "learning_objectives",
+     "key_points",
+     "vocabulary",
+     "coaching",
+     "assessment",
+     "practice"
+    ],
+    "editorial_review_status": "pending",
+    "change_summary_vi": "Tổ chức lại thành câu hỏi độc lập với ba ý bắt buộc Anh–Việt; giữ mã nguồn cha để đối chiếu.",
+    "answer_revision_vi": "Phiên bản 5 kiểm tra đáp án thực chất; mọi câu chính và câu phụ đang hoạt động có đáp án mẫu riêng."
+   },
+   "recall_cards": [
+    {
+     "id": "A002.card.1",
+     "key_point_id": "A002.kp.1",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Explain your technical interest",
+      "vi": "Giải thích sở thích kỹ thuật"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "A002.card.2",
+     "key_point_id": "A002.kp.2",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Connect your motivation with learning and responsible teamwork",
+      "vi": "Liên hệ động lực với học hỏi và làm việc nhóm có trách nhiệm"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "A002.card.3",
+     "key_point_id": "A002.kp.3",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Give a truthful reason for accepting the demands of life at sea.",
+      "vi": "Nêu lý do thật khiến bạn chấp nhận yêu cầu đời sống đi biển."
+     },
+     "answer_visibility": "hidden_until_attempt"
+    }
+   ],
+   "legacy_parent_id": "A002",
+   "mandatory_point_count": 3,
+   "learning_material": {
+    "version": 1,
+    "interviewer_intent": {
+     "en": "Demonstrate an understanding of the question and give the three required points within the cadet role.",
+     "vi": "Hiểu và trả lời lần lượt: Vì sao bạn chọn ngành này; Vì sao bạn muốn đi biển; Bạn chấp nhận yêu cầu nào."
+    },
+    "question_breakdown": {
+     "method": "three_short_concept_questions",
+     "is_word_for_word_translation_of_fragments": false,
+     "units": [
+      {
+       "id": "A002.micro.1",
+       "order": 1,
+       "question": {
+        "en": "Why did you choose this subject?",
+        "vi": "Vì sao bạn chọn ngành này?"
+       },
+       "short_answer": {
+        "en": "I enjoy machinery and practical problem-solving.",
+        "vi": "Tôi thích máy móc và giải quyết vấn đề thực tế."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "A002.micro.2",
+       "order": 2,
+       "question": {
+        "en": "Why do you want to work at sea?",
+        "vi": "Vì sao bạn muốn đi biển?"
+       },
+       "short_answer": {
+        "en": "I want to develop my skills in an international crew.",
+        "vi": "Tôi muốn phát triển kỹ năng trong thuyền bộ đa quốc tịch."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "A002.micro.3",
+       "order": 3,
+       "question": {
+        "en": "What demands do you accept?",
+        "vi": "Bạn chấp nhận yêu cầu nào?"
+       },
+       "short_answer": {
+        "en": "Sea life requires discipline and time away from family.",
+        "vi": "Đời sống đi biển đòi hỏi kỷ luật và xa gia đình."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      }
+     ],
+     "core_unit_ids": [
+      "A002.micro.1",
+      "A002.micro.2",
+      "A002.micro.3"
+     ]
+    },
+    "useful_phrases": [
+     {
+      "en": "machinery",
+      "vi": "máy móc"
+     },
+     {
+      "en": "skills",
+      "vi": "kỹ năng"
+     },
+     {
+      "en": "discipline",
+      "vi": "kỷ luật"
+     }
+    ],
+    "levels": [
+     {
+      "id": "foundation",
+      "label_vi": "Mức 1 Chưa biết hoặc còn yếu",
+      "support": "maximum",
+      "display_order": [
+       "main_question_vi",
+       "main_question_en",
+       "useful_phrases",
+       "micro_questions_with_translations",
+       "short_answers",
+       "word_exercises",
+       "word_answer_key"
+      ],
+      "task": {
+       "en": "Learn one short question and answer at a time. Cover the answer, say it, then practise the next part.",
+       "vi": "Học một câu nhỏ và đáp án mỗi lần. Câu kỹ thuật khó có thêm phần giải thích thuật ngữ trước. Che đáp án rồi tự nói lại; không cần nhớ cả đoạn ngay."
+      },
+      "micro_unit_ids": [
+       "A002.micro.1",
+       "A002.micro.2",
+       "A002.micro.3"
+      ],
+      "exercise_ids": [
+       "A002.exercise.word.1",
+       "A002.exercise.word.2",
+       "A002.exercise.word.3"
+      ],
+      "show_translation_by_default": true,
+      "show_answer_by_default_in_study": true,
+      "completion_evidence": "supported_practice_only",
+      "full_model_answer_ref": "A002.answer",
+      "beginner_exit_task": {
+       "en": "Use the short answers to explain the topic, then study the complete answer at Level 2.",
+       "vi": "Dùng các câu ngắn để giải thích chủ đề rồi học đáp án đầy đủ ở Mức 2."
+      },
+      "technical_scope_note_vi": "Câu nhỏ chỉ giúp tiếp cận từng khái niệm; chưa thay thế toàn bộ yêu cầu chuyên môn của câu chính."
+     },
+     {
+      "id": "developing",
+      "label_vi": "Mức 2 Đã có tiếng Anh cơ bản",
+      "support": "outline_only",
+      "display_order": [
+       "main_question_en",
+       "three_required_points",
+       "meaning_exercise",
+       "model_answer_after_attempt"
+      ],
+      "task": {
+       "en": "Answer the full question using the three-point outline. Try first, then compare with the complete bilingual model.",
+       "vi": "Trả lời câu đầy đủ theo ba ý. Tự nói trước, sau đó so với đáp án mẫu Anh–Việt đầy đủ."
+      },
+      "required_point_ids": [
+       "A002.kp.1",
+       "A002.kp.2",
+       "A002.kp.3"
+      ],
+      "exercise_ids": [
+       "A002.exercise.meaning"
+      ],
+      "model_answer_ref": "A002.answer",
+      "show_translation_by_default": false,
+      "answer_visibility": "after_attempt_or_explicit_help",
+      "suggested_seconds": {
+       "min": 20,
+       "max": 60
+      },
+      "timing_is_hard_pass_fail": false
+     },
+     {
+      "id": "independent",
+      "label_vi": "Mức 3 Tiếng Anh khá tốt",
+      "support": "minimal",
+      "display_order": [
+       "full_question_or_reviewed_variant",
+       "unassisted_response",
+       "follow_up_questions",
+       "feedback_then_model_answer"
+      ],
+      "task": {
+       "en": "Answer without looking at the outline. Use a different question wording where available, then respond to an approved follow-up.",
+       "vi": "Trả lời không nhìn dàn ý. Luyện cách hỏi khác nếu có rồi trả lời câu phụ được duyệt."
+      },
+      "variant_ids": [
+       "A002.variant.1",
+       "A002.variant.2",
+       "A002.variant.3"
+      ],
+      "follow_up_ids": [
+       "A002.probe.1"
+      ],
+      "model_answer_ref": "A002.answer",
+      "answer_visibility": "after_submission",
+      "show_translation_by_default": false,
+      "assessment_rule": "same_three_required_points_and_safety_rules",
+      "suggested_seconds": {
+       "min": 30,
+       "max": 90
+      },
+      "timing_is_hard_pass_fail": false
+     }
+    ],
+    "common_mistake": {
+     "type": "incomplete_answer",
+     "description": {
+      "en": "Stopping after: I enjoy machinery and practical problem-solving.",
+      "vi": "Chỉ trả lời rồi dừng ở: Tôi thích máy móc và giải quyết vấn đề thực tế."
+     },
+     "feedback": {
+      "en": "That is only the first part. Also address: I want to develop my skills in an international crew. Sea life requires discipline and time away from family.",
+      "vi": "Đây mới là phần đầu. Cần bổ sung: Tôi muốn phát triển kỹ năng trong thuyền bộ đa quốc tịch. Đời sống đi biển đòi hỏi kỷ luật và xa gia đình."
+     },
+     "correct_answer_ref": "A002.answer"
+    },
+    "review_tasks": [
+     {
+      "id": "A002.review.foundation",
+      "prompt": {
+       "en": "Why did you choose this subject?",
+       "vi": "Vì sao bạn chọn ngành này?"
+      },
+      "mode": "supported_short_recall",
+      "answer_ref": "A002.micro.1"
+     },
+     {
+      "id": "A002.review.developing",
+      "prompt": {
+       "en": "Why did you choose marine engineering, and why do you want to work at sea?",
+       "vi": "Vì sao bạn chọn ngành máy tàu biển và muốn làm việc trên biển?"
+      },
+      "mode": "outline_hidden_until_requested",
+      "answer_ref": "A002.answer"
+     },
+     {
+      "id": "A002.review.independent",
+      "prompt_ref": "A002.question",
+      "mode": "full_question_or_unseen_approved_variant",
+      "answer_ref": "A002.answer"
+     }
+    ],
+    "audio_scripts": {
+     "micro_questions": [
+      {
+       "micro_unit_id": "A002.micro.1",
+       "question_text": "Why did you choose this subject?",
+       "answer_text": "I enjoy machinery and practical problem-solving.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "A002.micro.2",
+       "question_text": "Why do you want to work at sea?",
+       "answer_text": "I want to develop my skills in an international crew.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "A002.micro.3",
+       "question_text": "What demands do you accept?",
+       "answer_text": "Sea life requires discipline and time away from family.",
+       "status": "not_generated"
+      }
+     ],
+     "directions_vi": "Tạo giọng rõ và tốc độ chậm cho Mức 1, giọng tự nhiên cho Mức 2/3; chưa có tệp audio thực trong lần soạn này."
+    },
+    "experience_note_vi": "Các ví dụ cá nhân phải thay bằng kinh nghiệm thật. Nếu chưa có thực hành, nêu chưa có; không nhận ví dụ trong sách là việc mình đã làm."
+   }
+  },
+  {
+   "id": "A003-1",
+   "version": 6,
+   "rank_id": "engine_cadet",
+   "module_id": "A1",
+   "vessel_group_ids": [
+    "tanker",
+    "dry_cargo",
+    "container"
+   ],
+   "status": "draft",
+   "review": {
+    "technical": "pending",
+    "language": "pending",
+    "approved_by": null,
+    "approved_at": null,
+    "regulatory_verification": "scope_checked_for_convention_summaries_only"
+   },
+   "question": {
+    "id": "A003-1.question",
+    "text": {
+     "en": "Why should the company recruit you as an Engine Cadet?",
+     "vi": "Vì sao công ty nên tuyển bạn làm thực tập sinh máy?"
+    },
+    "parts": [
+     {
+      "id": "A003-1.question.part.1",
+      "order": 1,
+      "text": {
+       "en": "Why should the company recruit you as an Engine Cadet?",
+       "vi": "Vì sao công ty nên tuyển bạn làm thực tập sinh máy?"
+      }
+     }
+    ],
+    "audio_asset_id": "audio.A003-1.question.en",
+    "variants": [
+     {
+      "id": "A003-1.variant.1",
+      "order": 1,
+      "text": {
+       "en": "Why should we take you on as an Engine Cadet?",
+       "vi": "Vì sao chúng tôi nên nhận bạn làm thực tập sinh máy?"
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A003-1.kp.1",
+       "A003-1.kp.2",
+       "A003-1.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A003-1.variant.1.en"
+     },
+     {
+      "id": "A003-1.variant.2",
+      "order": 2,
+      "text": {
+       "en": "What makes you a suitable candidate for this cadet position?",
+       "vi": "Điều gì khiến bạn phù hợp vị trí thực tập sinh này?"
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A003-1.kp.1",
+       "A003-1.kp.2",
+       "A003-1.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A003-1.variant.2.en"
+     },
+     {
+      "id": "A003-1.variant.3",
+      "order": 3,
+      "text": {
+       "en": "Tell us why you would be a good fit for our engine cadet programme.",
+       "vi": "Hãy cho biết vì sao bạn phù hợp chương trình thực tập máy của chúng tôi."
+      },
+      "semantic_scope": "same_as_canonical_question",
+      "required_key_point_ids": [
+       "A003-1.kp.1",
+       "A003-1.kp.2",
+       "A003-1.kp.3"
+      ],
+      "authoring_status": "editorial_practice_paraphrase",
+      "review_status": "pending",
+      "audio_asset_id": "audio.A003-1.variant.3.en"
+     }
+    ],
+    "variant_coverage": "selected_common_question",
+    "variant_selection": {
+     "modes": [
+      "canonical",
+      "choose_variant",
+      "random_variant"
+     ],
+     "variant_ids": [
+      "A003-1.variant.1",
+      "A003-1.variant.2",
+      "A003-1.variant.3"
+     ],
+     "shared_answer_and_rubric": true,
+     "selection_changes_mastery_requirements": false
+    }
+   },
+   "learning_objectives": [
+    {
+     "id": "A003-1.objective.1",
+     "text": {
+      "en": "I am willing to learn and follow instructions.",
+      "vi": "Tôi sẵn sàng học hỏi và làm theo hướng dẫn."
+     },
+     "key_point_ids": [
+      "A003-1.kp.1"
+     ]
+    },
+    {
+     "id": "A003-1.objective.2",
+     "text": {
+      "en": "I work safely and cooperate with others.",
+      "vi": "Tôi làm việc an toàn và hợp tác với mọi người."
+     },
+     "key_point_ids": [
+      "A003-1.kp.2"
+     ]
+    },
+    {
+     "id": "A003-1.objective.3",
+     "text": {
+      "en": "I support my suitability with a real training example.",
+      "vi": "Tôi chứng minh sự phù hợp bằng ví dụ huấn luyện thực tế."
+     },
+     "key_point_ids": [
+      "A003-1.kp.3"
+     ]
+    }
+   ],
+   "key_points": [
+    {
+     "id": "A003-1.kp.1",
+     "order": 1,
+     "text": {
+      "en": "I am willing to learn and follow instructions.",
+      "vi": "Tôi sẵn sàng học hỏi và làm theo hướng dẫn."
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "A003-1.kp.2",
+     "order": 2,
+     "text": {
+      "en": "I work safely and cooperate with others.",
+      "vi": "Tôi làm việc an toàn và hợp tác với mọi người."
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "A003-1.kp.3",
+     "order": 3,
+     "text": {
+      "en": "I support my suitability with a real training example.",
+      "vi": "Tôi chứng minh sự phù hợp bằng ví dụ huấn luyện thực tế."
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    }
+   ],
+   "vocabulary": [],
+   "model_answer": {
+    "id": "A003-1.answer",
+    "text": {
+     "en": "I am willing to learn, follow instructions and work safely with others. In a workshop task, I checked the instructions and asked the instructor before using unfamiliar equipment. I would bring the same careful approach to your cadet programme.",
+     "vi": "Tôi sẵn sàng học hỏi làm theo hướng dẫn và phối hợp an toàn. Trong một bài thực hành xưởng tôi kiểm tra hướng dẫn và hỏi giáo viên trước khi dùng thiết bị chưa quen. Tôi sẽ giữ cách làm cẩn thận đó khi tham gia chương trình thực tập của công ty."
+    },
+    "audio_asset_id": "audio.A003-1.model_answer.en",
+    "personalisation": {
+     "required": true,
+     "placeholder_keys_en": [],
+     "instructions": {
+      "en": "Use truthful experience and adapt personal statements before recording.",
+      "vi": "Dùng kinh nghiệm thật và điều chỉnh câu cá nhân trước ghi âm."
+     }
+    },
+    "personalized_rendering": {
+     "enabled": false,
+     "template_id": null,
+     "missing_field_policy": "ask_learner_and_keep_generic_reference_visible",
+     "source_reference_answer": {
+      "en": "I am willing to learn, follow instructions and work safely with others. In a workshop task, I checked the instructions and asked the instructor before using unfamiliar equipment. I would bring the same careful approach to your cadet programme.",
+      "vi": "Tôi sẵn sàng học hỏi làm theo hướng dẫn và phối hợp an toàn. Trong một bài thực hành xưởng tôi kiểm tra hướng dẫn và hỏi giáo viên trước khi dùng thiết bị chưa quen. Tôi sẽ giữ cách làm cẩn thận đó khi tham gia chương trình thực tập của công ty."
+     },
+     "technical_key_points_unchanged": true,
+     "personalization_source": "authenticated_learner_profile_not_shared_course_data"
+    },
+    "format": "spoken_example_answer",
+    "display_in_word": true,
+    "experience_example_only": true,
+    "experience_note": {
+     "en": "Illustrative answer only; adapt the experience and personal details truthfully.",
+     "vi": "Câu minh họa; chỉ dùng chi tiết kinh nghiệm và cá nhân đúng sự thật."
+    },
+    "review": {
+     "content": "editorially_checked_for_answer_presence",
+     "technical": "pending_instructor_approval"
+    }
+   },
+   "coaching": {
+    "interviewer_intent": {
+     "en": "Demonstrate the three required points for this question.",
+     "vi": "Thể hiện ba ý bắt buộc của câu hỏi này."
+    },
+    "answer_structure": [
+     {
+      "order": 1,
+      "key_point_id": "A003-1.kp.1"
+     },
+     {
+      "order": 2,
+      "key_point_id": "A003-1.kp.2"
+     },
+     {
+      "order": 3,
+      "key_point_id": "A003-1.kp.3"
+     }
+    ],
+    "follow_up_guidance": {
+     "vi": "Luyện từng gạch đầu dòng trước khi ghép thành câu trả lời đầy đủ.",
+     "scope": "this_question"
+    },
+    "response_hint": {
+     "en": "Answer directly, add relevant technical detail, and state your actual experience or limits when relevant.",
+     "vi": "Trả lời thẳng câu hỏi, bổ sung ý kỹ thuật phù hợp và nêu kinh nghiệm thật hoặc giới hạn nhiệm vụ khi liên quan."
+    }
+   },
+   "follow_up_questions": [],
+   "assessment": {
+    "rubric_id": "engine_cadet_three_points_v2",
+    "required_key_point_ids": [
+     "A003-1.kp.1",
+     "A003-1.kp.2",
+     "A003-1.kp.3"
+    ],
+    "critical_errors": [],
+    "accept_paraphrase": true,
+    "exact_wording_required": false,
+    "technical_review_required_before_automated_grading": true,
+    "short_model_answer_is_exhaustive": false,
+    "scope_vi": "Chấm ba ý bắt buộc theo phạm vi câu này. Chấp nhận diễn đạt tương đương; với câu hỏi phụ chỉ xét ý liên quan. Không cộng điểm ngôn ngữ để bù hành động nguy hiểm."
+   },
+   "practice": {
+    "estimated_minutes": 7,
+    "suggested_response_seconds": {
+     "min": 20,
+     "max": 60
+    },
+    "time_limit_is_hard_fail": false,
+    "silent_mode_supported": true,
+    "speaking_completion_required_for_mastery": true,
+    "activity_ids": [
+     "A003-1.activity.listen_question",
+     "A003-1.activity.understand",
+     "A003-1.activity.key_points",
+     "A003-1.activity.listen_model",
+     "A003-1.activity.recall",
+     "A003-1.activity.record",
+     "A003-1.activity.reflect",
+     "A003-1.activity.retry"
+    ]
+   },
+   "prerequisite_lesson_ids": [],
+   "provenance": {
+    "source_locations": [
+     {
+      "source_id": "doc-01",
+      "paragraph_index_0_based": 31
+     },
+     {
+      "source_id": "doc-02",
+      "paragraph_index_0_based": 31
+     },
+     {
+      "source_id": "doc-03",
+      "paragraph_index_0_based": 31
+     }
+    ],
+    "model_answer_source_locations": [],
+    "original_source_bank_codes": [
+     "S02"
+    ],
+    "extension_reference_ids": [],
+    "editorial_fields": [
+     "learning_objectives",
+     "key_points",
+     "vocabulary",
+     "coaching",
+     "assessment",
+     "practice"
+    ],
+    "editorial_review_status": "pending",
+    "original_parent_question": {
+     "en": "Why should the company recruit you as an Engine Cadet? What are your strengths and areas for improvement?",
+     "vi": "Vì sao công ty nên tuyển bạn làm thực tập sinh máy? Điểm mạnh và điểm cần cải thiện của bạn là gì?"
+    },
+    "original_parent_followups": [
+     {
+      "id": "A003.probe.1",
+      "kind": "follow_up",
+      "prompt": {
+       "en": "Give examples from study, practical training or work. How are you addressing your weaknesses and meeting the training programme's requirements?",
+       "vi": "Lấy ví dụ từ học tập, huấn luyện hoặc công việc; giải thích cách khắc phục điểm yếu và đáp ứng chương trình huấn luyện."
+      },
+      "vi_translation_mode": "adapted_learning_summary",
+      "source_locations": [
+       {
+        "source_id": "doc-01",
+        "paragraph_index_0_based": 32
+       },
+       {
+        "source_id": "doc-02",
+        "paragraph_index_0_based": 32
+       },
+       {
+        "source_id": "doc-03",
+        "paragraph_index_0_based": 32
+       }
+      ],
+      "reference_ids": [],
+      "response_mode": "spoken_open_response",
+      "assessment_key_point_ids": [
+       "A003.kp.1",
+       "A003.kp.2"
+      ],
+      "assessment_note_vi": "Dùng các ý liên quan đến câu hỏi phụ; không bắt học viên nhắc toàn bộ đáp án chính. Giảng viên cần duyệt chi tiết trước chấm tự động.",
+      "model_answer_ref": "A003.answer",
+      "model_answer_scope": "parent_lesson_reference_not_a_separate_complete_answer_to_this_probe"
+     }
+    ],
+    "model_answer_origin": "rewritten_for_this_atomic_lesson_from_required_points",
+    "change_summary_vi": "Tổ chức lại thành câu hỏi độc lập với ba ý bắt buộc Anh–Việt; giữ mã nguồn cha để đối chiếu.",
+    "answer_revision_vi": "Phiên bản 5 kiểm tra đáp án thực chất; mọi câu chính và câu phụ đang hoạt động có đáp án mẫu riêng."
+   },
+   "recall_cards": [
+    {
+     "id": "A003-1.card.1",
+     "key_point_id": "A003-1.kp.1",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "I am willing to learn and follow instructions.",
+      "vi": "Tôi sẵn sàng học hỏi và làm theo hướng dẫn."
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "A003-1.card.2",
+     "key_point_id": "A003-1.kp.2",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "I work safely and cooperate with others.",
+      "vi": "Tôi làm việc an toàn và hợp tác với mọi người."
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "A003-1.card.3",
+     "key_point_id": "A003-1.kp.3",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "I support my suitability with a real training example.",
+      "vi": "Tôi chứng minh sự phù hợp bằng ví dụ huấn luyện thực tế."
+     },
+     "answer_visibility": "hidden_until_attempt"
+    }
+   ],
+   "legacy_parent_id": "A003",
+   "mandatory_point_count": 3,
+   "shared_vocabulary_parent_id": "A003",
+   "learning_material": {
+    "version": 1,
+    "interviewer_intent": {
+     "en": "Demonstrate an understanding of the question and give the three required points within the cadet role.",
+     "vi": "Hiểu và trả lời lần lượt: Bạn có sẵn sàng học không; Bạn phối hợp với người khác thế nào; Bạn nêu ví dụ được không."
+    },
+    "question_breakdown": {
+     "method": "three_short_concept_questions",
+     "is_word_for_word_translation_of_fragments": false,
+     "units": [
+      {
+       "id": "A003-1.micro.1",
+       "order": 1,
+       "question": {
+        "en": "Are you willing to learn?",
+        "vi": "Bạn có sẵn sàng học không?"
+       },
+       "short_answer": {
+        "en": "I am willing to learn and follow instructions.",
+        "vi": "Tôi sẵn sàng học và làm theo hướng dẫn."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "A003-1.micro.2",
+       "order": 2,
+       "question": {
+        "en": "How would you work with others?",
+        "vi": "Bạn phối hợp với người khác thế nào?"
+       },
+       "short_answer": {
+        "en": "I work safely and cooperate with the team.",
+        "vi": "Tôi làm việc an toàn và hợp tác với nhóm."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "A003-1.micro.3",
+       "order": 3,
+       "question": {
+        "en": "Can you give an example?",
+        "vi": "Bạn nêu ví dụ được không?"
+       },
+       "short_answer": {
+        "en": "In a workshop task, I asked before using unfamiliar equipment.",
+        "vi": "Trong bài xưởng tôi hỏi trước khi dùng thiết bị chưa quen."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      }
+     ],
+     "core_unit_ids": [
+      "A003-1.micro.1",
+      "A003-1.micro.2",
+      "A003-1.micro.3"
+     ]
+    },
+    "useful_phrases": [
+     {
+      "en": "learn",
+      "vi": "học"
+     },
+     {
+      "en": "instructions",
+      "vi": "hướng dẫn"
+     },
+     {
+      "en": "cooperate",
+      "vi": "hợp tác"
+     }
+    ],
+    "levels": [
+     {
+      "id": "foundation",
+      "label_vi": "Mức 1 Chưa biết hoặc còn yếu",
+      "support": "maximum",
+      "display_order": [
+       "main_question_vi",
+       "main_question_en",
+       "useful_phrases",
+       "micro_questions_with_translations",
+       "short_answers",
+       "word_exercises",
+       "word_answer_key"
+      ],
+      "task": {
+       "en": "Learn one short question and answer at a time. Cover the answer, say it, then practise the next part.",
+       "vi": "Học một câu nhỏ và đáp án mỗi lần. Câu kỹ thuật khó có thêm phần giải thích thuật ngữ trước. Che đáp án rồi tự nói lại; không cần nhớ cả đoạn ngay."
+      },
+      "micro_unit_ids": [
+       "A003-1.micro.1",
+       "A003-1.micro.2",
+       "A003-1.micro.3"
+      ],
+      "exercise_ids": [
+       "A003-1.exercise.word.1",
+       "A003-1.exercise.word.2",
+       "A003-1.exercise.word.3"
+      ],
+      "show_translation_by_default": true,
+      "show_answer_by_default_in_study": true,
+      "completion_evidence": "supported_practice_only",
+      "full_model_answer_ref": "A003-1.answer",
+      "beginner_exit_task": {
+       "en": "Use the short answers to explain the topic, then study the complete answer at Level 2.",
+       "vi": "Dùng các câu ngắn để giải thích chủ đề rồi học đáp án đầy đủ ở Mức 2."
+      },
+      "technical_scope_note_vi": "Câu nhỏ chỉ giúp tiếp cận từng khái niệm; chưa thay thế toàn bộ yêu cầu chuyên môn của câu chính."
+     },
+     {
+      "id": "developing",
+      "label_vi": "Mức 2 Đã có tiếng Anh cơ bản",
+      "support": "outline_only",
+      "display_order": [
+       "main_question_en",
+       "three_required_points",
+       "meaning_exercise",
+       "model_answer_after_attempt"
+      ],
+      "task": {
+       "en": "Answer the full question using the three-point outline. Try first, then compare with the complete bilingual model.",
+       "vi": "Trả lời câu đầy đủ theo ba ý. Tự nói trước, sau đó so với đáp án mẫu Anh–Việt đầy đủ."
+      },
+      "required_point_ids": [
+       "A003-1.kp.1",
+       "A003-1.kp.2",
+       "A003-1.kp.3"
+      ],
+      "exercise_ids": [
+       "A003-1.exercise.meaning"
+      ],
+      "model_answer_ref": "A003-1.answer",
+      "show_translation_by_default": false,
+      "answer_visibility": "after_attempt_or_explicit_help",
+      "suggested_seconds": {
+       "min": 20,
+       "max": 60
+      },
+      "timing_is_hard_pass_fail": false
+     },
+     {
+      "id": "independent",
+      "label_vi": "Mức 3 Tiếng Anh khá tốt",
+      "support": "minimal",
+      "display_order": [
+       "full_question_or_reviewed_variant",
+       "unassisted_response",
+       "follow_up_questions",
+       "feedback_then_model_answer"
+      ],
+      "task": {
+       "en": "Answer without looking at the outline. Use a different question wording where available, then respond to an approved follow-up.",
+       "vi": "Trả lời không nhìn dàn ý. Luyện cách hỏi khác nếu có rồi trả lời câu phụ được duyệt."
+      },
+      "variant_ids": [
+       "A003-1.variant.1",
+       "A003-1.variant.2",
+       "A003-1.variant.3"
+      ],
+      "follow_up_ids": [],
+      "model_answer_ref": "A003-1.answer",
+      "answer_visibility": "after_submission",
+      "show_translation_by_default": false,
+      "assessment_rule": "same_three_required_points_and_safety_rules",
+      "suggested_seconds": {
+       "min": 30,
+       "max": 90
+      },
+      "timing_is_hard_pass_fail": false
+     }
+    ],
+    "common_mistake": {
+     "type": "incomplete_answer",
+     "description": {
+      "en": "Stopping after: I am willing to learn and follow instructions.",
+      "vi": "Chỉ trả lời rồi dừng ở: Tôi sẵn sàng học và làm theo hướng dẫn."
+     },
+     "feedback": {
+      "en": "That is only the first part. Also address: I work safely and cooperate with the team. In a workshop task, I asked before using unfamiliar equipment.",
+      "vi": "Đây mới là phần đầu. Cần bổ sung: Tôi làm việc an toàn và hợp tác với nhóm. Trong bài xưởng tôi hỏi trước khi dùng thiết bị chưa quen."
+     },
+     "correct_answer_ref": "A003-1.answer"
+    },
+    "review_tasks": [
+     {
+      "id": "A003-1.review.foundation",
+      "prompt": {
+       "en": "Are you willing to learn?",
+       "vi": "Bạn có sẵn sàng học không?"
+      },
+      "mode": "supported_short_recall",
+      "answer_ref": "A003-1.micro.1"
+     },
+     {
+      "id": "A003-1.review.developing",
+      "prompt": {
+       "en": "Why should the company recruit you as an Engine Cadet?",
+       "vi": "Vì sao công ty nên tuyển bạn làm thực tập sinh máy?"
+      },
+      "mode": "outline_hidden_until_requested",
+      "answer_ref": "A003-1.answer"
+     },
+     {
+      "id": "A003-1.review.independent",
+      "prompt_ref": "A003-1.question",
+      "mode": "full_question_or_unseen_approved_variant",
+      "answer_ref": "A003-1.answer"
+     }
+    ],
+    "audio_scripts": {
+     "micro_questions": [
+      {
+       "micro_unit_id": "A003-1.micro.1",
+       "question_text": "Are you willing to learn?",
+       "answer_text": "I am willing to learn and follow instructions.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "A003-1.micro.2",
+       "question_text": "How would you work with others?",
+       "answer_text": "I work safely and cooperate with the team.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "A003-1.micro.3",
+       "question_text": "Can you give an example?",
+       "answer_text": "In a workshop task, I asked before using unfamiliar equipment.",
+       "status": "not_generated"
+      }
+     ],
+     "directions_vi": "Tạo giọng rõ và tốc độ chậm cho Mức 1, giọng tự nhiên cho Mức 2/3; chưa có tệp audio thực trong lần soạn này."
+    },
+    "experience_note_vi": "Các ví dụ cá nhân phải thay bằng kinh nghiệm thật. Nếu chưa có thực hành, nêu chưa có; không nhận ví dụ trong sách là việc mình đã làm."
+   }
+  },
+  {
+   "id": "T001",
+   "version": 6,
+   "rank_id": "engine_cadet",
+   "module_id": "B1",
+   "vessel_group_ids": [
+    "tanker"
+   ],
+   "status": "draft",
+   "review": {
+    "technical": "pending",
+    "language": "pending",
+    "approved_by": null,
+    "approved_at": null,
+    "regulatory_verification": "scope_checked_for_convention_summaries_only"
+   },
+   "question": {
+    "id": "T001.question",
+    "text": {
+     "en": "When learning about tanker cargo support systems, how do you prepare for and record familiarisation visits and practical training in cargo areas?",
+     "vi": "Khi học hệ thống hỗ trợ hàng trên tàu dầu, bạn chuẩn bị và ghi nhận việc làm quen, thực hành ở khu vực hàng thế nào?"
+    },
+    "parts": [
+     {
+      "id": "T001.question.part.1",
+      "order": 1,
+      "text": {
+       "en": "When learning about tanker cargo support systems, how do you prepare for and record familiarisation visits and practical training in cargo areas?",
+       "vi": "Khi học hệ thống hỗ trợ hàng trên tàu dầu, bạn chuẩn bị và ghi nhận việc làm quen, thực hành ở khu vực hàng thế nào?"
+      }
+     }
+    ],
+    "audio_asset_id": "audio.T001.question.en",
+    "variants": [],
+    "variant_coverage": "canonical_only",
+    "variant_selection": {
+     "modes": [
+      "canonical"
+     ],
+     "variant_ids": [],
+     "shared_answer_and_rubric": true,
+     "selection_changes_mastery_requirements": false
+    }
+   },
+   "learning_objectives": [
+    {
+     "id": "T001.objective.1",
+     "text": {
+      "en": "Coordinate cargo-area familiarisation and identify cargo hazards",
+      "vi": "Phối hợp làm quen khu vực hàng và nhận diện nguy cơ hàng"
+     },
+     "key_point_ids": [
+      "T001.kp.1"
+     ]
+    },
+    {
+     "id": "T001.objective.2",
+     "text": {
+      "en": "Confirm entry controls and record actual supervised training",
+      "vi": "Xác nhận kiểm soát vào và ghi huấn luyện có giám sát thực tế"
+     },
+     "key_point_ids": [
+      "T001.kp.2"
+     ]
+    },
+    {
+     "id": "T001.objective.3",
+     "text": {
+      "en": "Confirm communications and the limits of the cadet's duties.",
+      "vi": "Xác nhận liên lạc và giới hạn nhiệm vụ thực tập sinh."
+     },
+     "key_point_ids": [
+      "T001.kp.3"
+     ]
+    }
+   ],
+   "key_points": [
+    {
+     "id": "T001.kp.1",
+     "order": 1,
+     "text": {
+      "en": "Coordinate cargo-area familiarisation and identify cargo hazards",
+      "vi": "Phối hợp làm quen khu vực hàng và nhận diện nguy cơ hàng"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "T001.kp.2",
+     "order": 2,
+     "text": {
+      "en": "Confirm entry controls and record actual supervised training",
+      "vi": "Xác nhận kiểm soát vào và ghi huấn luyện có giám sát thực tế"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "T001.kp.3",
+     "order": 3,
+     "text": {
+      "en": "Confirm communications and the limits of the cadet's duties.",
+      "vi": "Xác nhận liên lạc và giới hạn nhiệm vụ thực tập sinh."
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    }
+   ],
+   "vocabulary": [
+    {
+     "id": "T001.vocab.1",
+     "text": {
+      "en": "pump room",
+      "vi": "buồng bơm"
+     }
+    },
+    {
+     "id": "T001.vocab.2",
+     "text": {
+      "en": "cargo hazard",
+      "vi": "nguy cơ từ hàng"
+     }
+    },
+    {
+     "id": "T001.vocab.3",
+     "text": {
+      "en": "familiarisation",
+      "vi": "làm quen"
+     }
+    }
+   ],
+   "model_answer": {
+    "id": "T001.answer",
+    "text": {
+     "en": "I agree the visit with my training officer and the deck team, review cargo hazards and confirm access controls. I check communications and the limits of my assigned duties. Afterwards I record only what I observed or performed under supervision.",
+     "vi": "Tôi thống nhất chuyến làm quen với sĩ quan huấn luyện và bộ phận boong xem nguy cơ hàng và xác nhận kiểm soát vào. Tôi kiểm tra liên lạc và giới hạn nhiệm vụ được giao. Sau đó tôi chỉ ghi việc đã quan sát hoặc làm dưới giám sát."
+    },
+    "audio_asset_id": "audio.T001.model_answer.en",
+    "personalisation": {
+     "required": false,
+     "placeholder_keys_en": [],
+     "instructions": {
+      "en": "Replace bracketed details with truthful personal information before recording.",
+      "vi": "Thay nội dung trong ngoặc bằng thông tin cá nhân trung thực trước ghi âm."
+     }
+    },
+    "personalized_rendering": {
+     "enabled": false,
+     "template_id": null,
+     "missing_field_policy": "ask_learner_and_keep_generic_reference_visible",
+     "source_reference_answer": {
+      "en": "I agree the visit with my training officer and the deck team, review cargo hazards and confirm access controls. I check communications and the limits of my assigned duties. Afterwards I record only what I observed or performed under supervision.",
+      "vi": "Tôi thống nhất chuyến làm quen với sĩ quan huấn luyện và bộ phận boong xem nguy cơ hàng và xác nhận kiểm soát vào. Tôi kiểm tra liên lạc và giới hạn nhiệm vụ được giao. Sau đó tôi chỉ ghi việc đã quan sát hoặc làm dưới giám sát."
+     },
+     "technical_key_points_unchanged": true,
+     "personalization_source": "authenticated_learner_profile_not_shared_course_data"
+    },
+    "format": "spoken_example_answer",
+    "display_in_word": true,
+    "experience_example_only": false,
+    "experience_note": null,
+    "review": {
+     "content": "editorially_checked_for_answer_presence",
+     "technical": "pending_instructor_approval"
+    }
+   },
+   "coaching": {
+    "interviewer_intent": {
+     "en": "Demonstrate the three required points for this question.",
+     "vi": "Thể hiện ba ý bắt buộc của câu hỏi này."
+    },
+    "answer_structure": [
+     {
+      "order": 1,
+      "key_point_id": "T001.kp.1"
+     },
+     {
+      "order": 2,
+      "key_point_id": "T001.kp.2"
+     },
+     {
+      "order": 3,
+      "key_point_id": "T001.kp.3"
+     }
+    ],
+    "follow_up_guidance": {
+     "vi": "Trước khi vào buồng bơm hoặc không gian liên quan, xác nhận nguy cơ hàng, đo khí, giấy phép, liên lạc và giới hạn nhiệm vụ.",
+     "scope": "whole_lesson"
+    },
+    "response_hint": {
+     "en": "Answer directly, add relevant technical detail, and state your actual experience or limits when relevant.",
+     "vi": "Trả lời thẳng câu hỏi, bổ sung ý kỹ thuật phù hợp và nêu kinh nghiệm thật hoặc giới hạn nhiệm vụ khi liên quan."
+    }
+   },
+   "follow_up_questions": [
+    {
+     "id": "T001.probe.1",
+     "kind": "extension",
+     "prompt": {
+      "en": "Before entering a pump room or related space, what cargo hazards, gas tests, permits, communications and limits of your duties must be confirmed?",
+      "vi": "Trước khi vào buồng bơm hoặc không gian liên quan, cần xác nhận nguy cơ hàng, đo khí, giấy phép, liên lạc và giới hạn nhiệm vụ nào?"
+     },
+     "vi_translation_mode": "translation",
+     "source_locations": [
+      {
+       "source_id": "doc-01",
+       "paragraph_index_0_based": 211
+      }
+     ],
+     "reference_ids": [
+      "W05"
+     ],
+     "response_mode": "spoken_open_response",
+     "assessment_key_point_ids": [
+      "T001.kp.1",
+      "T001.kp.2",
+      "T001.kp.3"
+     ],
+     "assessment_note_vi": "Dùng các ý liên quan đến câu hỏi phụ; không bắt học viên nhắc toàn bộ đáp án chính. Giảng viên cần duyệt chi tiết trước chấm tự động.",
+     "model_answer_ref": "T001.probe.1.answer",
+     "model_answer_scope": "this_follow_up_question",
+     "model_answer": {
+      "id": "T001.probe.1.answer",
+      "text": {
+       "en": "I confirm cargo hazards such as flammability, toxicity and oxygen deficiency with the responsible officers. I check required atmosphere tests, entry permission, ventilation, communications and the attendant or rescue arrangements applicable to the space. I enter or assist only within my assigned training duties and authorisation.",
+       "vi": "Tôi xác nhận nguy cơ hàng như cháy độc và thiếu oxy với sĩ quan phụ trách. Tôi kiểm tra đo khí cho phép vào thông gió liên lạc người trực ngoài hoặc cứu nạn áp dụng cho không gian. Tôi chỉ vào hoặc hỗ trợ trong nhiệm vụ huấn luyện và thẩm quyền được giao."
+      },
+      "format": "spoken_example_answer",
+      "experience_example_only": false,
+      "review_status": "pending_instructor_approval",
+      "audio_asset_id": "audio.T001.probe.1.answer.en"
+     }
+    }
+   ],
+   "assessment": {
+    "rubric_id": "engine_cadet_three_points_v2",
+    "required_key_point_ids": [
+     "T001.kp.1",
+     "T001.kp.2",
+     "T001.kp.3"
+    ],
+    "critical_errors": [
+     {
+      "id": "T001.critical.1",
+      "description": {
+       "en": "Enter cargo spaces without confirmed access and atmosphere controls.",
+       "vi": "Vào khu vực hàng thiếu xác nhận kiểm soát ra vào và khí."
+      },
+      "action": "flag_for_instructor_review_and_prevent_mastery",
+      "detect_by": "semantic_review_with_evidence_not_keyword_match"
+     }
+    ],
+    "accept_paraphrase": true,
+    "exact_wording_required": false,
+    "technical_review_required_before_automated_grading": true,
+    "short_model_answer_is_exhaustive": false,
+    "scope_vi": "Chấm ba ý bắt buộc theo phạm vi câu này. Chấp nhận diễn đạt tương đương; với câu hỏi phụ chỉ xét ý liên quan. Không cộng điểm ngôn ngữ để bù hành động nguy hiểm."
+   },
+   "practice": {
+    "estimated_minutes": 7,
+    "suggested_response_seconds": {
+     "min": 20,
+     "max": 60
+    },
+    "time_limit_is_hard_fail": false,
+    "silent_mode_supported": true,
+    "speaking_completion_required_for_mastery": true,
+    "activity_ids": [
+     "T001.activity.listen_question",
+     "T001.activity.understand",
+     "T001.activity.key_points",
+     "T001.activity.listen_model",
+     "T001.activity.recall",
+     "T001.activity.record",
+     "T001.activity.reflect",
+     "T001.activity.retry"
+    ]
+   },
+   "prerequisite_lesson_ids": [
+    "A029",
+    "A030",
+    "A031",
+    "A046"
+   ],
+   "provenance": {
+    "source_locations": [
+     {
+      "source_id": "doc-01",
+      "paragraph_index_0_based": 210
+     }
+    ],
+    "model_answer_source_locations": [
+     {
+      "source_id": "bilingual-01",
+      "paragraph_index_0_based": 445,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-01",
+      "paragraph_index_0_based": 446,
+      "field": "model_answer.vi"
+     }
+    ],
+    "original_source_bank_codes": [],
+    "extension_reference_ids": [
+     "W05"
+    ],
+    "editorial_fields": [
+     "learning_objectives",
+     "key_points",
+     "vocabulary",
+     "coaching",
+     "assessment",
+     "practice"
+    ],
+    "editorial_review_status": "pending",
+    "change_summary_vi": "Tổ chức lại thành câu hỏi độc lập với ba ý bắt buộc Anh–Việt; giữ mã nguồn cha để đối chiếu.",
+    "answer_revision_vi": "Phiên bản 5 kiểm tra đáp án thực chất; mọi câu chính và câu phụ đang hoạt động có đáp án mẫu riêng."
+   },
+   "recall_cards": [
+    {
+     "id": "T001.card.1",
+     "key_point_id": "T001.kp.1",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Coordinate cargo-area familiarisation and identify cargo hazards",
+      "vi": "Phối hợp làm quen khu vực hàng và nhận diện nguy cơ hàng"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "T001.card.2",
+     "key_point_id": "T001.kp.2",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Confirm entry controls and record actual supervised training",
+      "vi": "Xác nhận kiểm soát vào và ghi huấn luyện có giám sát thực tế"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "T001.card.3",
+     "key_point_id": "T001.kp.3",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Confirm communications and the limits of the cadet's duties.",
+      "vi": "Xác nhận liên lạc và giới hạn nhiệm vụ thực tập sinh."
+     },
+     "answer_visibility": "hidden_until_attempt"
+    }
+   ],
+   "legacy_parent_id": "T001",
+   "mandatory_point_count": 3,
+   "learning_material": {
+    "version": 1,
+    "interviewer_intent": {
+     "en": "Demonstrate an understanding of the question and give the three required points within the cadet role.",
+     "vi": "Hiểu và trả lời lần lượt: Ai nên thống nhất chuyến làm quen khu hàng; Trước vào bạn xác nhận gì; Sau đó bạn ghi gì."
+    },
+    "question_breakdown": {
+     "method": "three_short_concept_questions",
+     "is_word_for_word_translation_of_fragments": false,
+     "units": [
+      {
+       "id": "T001.micro.1",
+       "order": 1,
+       "question": {
+        "en": "Who should agree a cargo-area visit?",
+        "vi": "Ai nên thống nhất chuyến làm quen khu hàng?"
+       },
+       "short_answer": {
+        "en": "My training officer and the deck team agree the visit.",
+        "vi": "Sĩ quan huấn luyện và bộ phận boong thống nhất chuyến làm quen."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "T001.micro.2",
+       "order": 2,
+       "question": {
+        "en": "What do you confirm before access?",
+        "vi": "Trước vào bạn xác nhận gì?"
+       },
+       "short_answer": {
+        "en": "I confirm cargo hazards, access controls and communications.",
+        "vi": "Tôi xác nhận nguy cơ hàng kiểm soát ra vào và liên lạc."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "T001.micro.3",
+       "order": 3,
+       "question": {
+        "en": "What do you record afterwards?",
+        "vi": "Sau đó bạn ghi gì?"
+       },
+       "short_answer": {
+        "en": "I record only what I observed or did under supervision.",
+        "vi": "Tôi chỉ ghi việc đã quan sát hoặc làm dưới giám sát."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      }
+     ],
+     "core_unit_ids": [
+      "T001.micro.1",
+      "T001.micro.2",
+      "T001.micro.3"
+     ]
+    },
+    "useful_phrases": [
+     {
+      "en": "deck team",
+      "vi": "bộ phận boong"
+     },
+     {
+      "en": "cargo hazards",
+      "vi": "nguy cơ hàng"
+     },
+     {
+      "en": "access controls",
+      "vi": "kiểm soát ra vào"
+     }
+    ],
+    "levels": [
+     {
+      "id": "foundation",
+      "label_vi": "Mức 1 Chưa biết hoặc còn yếu",
+      "support": "maximum",
+      "display_order": [
+       "main_question_vi",
+       "main_question_en",
+       "useful_phrases",
+       "micro_questions_with_translations",
+       "short_answers",
+       "word_exercises",
+       "word_answer_key"
+      ],
+      "task": {
+       "en": "Learn one short question and answer at a time. Cover the answer, say it, then practise the next part.",
+       "vi": "Học một câu nhỏ và đáp án mỗi lần. Câu kỹ thuật khó có thêm phần giải thích thuật ngữ trước. Che đáp án rồi tự nói lại; không cần nhớ cả đoạn ngay."
+      },
+      "micro_unit_ids": [
+       "T001.micro.1",
+       "T001.micro.2",
+       "T001.micro.3"
+      ],
+      "exercise_ids": [
+       "T001.exercise.word.1",
+       "T001.exercise.word.2",
+       "T001.exercise.word.3"
+      ],
+      "show_translation_by_default": true,
+      "show_answer_by_default_in_study": true,
+      "completion_evidence": "supported_practice_only",
+      "full_model_answer_ref": "T001.answer",
+      "beginner_exit_task": {
+       "en": "Use the short answers to explain the topic, then study the complete answer at Level 2.",
+       "vi": "Dùng các câu ngắn để giải thích chủ đề rồi học đáp án đầy đủ ở Mức 2."
+      },
+      "technical_scope_note_vi": "Câu nhỏ chỉ giúp tiếp cận từng khái niệm; chưa thay thế toàn bộ yêu cầu chuyên môn của câu chính."
+     },
+     {
+      "id": "developing",
+      "label_vi": "Mức 2 Đã có tiếng Anh cơ bản",
+      "support": "outline_only",
+      "display_order": [
+       "main_question_en",
+       "three_required_points",
+       "meaning_exercise",
+       "model_answer_after_attempt"
+      ],
+      "task": {
+       "en": "Answer the full question using the three-point outline. Try first, then compare with the complete bilingual model.",
+       "vi": "Trả lời câu đầy đủ theo ba ý. Tự nói trước, sau đó so với đáp án mẫu Anh–Việt đầy đủ."
+      },
+      "required_point_ids": [
+       "T001.kp.1",
+       "T001.kp.2",
+       "T001.kp.3"
+      ],
+      "exercise_ids": [
+       "T001.exercise.meaning"
+      ],
+      "model_answer_ref": "T001.answer",
+      "show_translation_by_default": false,
+      "answer_visibility": "after_attempt_or_explicit_help",
+      "suggested_seconds": {
+       "min": 20,
+       "max": 60
+      },
+      "timing_is_hard_pass_fail": false
+     },
+     {
+      "id": "independent",
+      "label_vi": "Mức 3 Tiếng Anh khá tốt",
+      "support": "minimal",
+      "display_order": [
+       "full_question_or_reviewed_variant",
+       "unassisted_response",
+       "follow_up_questions",
+       "feedback_then_model_answer"
+      ],
+      "task": {
+       "en": "Answer without looking at the outline. Use a different question wording where available, then respond to an approved follow-up.",
+       "vi": "Trả lời không nhìn dàn ý. Luyện cách hỏi khác nếu có rồi trả lời câu phụ được duyệt."
+      },
+      "variant_ids": [],
+      "follow_up_ids": [
+       "T001.probe.1"
+      ],
+      "model_answer_ref": "T001.answer",
+      "answer_visibility": "after_submission",
+      "show_translation_by_default": false,
+      "assessment_rule": "same_three_required_points_and_safety_rules",
+      "suggested_seconds": {
+       "min": 30,
+       "max": 90
+      },
+      "timing_is_hard_pass_fail": false
+     }
+    ],
+    "common_mistake": {
+     "type": "safety_error_to_avoid",
+     "description": {
+      "en": "Enter cargo spaces without confirmed access and atmosphere controls.",
+      "vi": "Vào khu vực hàng thiếu xác nhận kiểm soát ra vào và khí."
+     },
+     "feedback": {
+      "en": "This conflicts with the safe limits in the lesson. Use the full model answer and the required controls.",
+      "vi": "Cách này trái giới hạn an toàn của bài. Dùng đáp án đầy đủ và các kiểm soát bắt buộc."
+     },
+     "correct_answer_ref": "T001.answer"
+    },
+    "review_tasks": [
+     {
+      "id": "T001.review.foundation",
+      "prompt": {
+       "en": "Who should agree a cargo-area visit?",
+       "vi": "Ai nên thống nhất chuyến làm quen khu hàng?"
+      },
+      "mode": "supported_short_recall",
+      "answer_ref": "T001.micro.1"
+     },
+     {
+      "id": "T001.review.developing",
+      "prompt": {
+       "en": "When learning about tanker cargo support systems, how do you prepare for and record familiarisation visits and practical training in cargo areas?",
+       "vi": "Khi học hệ thống hỗ trợ hàng trên tàu dầu, bạn chuẩn bị và ghi nhận việc làm quen, thực hành ở khu vực hàng thế nào?"
+      },
+      "mode": "outline_hidden_until_requested",
+      "answer_ref": "T001.answer"
+     },
+     {
+      "id": "T001.review.independent",
+      "prompt_ref": "T001.question",
+      "mode": "full_question_or_unseen_approved_variant",
+      "answer_ref": "T001.answer"
+     }
+    ],
+    "audio_scripts": {
+     "micro_questions": [
+      {
+       "micro_unit_id": "T001.micro.1",
+       "question_text": "Who should agree a cargo-area visit?",
+       "answer_text": "My training officer and the deck team agree the visit.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "T001.micro.2",
+       "question_text": "What do you confirm before access?",
+       "answer_text": "I confirm cargo hazards, access controls and communications.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "T001.micro.3",
+       "question_text": "What do you record afterwards?",
+       "answer_text": "I record only what I observed or did under supervision.",
+       "status": "not_generated"
+      }
+     ],
+     "directions_vi": "Tạo giọng rõ và tốc độ chậm cho Mức 1, giọng tự nhiên cho Mức 2/3; chưa có tệp audio thực trong lần soạn này."
+    },
+    "experience_note_vi": "Các ví dụ cá nhân phải thay bằng kinh nghiệm thật. Nếu chưa có thực hành, nêu chưa có; không nhận ví dụ trong sách là việc mình đã làm.",
+    "safety_note_vi": "Đây là luyện ngôn ngữ và phỏng vấn. Luôn áp dụng đủ SMS, chỉ dẫn thiết bị và giám sát có thẩm quyền khi làm thật."
+   }
+  },
+  {
+   "id": "H001",
+   "version": 6,
+   "rank_id": "engine_cadet",
+   "module_id": "C1",
+   "vessel_group_ids": [
+    "dry_cargo"
+   ],
+   "status": "draft",
+   "review": {
+    "technical": "pending",
+    "language": "pending",
+    "approved_by": null,
+    "approved_at": null,
+    "regulatory_verification": "scope_checked_for_convention_summaries_only"
+   },
+   "question": {
+    "id": "H001.question",
+    "text": {
+     "en": "On a bulk carrier, what safety conditions must you clarify before learning to inspect bilges or assisting with maintenance inside a cargo hold?",
+     "vi": "Trên tàu hàng rời, cần làm rõ điều kiện an toàn nào trước khi học kiểm tra la canh hoặc hỗ trợ bảo dưỡng trong hầm hàng?"
+    },
+    "parts": [
+     {
+      "id": "H001.question.part.1",
+      "order": 1,
+      "text": {
+       "en": "On a bulk carrier, what safety conditions must you clarify before learning to inspect bilges or assisting with maintenance inside a cargo hold?",
+       "vi": "Trên tàu hàng rời, cần làm rõ điều kiện an toàn nào trước khi học kiểm tra la canh hoặc hỗ trợ bảo dưỡng trong hầm hàng?"
+      }
+     }
+    ],
+    "audio_asset_id": "audio.H001.question.en",
+    "variants": [],
+    "variant_coverage": "canonical_only",
+    "variant_selection": {
+     "modes": [
+      "canonical"
+     ],
+     "variant_ids": [],
+     "shared_answer_and_rubric": true,
+     "selection_changes_mastery_requirements": false
+    }
+   },
+   "learning_objectives": [
+    {
+     "id": "H001.objective.1",
+     "text": {
+      "en": "Identify cargo-related oxygen depletion, toxic gas and fumigation hazards",
+      "vi": "Nhận diện nguy cơ hàng làm giảm oxy khí độc và xông hơi"
+     },
+     "key_point_ids": [
+      "H001.kp.1"
+     ]
+    },
+    {
+     "id": "H001.objective.2",
+     "text": {
+      "en": "Require verified entry controls because an open hatch alone is insufficient",
+      "vi": "Yêu cầu kiểm soát vào được xác nhận vì chỉ mở nắp hầm chưa đủ"
+     },
+     "key_point_ids": [
+      "H001.kp.2"
+     ]
+    },
+    {
+     "id": "H001.objective.3",
+     "text": {
+      "en": "Confirm fumigation status with the responsible officer before entry.",
+      "vi": "Xác nhận tình trạng xông hơi với sĩ quan phụ trách trước khi vào."
+     },
+     "key_point_ids": [
+      "H001.kp.3"
+     ]
+    }
+   ],
+   "key_points": [
+    {
+     "id": "H001.kp.1",
+     "order": 1,
+     "text": {
+      "en": "Identify cargo-related oxygen depletion, toxic gas and fumigation hazards",
+      "vi": "Nhận diện nguy cơ hàng làm giảm oxy khí độc và xông hơi"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "H001.kp.2",
+     "order": 2,
+     "text": {
+      "en": "Require verified entry controls because an open hatch alone is insufficient",
+      "vi": "Yêu cầu kiểm soát vào được xác nhận vì chỉ mở nắp hầm chưa đủ"
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    },
+    {
+     "id": "H001.kp.3",
+     "order": 3,
+     "text": {
+      "en": "Confirm fumigation status with the responsible officer before entry.",
+      "vi": "Xác nhận tình trạng xông hơi với sĩ quan phụ trách trước khi vào."
+     },
+     "required": true,
+     "assessment_scope": "this_question",
+     "display": "bilingual_bullet"
+    }
+   ],
+   "vocabulary": [
+    {
+     "id": "H001.vocab.1",
+     "text": {
+      "en": "cargo hold",
+      "vi": "hầm hàng"
+     }
+    },
+    {
+     "id": "H001.vocab.2",
+     "text": {
+      "en": "fumigation",
+      "vi": "xông hơi khử trùng"
+     }
+    },
+    {
+     "id": "H001.vocab.3",
+     "text": {
+      "en": "oxygen depletion",
+      "vi": "suy giảm oxy"
+     }
+    }
+   ],
+   "model_answer": {
+    "id": "H001.answer",
+    "text": {
+     "en": "I confirm cargo hazards, fumigation status and enclosed-space controls with the responsible officer. An open hatch does not prove safe entry; I enter only after authorisation and verified checks.",
+     "vi": "Tôi xác nhận nguy cơ hàng, tình trạng xông hơi và kiểm soát không gian kín với sĩ quan phụ trách. Mở nắp hầm không chứng minh an toàn; chỉ vào sau cho phép và kiểm tra được xác nhận."
+    },
+    "audio_asset_id": "audio.H001.model_answer.en",
+    "personalisation": {
+     "required": false,
+     "placeholder_keys_en": [],
+     "instructions": {
+      "en": "Replace bracketed details with truthful personal information before recording.",
+      "vi": "Thay nội dung trong ngoặc bằng thông tin cá nhân trung thực trước ghi âm."
+     }
+    },
+    "personalized_rendering": {
+     "enabled": false,
+     "template_id": null,
+     "missing_field_policy": "ask_learner_and_keep_generic_reference_visible",
+     "source_reference_answer": {
+      "en": "I confirm cargo hazards, fumigation status and enclosed-space controls with the responsible officer. An open hatch does not prove safe entry; I enter only after authorisation and verified checks.",
+      "vi": "Tôi xác nhận nguy cơ hàng, tình trạng xông hơi và kiểm soát không gian kín với sĩ quan phụ trách. Mở nắp hầm không chứng minh an toàn; chỉ vào sau cho phép và kiểm tra được xác nhận."
+     },
+     "technical_key_points_unchanged": true,
+     "personalization_source": "authenticated_learner_profile_not_shared_course_data"
+    },
+    "format": "spoken_example_answer",
+    "display_in_word": true,
+    "experience_example_only": false,
+    "experience_note": null,
+    "review": {
+     "content": "editorially_checked_for_answer_presence",
+     "technical": "pending_instructor_approval"
+    }
+   },
+   "coaching": {
+    "interviewer_intent": {
+     "en": "Demonstrate the three required points for this question.",
+     "vi": "Thể hiện ba ý bắt buộc của câu hỏi này."
+    },
+    "answer_structure": [
+     {
+      "order": 1,
+      "key_point_id": "H001.kp.1"
+     },
+     {
+      "order": 2,
+      "key_point_id": "H001.kp.2"
+     },
+     {
+      "order": 3,
+      "key_point_id": "H001.kp.3"
+     }
+    ],
+    "follow_up_guidance": {
+     "vi": "Hàng làm suy giảm oxy, khí độc hoặc xông hơi ảnh hưởng nơi làm việc thế nào? Chỉ mở nắp hầm đã đủ an toàn chưa?",
+     "scope": "whole_lesson"
+    },
+    "response_hint": {
+     "en": "Answer directly, add relevant technical detail, and state your actual experience or limits when relevant.",
+     "vi": "Trả lời thẳng câu hỏi, bổ sung ý kỹ thuật phù hợp và nêu kinh nghiệm thật hoặc giới hạn nhiệm vụ khi liên quan."
+    }
+   },
+   "follow_up_questions": [
+    {
+     "id": "H001.probe.1",
+     "kind": "extension",
+     "prompt": {
+      "en": "How could oxygen-depleting cargo, toxic gases or fumigation affect the work area? Does opening the hatch cover alone establish that the hold is safe to enter?",
+      "vi": "Hàng làm giảm oxy, khí độc hoặc xông hơi có thể ảnh hưởng nơi làm việc thế nào? Chỉ mở nắp hầm có chứng minh an toàn để vào không?"
+     },
+     "vi_translation_mode": "translation",
+     "source_locations": [
+      {
+       "source_id": "doc-02",
+       "paragraph_index_0_based": 211
+      }
+     ],
+     "reference_ids": [
+      "W05"
+     ],
+     "response_mode": "spoken_open_response",
+     "assessment_key_point_ids": [
+      "H001.kp.1",
+      "H001.kp.2",
+      "H001.kp.3"
+     ],
+     "assessment_note_vi": "Dùng các ý liên quan đến câu hỏi phụ; không bắt học viên nhắc toàn bộ đáp án chính. Giảng viên cần duyệt chi tiết trước chấm tự động.",
+     "model_answer_ref": "H001.probe.1.answer",
+     "model_answer_scope": "this_follow_up_question",
+     "model_answer": {
+      "id": "H001.probe.1.answer",
+      "text": {
+       "en": "Some cargoes consume oxygen or release toxic gases, and fumigation can leave dangerous residues or gas. Opening the hatch does not prove that all parts of the hold are safe. I wait for the responsible officer's verified entry controls, including cargo and fumigation status, ventilation and the required atmosphere tests.",
+       "vi": "Một số hàng tiêu thụ oxy hoặc thải khí độc còn xông hơi có thể để lại chất hoặc khí nguy hiểm. Mở nắp không chứng minh mọi vùng hầm an toàn. Tôi chờ kiểm soát vào được sĩ quan kiểm chứng gồm tình trạng hàng xông hơi thông gió và đo khí cần thiết."
+      },
+      "format": "spoken_example_answer",
+      "experience_example_only": false,
+      "review_status": "pending_instructor_approval",
+      "audio_asset_id": "audio.H001.probe.1.answer.en"
+     }
+    }
+   ],
+   "assessment": {
+    "rubric_id": "engine_cadet_three_points_v2",
+    "required_key_point_ids": [
+     "H001.kp.1",
+     "H001.kp.2",
+     "H001.kp.3"
+    ],
+    "critical_errors": [
+     {
+      "id": "H001.critical.1",
+      "description": {
+       "en": "Assume opening the hatch makes a hold safe to enter.",
+       "vi": "Cho rằng mở nắp hầm là đủ an toàn để vào."
+      },
+      "action": "flag_for_instructor_review_and_prevent_mastery",
+      "detect_by": "semantic_review_with_evidence_not_keyword_match"
+     }
+    ],
+    "accept_paraphrase": true,
+    "exact_wording_required": false,
+    "technical_review_required_before_automated_grading": true,
+    "short_model_answer_is_exhaustive": false,
+    "scope_vi": "Chấm ba ý bắt buộc theo phạm vi câu này. Chấp nhận diễn đạt tương đương; với câu hỏi phụ chỉ xét ý liên quan. Không cộng điểm ngôn ngữ để bù hành động nguy hiểm."
+   },
+   "practice": {
+    "estimated_minutes": 7,
+    "suggested_response_seconds": {
+     "min": 20,
+     "max": 60
+    },
+    "time_limit_is_hard_fail": false,
+    "silent_mode_supported": true,
+    "speaking_completion_required_for_mastery": true,
+    "activity_ids": [
+     "H001.activity.listen_question",
+     "H001.activity.understand",
+     "H001.activity.key_points",
+     "H001.activity.listen_model",
+     "H001.activity.recall",
+     "H001.activity.record",
+     "H001.activity.reflect",
+     "H001.activity.retry"
+    ]
+   },
+   "prerequisite_lesson_ids": [
+    "A017",
+    "A035",
+    "A046"
+   ],
+   "provenance": {
+    "source_locations": [
+     {
+      "source_id": "doc-02",
+      "paragraph_index_0_based": 210
+     }
+    ],
+    "model_answer_source_locations": [
+     {
+      "source_id": "bilingual-02",
+      "paragraph_index_0_based": 445,
+      "field": "model_answer.en"
+     },
+     {
+      "source_id": "bilingual-02",
+      "paragraph_index_0_based": 446,
+      "field": "model_answer.vi"
+     }
+    ],
+    "original_source_bank_codes": [],
+    "extension_reference_ids": [
+     "W05"
+    ],
+    "editorial_fields": [
+     "learning_objectives",
+     "key_points",
+     "vocabulary",
+     "coaching",
+     "assessment",
+     "practice"
+    ],
+    "editorial_review_status": "pending",
+    "change_summary_vi": "Tổ chức lại thành câu hỏi độc lập với ba ý bắt buộc Anh–Việt; giữ mã nguồn cha để đối chiếu.",
+    "answer_revision_vi": "Phiên bản 5 kiểm tra đáp án thực chất; mọi câu chính và câu phụ đang hoạt động có đáp án mẫu riêng."
+   },
+   "recall_cards": [
+    {
+     "id": "H001.card.1",
+     "key_point_id": "H001.kp.1",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Identify cargo-related oxygen depletion, toxic gas and fumigation hazards",
+      "vi": "Nhận diện nguy cơ hàng làm giảm oxy khí độc và xông hơi"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "H001.card.2",
+     "key_point_id": "H001.kp.2",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Require verified entry controls because an open hatch alone is insufficient",
+      "vi": "Yêu cầu kiểm soát vào được xác nhận vì chỉ mở nắp hầm chưa đủ"
+     },
+     "answer_visibility": "hidden_until_attempt"
+    },
+    {
+     "id": "H001.card.3",
+     "key_point_id": "H001.kp.3",
+     "front": {
+      "en": "Explain this required idea without looking at the answer.",
+      "vi": "Tự giải thích ý bắt buộc này khi không xem đáp án."
+     },
+     "back": {
+      "en": "Confirm fumigation status with the responsible officer before entry.",
+      "vi": "Xác nhận tình trạng xông hơi với sĩ quan phụ trách trước khi vào."
+     },
+     "answer_visibility": "hidden_until_attempt"
+    }
+   ],
+   "legacy_parent_id": "H001",
+   "mandatory_point_count": 3,
+   "learning_material": {
+    "version": 1,
+    "interviewer_intent": {
+     "en": "Demonstrate an understanding of the question and give the three required points within the cadet role.",
+     "vi": "Hiểu và trả lời lần lượt: Trong hầm hàng có thể có nguy cơ gì; Mở nắp hầm có chứng minh vào an toàn không; Ai xác nhận điều kiện vào."
+    },
+    "question_breakdown": {
+     "method": "term_prestep_plus_three_core_questions",
+     "is_word_for_word_translation_of_fragments": false,
+     "units": [
+      {
+       "id": "H001.micro.pre.1",
+       "order": 1,
+       "question": {
+        "en": "What is oxygen depletion?",
+        "vi": "Suy giảm oxy là gì?"
+       },
+       "short_answer": {
+        "en": "The amount of oxygen in the air is reduced.",
+        "vi": "Lượng oxy trong không khí bị giảm."
+       },
+       "scope": "introductory_term_or_component_not_full_lesson_assessment"
+      },
+      {
+       "id": "H001.micro.pre.2",
+       "order": 2,
+       "question": {
+        "en": "What is a toxic gas?",
+        "vi": "Khí độc là gì?"
+       },
+       "short_answer": {
+        "en": "It is a gas that can harm people.",
+        "vi": "Đó là khí có thể gây hại cho người."
+       },
+       "scope": "introductory_term_or_component_not_full_lesson_assessment"
+      },
+      {
+       "id": "H001.micro.pre.3",
+       "order": 3,
+       "question": {
+        "en": "What is fumigation used for?",
+        "vi": "Xông hơi khử trùng dùng làm gì?"
+       },
+       "short_answer": {
+        "en": "It uses chemicals to control pests.",
+        "vi": "Việc đó dùng hóa chất kiểm soát sinh vật gây hại."
+       },
+       "scope": "introductory_term_or_component_not_full_lesson_assessment"
+      },
+      {
+       "id": "H001.micro.1",
+       "order": 4,
+       "question": {
+        "en": "What hazards may be in a cargo hold?",
+        "vi": "Trong hầm hàng có thể có nguy cơ gì?"
+       },
+       "short_answer": {
+        "en": "Oxygen depletion, toxic gases or fumigation can create hazards.",
+        "vi": "Thiếu oxy khí độc hoặc xông hơi có thể gây nguy cơ."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "H001.micro.2",
+       "order": 5,
+       "question": {
+        "en": "Does an open hatch prove safe entry?",
+        "vi": "Mở nắp hầm có chứng minh vào an toàn không?"
+       },
+       "short_answer": {
+        "en": "No. Opening the hatch alone does not prove safety.",
+        "vi": "Không. Riêng mở nắp chưa chứng minh an toàn."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      },
+      {
+       "id": "H001.micro.3",
+       "order": 6,
+       "question": {
+        "en": "Who confirms the entry conditions?",
+        "vi": "Ai xác nhận điều kiện vào?"
+       },
+       "short_answer": {
+        "en": "The responsible officer confirms the required entry controls.",
+        "vi": "Sĩ quan phụ trách xác nhận kiểm soát vào theo yêu cầu."
+       },
+       "scope": "supported_concept_practice_not_full_lesson_assessment"
+      }
+     ],
+     "core_unit_ids": [
+      "H001.micro.1",
+      "H001.micro.2",
+      "H001.micro.3"
+     ]
+    },
+    "useful_phrases": [
+     {
+      "en": "oxygen depletion",
+      "vi": "suy giảm oxy"
+     },
+     {
+      "en": "fumigation",
+      "vi": "xông hơi khử trùng"
+     },
+     {
+      "en": "entry controls",
+      "vi": "kiểm soát vào"
+     }
+    ],
+    "levels": [
+     {
+      "id": "foundation",
+      "label_vi": "Mức 1 Chưa biết hoặc còn yếu",
+      "support": "maximum",
+      "display_order": [
+       "main_question_vi",
+       "main_question_en",
+       "useful_phrases",
+       "micro_questions_with_translations",
+       "short_answers",
+       "word_exercises",
+       "word_answer_key"
+      ],
+      "task": {
+       "en": "Learn one short question and answer at a time. Cover the answer, say it, then practise the next part.",
+       "vi": "Học một câu nhỏ và đáp án mỗi lần. Câu kỹ thuật khó có thêm phần giải thích thuật ngữ trước. Che đáp án rồi tự nói lại; không cần nhớ cả đoạn ngay."
+      },
+      "micro_unit_ids": [
+       "H001.micro.pre.1",
+       "H001.micro.pre.2",
+       "H001.micro.pre.3",
+       "H001.micro.1",
+       "H001.micro.2",
+       "H001.micro.3"
+      ],
+      "exercise_ids": [
+       "H001.exercise.word.1",
+       "H001.exercise.word.2",
+       "H001.exercise.word.3"
+      ],
+      "show_translation_by_default": true,
+      "show_answer_by_default_in_study": true,
+      "completion_evidence": "supported_practice_only",
+      "full_model_answer_ref": "H001.answer",
+      "beginner_exit_task": {
+       "en": "Use the short answers to explain the topic, then study the complete answer at Level 2.",
+       "vi": "Dùng các câu ngắn để giải thích chủ đề rồi học đáp án đầy đủ ở Mức 2."
+      },
+      "technical_scope_note_vi": "Câu nhỏ chỉ giúp tiếp cận từng khái niệm; chưa thay thế toàn bộ yêu cầu chuyên môn của câu chính."
+     },
+     {
+      "id": "developing",
+      "label_vi": "Mức 2 Đã có tiếng Anh cơ bản",
+      "support": "outline_only",
+      "display_order": [
+       "main_question_en",
+       "three_required_points",
+       "meaning_exercise",
+       "model_answer_after_attempt"
+      ],
+      "task": {
+       "en": "Answer the full question using the three-point outline. Try first, then compare with the complete bilingual model.",
+       "vi": "Trả lời câu đầy đủ theo ba ý. Tự nói trước, sau đó so với đáp án mẫu Anh–Việt đầy đủ."
+      },
+      "required_point_ids": [
+       "H001.kp.1",
+       "H001.kp.2",
+       "H001.kp.3"
+      ],
+      "exercise_ids": [
+       "H001.exercise.meaning"
+      ],
+      "model_answer_ref": "H001.answer",
+      "show_translation_by_default": false,
+      "answer_visibility": "after_attempt_or_explicit_help",
+      "suggested_seconds": {
+       "min": 20,
+       "max": 60
+      },
+      "timing_is_hard_pass_fail": false
+     },
+     {
+      "id": "independent",
+      "label_vi": "Mức 3 Tiếng Anh khá tốt",
+      "support": "minimal",
+      "display_order": [
+       "full_question_or_reviewed_variant",
+       "unassisted_response",
+       "follow_up_questions",
+       "feedback_then_model_answer"
+      ],
+      "task": {
+       "en": "Answer without looking at the outline. Use a different question wording where available, then respond to an approved follow-up.",
+       "vi": "Trả lời không nhìn dàn ý. Luyện cách hỏi khác nếu có rồi trả lời câu phụ được duyệt."
+      },
+      "variant_ids": [],
+      "follow_up_ids": [
+       "H001.probe.1"
+      ],
+      "model_answer_ref": "H001.answer",
+      "answer_visibility": "after_submission",
+      "show_translation_by_default": false,
+      "assessment_rule": "same_three_required_points_and_safety_rules",
+      "suggested_seconds": {
+       "min": 30,
+       "max": 90
+      },
+      "timing_is_hard_pass_fail": false
+     }
+    ],
+    "common_mistake": {
+     "type": "safety_error_to_avoid",
+     "description": {
+      "en": "Assume opening the hatch makes a hold safe to enter.",
+      "vi": "Cho rằng mở nắp hầm là đủ an toàn để vào."
+     },
+     "feedback": {
+      "en": "This conflicts with the safe limits in the lesson. Use the full model answer and the required controls.",
+      "vi": "Cách này trái giới hạn an toàn của bài. Dùng đáp án đầy đủ và các kiểm soát bắt buộc."
+     },
+     "correct_answer_ref": "H001.answer"
+    },
+    "review_tasks": [
+     {
+      "id": "H001.review.foundation",
+      "prompt": {
+       "en": "What is oxygen depletion?",
+       "vi": "Suy giảm oxy là gì?"
+      },
+      "mode": "supported_short_recall",
+      "answer_ref": "H001.micro.pre.1"
+     },
+     {
+      "id": "H001.review.developing",
+      "prompt": {
+       "en": "On a bulk carrier, what safety conditions must you clarify before learning to inspect bilges or assisting with maintenance inside a cargo hold?",
+       "vi": "Trên tàu hàng rời, cần làm rõ điều kiện an toàn nào trước khi học kiểm tra la canh hoặc hỗ trợ bảo dưỡng trong hầm hàng?"
+      },
+      "mode": "outline_hidden_until_requested",
+      "answer_ref": "H001.answer"
+     },
+     {
+      "id": "H001.review.independent",
+      "prompt_ref": "H001.question",
+      "mode": "full_question_or_unseen_approved_variant",
+      "answer_ref": "H001.answer"
+     }
+    ],
+    "audio_scripts": {
+     "micro_questions": [
+      {
+       "micro_unit_id": "H001.micro.pre.1",
+       "question_text": "What is oxygen depletion?",
+       "answer_text": "The amount of oxygen in the air is reduced.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "H001.micro.pre.2",
+       "question_text": "What is a toxic gas?",
+       "answer_text": "It is a gas that can harm people.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "H001.micro.pre.3",
+       "question_text": "What is fumigation used for?",
+       "answer_text": "It uses chemicals to control pests.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "H001.micro.1",
+       "question_text": "What hazards may be in a cargo hold?",
+       "answer_text": "Oxygen depletion, toxic gases or fumigation can create hazards.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "H001.micro.2",
+       "question_text": "Does an open hatch prove safe entry?",
+       "answer_text": "No. Opening the hatch alone does not prove safety.",
+       "status": "not_generated"
+      },
+      {
+       "micro_unit_id": "H001.micro.3",
+       "question_text": "Who confirms the entry conditions?",
+       "answer_text": "The responsible officer confirms the required entry controls.",
+       "status": "not_generated"
+      }
+     ],
+     "directions_vi": "Tạo giọng rõ và tốc độ chậm cho Mức 1, giọng tự nhiên cho Mức 2/3; chưa có tệp audio thực trong lần soạn này."
+    },
+    "experience_note_vi": "Các ví dụ cá nhân phải thay bằng kinh nghiệm thật. Nếu chưa có thực hành, nêu chưa có; không nhận ví dụ trong sách là việc mình đã làm.",
+    "safety_note_vi": "Đây là luyện ngôn ngữ và phỏng vấn. Luôn áp dụng đủ SMS, chỉ dẫn thiết bị và giám sát có thẩm quyền khi làm thật."
+   }
+  }
+ ],
+ "activities": [
+  {
+   "id": "A001.activity.listen_question",
+   "lesson_id": "A001",
+   "order": 1,
+   "type": "listen",
+   "content_field": "question",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A001.activity.understand",
+   "lesson_id": "A001",
+   "order": 2,
+   "type": "read",
+   "content_field": "learning_objectives",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A001.activity.key_points",
+   "lesson_id": "A001",
+   "order": 3,
+   "type": "study",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A001.activity.listen_model",
+   "lesson_id": "A001",
+   "order": 4,
+   "type": "listen",
+   "content_field": "model_answer",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A001.activity.recall",
+   "lesson_id": "A001",
+   "order": 5,
+   "type": "spoken_recall",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A001.activity.record",
+   "lesson_id": "A001",
+   "order": 6,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A001.activity.reflect",
+   "lesson_id": "A001",
+   "order": 7,
+   "type": "self_review",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A001.activity.retry",
+   "lesson_id": "A001",
+   "order": 8,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.listen_question",
+   "lesson_id": "A002",
+   "order": 1,
+   "type": "listen",
+   "content_field": "question",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.understand",
+   "lesson_id": "A002",
+   "order": 2,
+   "type": "read",
+   "content_field": "learning_objectives",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.key_points",
+   "lesson_id": "A002",
+   "order": 3,
+   "type": "study",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.listen_model",
+   "lesson_id": "A002",
+   "order": 4,
+   "type": "listen",
+   "content_field": "model_answer",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.recall",
+   "lesson_id": "A002",
+   "order": 5,
+   "type": "spoken_recall",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.record",
+   "lesson_id": "A002",
+   "order": 6,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.reflect",
+   "lesson_id": "A002",
+   "order": 7,
+   "type": "self_review",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A002.activity.retry",
+   "lesson_id": "A002",
+   "order": 8,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.listen_question",
+   "lesson_id": "A003-1",
+   "order": 1,
+   "type": "listen",
+   "content_field": "question",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.understand",
+   "lesson_id": "A003-1",
+   "order": 2,
+   "type": "read",
+   "content_field": "learning_objectives",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.key_points",
+   "lesson_id": "A003-1",
+   "order": 3,
+   "type": "study",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.listen_model",
+   "lesson_id": "A003-1",
+   "order": 4,
+   "type": "listen",
+   "content_field": "model_answer",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.recall",
+   "lesson_id": "A003-1",
+   "order": 5,
+   "type": "spoken_recall",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.record",
+   "lesson_id": "A003-1",
+   "order": 6,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.reflect",
+   "lesson_id": "A003-1",
+   "order": 7,
+   "type": "self_review",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "A003-1.activity.retry",
+   "lesson_id": "A003-1",
+   "order": 8,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.listen_question",
+   "lesson_id": "T001",
+   "order": 1,
+   "type": "listen",
+   "content_field": "question",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.understand",
+   "lesson_id": "T001",
+   "order": 2,
+   "type": "read",
+   "content_field": "learning_objectives",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.key_points",
+   "lesson_id": "T001",
+   "order": 3,
+   "type": "study",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.listen_model",
+   "lesson_id": "T001",
+   "order": 4,
+   "type": "listen",
+   "content_field": "model_answer",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.recall",
+   "lesson_id": "T001",
+   "order": 5,
+   "type": "spoken_recall",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.record",
+   "lesson_id": "T001",
+   "order": 6,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.reflect",
+   "lesson_id": "T001",
+   "order": 7,
+   "type": "self_review",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "T001.activity.retry",
+   "lesson_id": "T001",
+   "order": 8,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.listen_question",
+   "lesson_id": "H001",
+   "order": 1,
+   "type": "listen",
+   "content_field": "question",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.understand",
+   "lesson_id": "H001",
+   "order": 2,
+   "type": "read",
+   "content_field": "learning_objectives",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.key_points",
+   "lesson_id": "H001",
+   "order": 3,
+   "type": "study",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.listen_model",
+   "lesson_id": "H001",
+   "order": 4,
+   "type": "listen",
+   "content_field": "model_answer",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.recall",
+   "lesson_id": "H001",
+   "order": 5,
+   "type": "spoken_recall",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.record",
+   "lesson_id": "H001",
+   "order": 6,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.reflect",
+   "lesson_id": "H001",
+   "order": 7,
+   "type": "self_review",
+   "content_field": "key_points",
+   "answer_visibility": "on_request",
+   "requires_microphone": false,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  },
+  {
+   "id": "H001.activity.retry",
+   "lesson_id": "H001",
+   "order": 8,
+   "type": "record_audio",
+   "content_field": "question",
+   "answer_visibility": "hidden_until_attempt",
+   "requires_microphone": true,
+   "feedback_policy": "reviewed_three_point_rubric",
+   "offline_supported_when_content_downloaded": true
+  }
+ ]
+}

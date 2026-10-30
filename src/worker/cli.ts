@@ -1,8 +1,11 @@
 // Lệnh quản trị chạy trên máy chủ bằng MIGRATOR_DATABASE_URL (không qua web):
 //   pnpm cli admin:bootstrap <email>
 //   pnpm cli admin:recover <email> --reason "<lý do>" --confirm <email>
+//   pnpm cli content:import <tệp.json>
 // Tệp tự chứa (chỉ dùng pg) để chạy thẳng bằng Node, không cần bước build.
+import { readFileSync } from "node:fs";
 import pg from "pg";
+import { importContent } from "./content-import.ts";
 
 type Client = pg.Client;
 
@@ -106,7 +109,12 @@ async function main(argv: string[]): Promise<number> {
       console.log(result === "recovered" ? "Đã khôi phục quyền chủ." : "Từ chối: cần --confirm trùng email và --reason ít nhất 10 ký tự.");
       return result === "recovered" ? 0 : 1;
     }
-    console.error("Lệnh: admin:bootstrap <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
+    if (command === "content:import") {
+      const result = await importContent(client, JSON.parse(readFileSync(email, "utf8")));
+      console.log(`Đã nhập ${result.courses} khóa: ${result.newCourseVersions} phiên bản khóa mới, ${result.newLessonVersions} phiên bản bài mới.`);
+      return 0;
+    }
+    console.error("Lệnh: content:import <tệp.json> | admin:bootstrap <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
     return 2;
   } finally {
     await client.end();
