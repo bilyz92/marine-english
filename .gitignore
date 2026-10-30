@@ -53,3 +53,6 @@ next-env.d.ts
 src/generated/
 .superpowers/
 !.env.example
+
+# Tệp media lưu cục bộ (dev)
+/media/

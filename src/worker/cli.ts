@@ -2,10 +2,12 @@
 //   pnpm cli admin:bootstrap <email>
 //   pnpm cli admin:recover <email> --reason "<lý do>" --confirm <email>
 //   pnpm cli content:import <tệp.json>
+//   pnpm cli media:add <mã bài> <tệp> [--role audio|image|attachment] [--public]   (MEDIA_ROOT, mặc định ./media)
 // Tệp tự chứa (chỉ dùng pg) để chạy thẳng bằng Node, không cần bước build.
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { importContent } from "./content-import.ts";
+import { addMedia } from "./media-import.ts";
 
 type Client = pg.Client;
 
@@ -114,7 +116,19 @@ async function main(argv: string[]): Promise<number> {
       console.log(`Đã nhập ${result.courses} khóa: ${result.newCourseVersions} phiên bản khóa mới, ${result.newLessonVersions} phiên bản bài mới.`);
       return 0;
     }
-    console.error("Lệnh: content:import <tệp.json> | admin:bootstrap <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
+    if (command === "media:add") {
+      const role = (flag(argv, "--role") || "audio") as "audio" | "image" | "attachment";
+      const result = await addMedia(client, {
+        externalLessonId: email,
+        filePath: argv[2] ?? "",
+        role,
+        visibility: argv.includes("--public") ? "public" : "protected",
+        root: process.env.MEDIA_ROOT || "./media",
+      });
+      console.log(`Đã gắn tệp vào ${result.attached} phiên bản bài.`);
+      return 0;
+    }
+    console.error("Lệnh: media:add <mã bài> <tệp> | content:import <tệp.json> | admin:bootstrap <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
     return 2;
   } finally {
     await client.end();
