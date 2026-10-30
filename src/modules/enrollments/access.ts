@@ -26,3 +26,15 @@ export async function hasActiveEnrollment(db: Db, userIds: string[], courseId: s
 export async function hasCourseAccess(userId: string, courseId: string): Promise<boolean> {
   return hasActiveEnrollment(prisma(), await mergeGroupIds(null, userId), courseId);
 }
+
+export type MyCourse = { slug: string; titleVi: string; sources: ("order" | "grant")[] };
+
+/** Khóa học viên đang có quyền (theo nhóm gộp) và nguồn quyền. */
+export async function listMyCourses(userId: string): Promise<MyCourse[]> {
+  const rows = await prisma().$queryRaw<{ slug: string; title_vi: string; sources: ("order" | "grant")[] }[]>`
+    SELECT c.slug, c.title_vi, array_agg(DISTINCT e.source ORDER BY e.source) AS sources
+    FROM enrollments e JOIN courses c ON c.id = e.course_id
+    WHERE e.user_id = ANY(${await mergeGroupIds(null, userId)}::uuid[]) AND e.revoked_at IS NULL
+    GROUP BY c.slug, c.title_vi ORDER BY c.slug`;
+  return rows.map((r) => ({ slug: r.slug, titleVi: r.title_vi, sources: r.sources }));
+}
