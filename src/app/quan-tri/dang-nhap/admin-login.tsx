@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../../(site)/dang-nhap/login.module.css";
 import { postJson } from "../../(site)/dang-nhap/api";
 
-export function AdminLogin({ link, googleFailed }: { link: string | null; googleFailed: boolean }) {
+// Link đăng nhập mang token sau dấu # (không gửi lên máy chủ): đọc một lần rồi xóa khỏi thanh địa chỉ và lịch sử.
+let capturedToken: string | null | undefined;
+function captureLinkToken(): string | null {
+  if (capturedToken === undefined) {
+    capturedToken = new URLSearchParams(window.location.hash.slice(1)).get("link");
+    if (capturedToken) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
+  return capturedToken;
+}
+const noSubscription = () => () => {};
+
+export function AdminLogin({ googleFailed }: { googleFailed: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const link = useSyncExternalStore(noSubscription, captureLinkToken, () => null);
+
   const [error, setError] = useState<string | null>(googleFailed ? "Đăng nhập Google không thành công hoặc email chưa được cấp quyền." : null);
 
   async function google() {

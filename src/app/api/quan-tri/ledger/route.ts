@@ -7,7 +7,10 @@ import { requireAdmin } from "@/modules/sessions/guards";
 export const GET = route(async (req: Request) => {
   const ctx = await requireAdmin(req);
   await authorize(ctx, "orders.view", { action: "ledger_queue_view" });
-  return json({ queue: await listQueue(), unresolved: await listUnresolved() });
+  // Nội dung chuyển khoản và payload gốc là dữ liệu ngân hàng thô (bank.raw.view): hỗ trợ chỉ thấy bản tóm tắt
+  // (số tiền, thời điểm, mã đơn tìm được, lý do); xem thô theo từng giao dịch được giao làm sau (G11).
+  const raw = ctx.role === "owner";
+  return json({ queue: await listQueue({ raw }), unresolved: await listUnresolved({ raw }) });
 });
 
 /** Nhập một dòng sao kê (kiểm dữ liệu trong enterStatementLine). */

@@ -1,6 +1,6 @@
 import { withTx, type Tx } from "@/lib/db";
 import { HttpError } from "@/lib/http";
-import { audit } from "@/modules/audit/audit";
+import { audit, auditDenied } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import { enqueueOutbox } from "@/modules/outbox/outbox";
 import type { AdminCtx } from "@/modules/sessions/guards";
@@ -28,7 +28,7 @@ export async function requestFullRefund(
   await authorize(ctx, "refunds.request", { action: "refund_request", resource: { type: "order", id: input.orderCode } });
   const reason = input.reason.trim();
   if (!reason) throw new HttpError(400, "Cần lý do hoàn tiền");
-  return withTx(async (tx) => {
+  const result = await withTx(async (tx) => {
     const [found] = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM orders WHERE code = ${input.orderCode}`;
     if (!found) return { rejected: "not_paid" as const };
     const sources = await lockOrderSources(tx, found.id);
@@ -58,6 +58,10 @@ export async function requestFullRefund(
     });
     return { refundId: refund!.id };
   });
+  if ("rejected" in result) {
+    await auditDenied({ adminId: ctx.adminId, action: "refund_request", targetType: "order", targetId: input.orderCode, reason: result.rejected, ip: ctx.ip });
+  }
+  return result;
 }
 
 export type RefundStep =
@@ -85,7 +89,7 @@ export async function advanceRefund(
   if (note === "" || (step.action === "send" && (!step.outBankRef.trim() || !step.evidence.trim()))) {
     throw new HttpError(400, "Thiếu lý do, mã giao dịch chuyển trả hoặc bằng chứng");
   }
-  return withTx(async (tx) => {
+  const result = await withTx(async (tx) => {
     const [found] = await tx.$queryRaw<{ order_id: string }[]>`SELECT order_id FROM refunds WHERE id = ${refundId}::uuid`;
     if (!found) return "not_found";
     await tx.$queryRaw`
@@ -102,11 +106,17 @@ export async function advanceRefund(
       await tx.$executeRaw`UPDATE refunds SET status = 'approved', approved_by = ${ctx.adminId}::uuid, approved_at = now() WHERE id = ${refundId}::uuid`;
     } else if (step.action === "send") {
       const ref = step.outBankRef.trim().toUpperCase();
-      const [taken] = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM refunds WHERE out_bank_ref = ${ref}`;
-      if (taken) return "duplicate_out_ref";
-      await tx.$executeRaw`
-        UPDATE refunds SET status = 'sent', out_bank_ref = ${ref}, evidence = ${step.evidence.trim()}, sent_by = ${ctx.adminId}::uuid, sent_at = now()
-        WHERE id = ${refundId}::uuid`;
+      // Ràng buộc duy nhất trong DB là trọng tài (hai lệnh song song): lỗi trùng → duplicate_out_ref, không 500.
+      await tx.$executeRaw`SAVEPOINT refund_send`;
+      try {
+        await tx.$executeRaw`
+          UPDATE refunds SET status = 'sent', out_bank_ref = ${ref}, evidence = ${step.evidence.trim()}, sent_by = ${ctx.adminId}::uuid, sent_at = now()
+          WHERE id = ${refundId}::uuid`;
+      } catch (error) {
+        if (!(error instanceof Error && error.message.includes("23505"))) throw error;
+        await tx.$executeRaw`ROLLBACK TO SAVEPOINT refund_send`;
+        return "duplicate_out_ref";
+      }
     } else if (step.action === "confirm") {
       await tx.$executeRaw`
         UPDATE refunds SET status = 'confirmed', confirmed_by = ${ctx.adminId}::uuid, confirmed_at = now(), closed_at = now()
@@ -119,8 +129,12 @@ export async function advanceRefund(
       adminId: ctx.adminId, action: `refund_${step.action}`, targetType: "refund", targetId: refundId,
       before: { status: refund!.status }, after: { status: move.to }, result: "ok", reason: note, ip: ctx.ip,
     });
-    return "ok";
+    return "ok" as const;
   });
+  if (result !== "ok") {
+    await auditDenied({ adminId: ctx.adminId, action: `refund_${step.action}`, targetType: "refund", targetId: refundId, reason: result, ip: ctx.ip });
+  }
+  return result;
 }
 
 /** Hoàn toàn phần đã xác nhận: đơn → refunded, thu hồi đúng quyền học sinh ra từ đơn (tiến độ học giữ nguyên). */

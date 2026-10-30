@@ -35,7 +35,8 @@ export async function issueAdminLink(email: string, sender: AdminLinkSender): Pr
   });
   if (!issued) return;
   try {
-    await sender.sendAdminLink(canonical, `${env().APP_ORIGIN}/quan-tri/dang-nhap?link=${token}`);
+    // Token nằm sau dấu # (không gửi lên máy chủ, không vào log truy cập); trang đọc ở trình duyệt rồi xóa khỏi thanh địa chỉ.
+    await sender.sendAdminLink(canonical, `${env().APP_ORIGIN}/quan-tri/dang-nhap#link=${token}`);
   } catch {
     // Phản hồi phải giống trường hợp email không có thật; người dùng gửi lại link.
   }

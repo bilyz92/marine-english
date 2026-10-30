@@ -372,6 +372,7 @@ model OrderItem {
   course          Course        @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   courseVersion   CourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
+  @@unique([orderId, courseId], map: "order_items_order_course_key")
   @@index([orderId])
   @@map("order_items")
 }
@@ -568,10 +569,11 @@ model MediaAsset {
   mime           String
   bytes          Int
   visibility     String
-  storageKey     String               @unique @map("storage_key")
+  storageKey     String               @map("storage_key")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   lessonVersions LessonVersionAsset[]
 
+  @@unique([visibility, storageKey], map: "media_assets_visibility_storage_key_key")
   @@map("media_assets")
 }
 

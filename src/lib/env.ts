@@ -27,8 +27,7 @@ const keyring = z.string().transform((value, ctx) => {
 const schema = z
   .object({
     DATABASE_URL: z.url(),
-    MIGRATOR_DATABASE_URL: z.url(),
-    SHADOW_DATABASE_URL: z.url(),
+    // URL quyền cao (migrator, shadow) không thuộc cấu hình web: chỉ Prisma migrate và CLI đọc thẳng process.env.
     ME_OTHER_DATABASE_URL: z.url().optional(),
     APP_ORIGIN: z.url(),
     SESSION_KEY_LEARNER: key32,

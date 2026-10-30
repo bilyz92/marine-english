@@ -40,7 +40,9 @@ async function linkFor(email: string): Promise<string> {
   await issueAdminLink(email, sink);
   const url = sink.messages().at(-1)?.body;
   if (!url) throw new Error("không có link");
-  return new URL(url).searchParams.get("link")!;
+  const parsed = new URL(url);
+  if (parsed.searchParams.has("link")) throw new Error("token không được nằm trong query");
+  return new URLSearchParams(parsed.hash.slice(1)).get("link")!;
 }
 
 async function ageLinks(ms: number) {
@@ -82,7 +84,7 @@ describe("link email quản trị", () => {
     await issueAdminLink("chu@x.vn", sink);
     await issueAdminLink("chu@x.vn", sink);
     expect(sink.messages()).toHaveLength(1);
-    const first = new URL(sink.messages()[0]!.body).searchParams.get("link")!;
+    const first = new URLSearchParams(new URL(sink.messages()[0]!.body).hash.slice(1)).get("link")!;
     await ageLinks(60_000);
     await issueAdminLink("chu@x.vn", sink);
     expect(sink.messages()).toHaveLength(2);

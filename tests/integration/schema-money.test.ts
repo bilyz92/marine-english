@@ -145,3 +145,22 @@ describe("enrollments và outbox", () => {
     });
   });
 });
+
+
+describe("ảnh chụp đơn không mở rộng được (Codex #3)", () => {
+  it("chèn thêm dòng hàng sau khi tạo đơn, trùng khóa, hoặc phiên bản khóa khác → lỗi", async () => {
+    const f = await moneyFixture();
+    expect(await txCode(insertOrderSql(f))).toBeNull();
+    const extra: [string, unknown[]] = [
+      `INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
+       SELECT id, $2, $3, 1000, 1000 FROM orders WHERE code = $1`,
+      [CODE, f.courseId, f.courseVersionId],
+    ];
+    expect(await txCode([extra])).not.toBeNull();
+    const { rows: [other] } = await sqlAsMigrator(`SELECT id, current_version_id FROM courses WHERE slug = 'engine_cadet_dry_cargo'`);
+    expect(await txCode([
+      [`INSERT INTO orders (code, user_id, amount_due_vnd, refund_policy_version, expires_at) VALUES ('MEBBBBBBBB', $1, 199000, 'x', now() + interval '15 minutes')`, [f.userId]],
+      [`INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd) SELECT id, $1, $2, 199000, 199000 FROM orders WHERE code = 'MEBBBBBBBB'`, [f.courseId, other.current_version_id]],
+    ])).toBe("P0001");
+  });
+});

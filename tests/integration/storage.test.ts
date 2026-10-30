@@ -78,3 +78,27 @@ describe("lệnh media:add", () => {
     expect(rows[0].n).toBe(1);
   });
 });
+
+
+describe("sửa sau Codex vòng 1 (tệp)", () => {
+  it("#7: tệp đích đã có nhưng hỏng → putFile báo lỗi, không tin tệp cũ", async () => {
+    const bytes = Buffer.from("nội dung thật " + Math.random());
+    writeFileSync(path.join(root, "protected", `${sha(bytes)}.mp3`), "tệp hỏng");
+    await expect(putFile({ bytes, mime: "audio/mpeg", visibility: "protected" })).rejects.toThrow();
+  });
+
+  it("#6: cùng nội dung ở public và protected là hai tài sản riêng", async () => {
+    await seedContent();
+    const file = path.join(mkdtempSync(path.join(tmpdir(), "me-src-")), "A002.mp3");
+    writeFileSync(file, Buffer.from("cùng nội dung hai nơi"));
+    const client = await pgAs("migrator");
+    try {
+      await addMedia(client, { externalLessonId: "A002", filePath: file, role: "audio", visibility: "protected", root });
+      await addMedia(client, { externalLessonId: "A002", filePath: file, role: "image", visibility: "public", root });
+    } finally {
+      await client.end();
+    }
+    const { rows } = await sqlAsMigrator(`SELECT visibility FROM media_assets ORDER BY visibility`);
+    expect(rows.map((r) => r.visibility)).toEqual(["protected", "public"]);
+  });
+});

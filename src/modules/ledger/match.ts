@@ -32,7 +32,7 @@ export async function matchTransfers(
   // Chuyển bù (nhiều giao dịch cho một đơn) chỉ chủ được ghép.
   if (ids.length > 1) await requireOwnerFor(ctx, "ledger_match", "order", input.orderCode);
 
-  return withTx(async (tx): Promise<MatchResult> => {
+  const result = await withTx(async (tx): Promise<MatchResult> => {
     const rows = await tx.$queryRaw<LedgerRow[]>`
       SELECT bt.id, bt.amount_vnd, bt.bank_time,
              EXISTS (SELECT 1 FROM bank_transaction_verifications v WHERE v.bank_transaction_id = bt.id) AS verified,
@@ -67,6 +67,10 @@ export async function matchTransfers(
     });
     return { result: excess > 0 ? "paid_with_excess_refund" : "paid" };
   });
+  if (result.result === "rejected") {
+    await auditDenied({ adminId: ctx.adminId, action: "ledger_match", targetType: "order", targetId: input.orderCode, reason: result.reason, ip: ctx.ip });
+  }
+  return result;
 }
 
 /** Phần thừa phải hoàn: nguồn lấy từ dòng sổ có bank_time muộn nhất trước (quy tắc cố định để lặp lại được). */
@@ -94,7 +98,7 @@ export async function setDisposition(
   await authorize(ctx, "payments.match", { action: "ledger_disposition", resource: { type: "bank_transaction", id: bankTransactionId } });
   await requireOwnerFor(ctx, "ledger_disposition", "bank_transaction", bankTransactionId);
   if (!input.reason.trim()) throw new HttpError(400, "Cần lý do");
-  return withTx(async (tx) => {
+  const result = await withTx(async (tx) => {
     const [bt] = await tx.$queryRaw<{ allocated: boolean; previous: string | null }[]>`
       SELECT EXISTS (SELECT 1 FROM payment_allocations pa WHERE pa.bank_transaction_id = bt.id) AS allocated,
              (SELECT kind FROM bank_transaction_dispositions d WHERE d.bank_transaction_id = bt.id AND d.superseded_at IS NULL) AS previous
@@ -111,8 +115,12 @@ export async function setDisposition(
       adminId: ctx.adminId, action: "ledger_disposition", targetType: "bank_transaction", targetId: bankTransactionId,
       before: { kind: bt.previous }, after: { kind: input.kind }, result: "ok", reason: input.reason.trim(), ip: ctx.ip,
     });
-    return "ok";
+    return "ok" as const;
   });
+  if (result !== "ok") {
+    await auditDenied({ adminId: ctx.adminId, action: "ledger_disposition", targetType: "bank_transaction", targetId: bankTransactionId, reason: result, ip: ctx.ip });
+  }
+  return result;
 }
 
 /** Mở lại giao dịch đã có kết luận (bỏ qua/trùng) để ghép hoặc xử lý tiếp. Chỉ chủ; kết luận cũ được đánh dấu thay thế. */
@@ -120,7 +128,7 @@ export async function reopenTransfer(ctx: AdminCtx, bankTransactionId: string, r
   await authorize(ctx, "payments.match", { action: "ledger_reopen", resource: { type: "bank_transaction", id: bankTransactionId } });
   await requireOwnerFor(ctx, "ledger_reopen", "bank_transaction", bankTransactionId);
   if (!reason.trim()) throw new HttpError(400, "Cần lý do");
-  return withTx(async (tx) => {
+  const result = await withTx(async (tx) => {
     await tx.$queryRaw`SELECT id FROM bank_transactions WHERE id = ${bankTransactionId}::uuid FOR UPDATE`;
     const [previous] = await tx.$queryRaw<{ kind: string }[]>`
       UPDATE bank_transaction_dispositions SET superseded_at = now()
@@ -130,6 +138,10 @@ export async function reopenTransfer(ctx: AdminCtx, bankTransactionId: string, r
       adminId: ctx.adminId, action: "ledger_reopen", targetType: "bank_transaction", targetId: bankTransactionId,
       before: { kind: previous.kind }, after: { kind: null }, result: "ok", reason: reason.trim(), ip: ctx.ip,
     });
-    return "ok";
+    return "ok" as const;
   });
+  if (result !== "ok") {
+    await auditDenied({ adminId: ctx.adminId, action: "ledger_reopen", targetType: "bank_transaction", targetId: bankTransactionId, reason: result, ip: ctx.ip });
+  }
+  return result;
 }

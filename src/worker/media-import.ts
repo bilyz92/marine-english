@@ -25,15 +25,15 @@ export async function addMedia(
   try {
     await client.query(
       `INSERT INTO media_assets (sha256, mime, bytes, visibility, storage_key) VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (storage_key) DO NOTHING`,
+       ON CONFLICT (visibility, storage_key) DO NOTHING`,
       [stored.sha256, mime, stored.bytes, input.visibility, stored.storageKey],
     );
     let attached = 0;
     for (const v of versions) {
       const res = await client.query(
         `INSERT INTO lesson_version_assets (lesson_version_id, media_asset_id, role)
-         SELECT $1, id, $2 FROM media_assets WHERE storage_key = $3 ON CONFLICT DO NOTHING`,
-        [v.id, input.role, stored.storageKey],
+         SELECT $1, id, $2 FROM media_assets WHERE storage_key = $3 AND visibility = $4 ON CONFLICT DO NOTHING`,
+        [v.id, input.role, stored.storageKey, input.visibility],
       );
       attached += res.rowCount ?? 0;
     }

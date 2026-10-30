@@ -127,3 +127,38 @@ describe("route hoàn tiền", () => {
     expect(list.refunds[0]).toMatchObject({ order: { code: s.code }, status: "approved" });
   });
 });
+
+
+describe("sửa sau Codex vòng 1 (hoàn tiền)", () => {
+  it("#2: hai lệnh chuyển song song cùng mã giao dịch trả lại → một ok, một duplicate_out_ref, không 500", async () => {
+    const a = await paid();
+    const owner = await adminCtx("owner");
+    const r1 = await requestFullRefund(owner, { orderCode: a.code, reason: "x" });
+    const { createOrder } = await import("@/modules/orders/orders");
+    const b = await (await import("../helpers/learner-ctx")).testLearner("B");
+    const o2 = await createOrder(b, "engine_cadet_tanker");
+    if (o2.kind !== "created") throw new Error();
+    const created = await prisma().order.findUniqueOrThrow({ where: { code: o2.order.code } });
+    await ingest(report({ content: o2.order.code, bankTime: new Date(created.createdAt.getTime() + 60_000) }));
+    const r2 = await requestFullRefund(owner, { orderCode: o2.order.code, reason: "y" });
+    if (!("refundId" in r1) || !("refundId" in r2)) throw new Error();
+    await advanceRefund(owner, r1.refundId, { action: "approve" });
+    await advanceRefund(owner, r2.refundId, { action: "approve" });
+    const results = await Promise.all([
+      advanceRefund(owner, r1.refundId, { action: "send", outBankRef: "OUT-RACE", evidence: "x" }),
+      advanceRefund(owner, r2.refundId, { action: "send", outBankRef: "OUT-RACE", evidence: "x" }),
+    ]);
+    expect(results.sort()).toEqual(["duplicate_out_ref", "ok"]);
+  });
+
+  it("#9: bước hoàn tiền sai thứ tự → audit denied", async () => {
+    const s = await paid();
+    const owner = await adminCtx("owner");
+    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "x" });
+    if (!("refundId" in r)) throw new Error();
+    expect(await advanceRefund(owner, r.refundId, { action: "confirm" })).toBe("invalid_transition");
+    expect(await requestFullRefund(owner, { orderCode: s.code, reason: "lần hai" })).toEqual({ rejected: "active_full_refund" });
+    const denied = (await auditRows()).filter((a) => a.result === "denied").map((a) => [a.action, a.reason]);
+    expect(denied).toEqual([["refund_confirm", "invalid_transition"], ["refund_request", "active_full_refund"]]);
+  });
+});

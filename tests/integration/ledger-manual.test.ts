@@ -26,7 +26,7 @@ describe("nhập sao kê và xác minh", () => {
     expect(await listQueue()).toEqual([]);
     expect(await verifyStatementLine(owner, row!.bankTransactionId, "lần hai")).toEqual({ result: "already_verified" });
     expect((await auditRows("ledger_enter")).map((r) => r.result)).toEqual(["ok"]);
-    expect((await auditRows("ledger_verify")).map((r) => r.result)).toEqual(["ok"]);
+    expect((await auditRows("ledger_verify")).map((r) => [r.result, r.reason])).toEqual([["ok", "đối chiếu sao kê"], ["denied", "already_verified"]]);
   });
 
   it("chủ không tự xác minh dòng mình nhập (audit denied); support không xác minh được", async () => {
@@ -144,5 +144,40 @@ describe("sửa sau review P2", () => {
     expect(await enterStatementLine(support, line(s.code, new Date(), { bankTime: "2026-10-30T10:05:00+07:00" }))).toBe("unverified");
     const bt = await prisma().bankTransaction.findFirstOrThrow();
     expect(bt.bankTime.toISOString()).toBe("2026-10-30T03:05:00.000Z");
+  });
+});
+
+
+describe("sửa sau Codex vòng 1", () => {
+  it("#1: hỗ trợ xem hàng chờ không thấy nội dung chuyển khoản gốc và payload; chủ thấy", async () => {
+    const { GET } = await import("@/app/api/quan-tri/ledger/route");
+    const { adminSess, callAdmin } = await import("../helpers/admin-call");
+    const s = await paidCourseSetup();
+    await ingest(report({ content: `NGUYEN VAN A ck ${s.code} so tk 0123`, amountVnd: PRICE - 1 }));
+    await ingest(report({ bankRef: null, content: "thieu ma tham chieu" }));
+    const support = await adminSess("support");
+    const owner = await adminSess("owner");
+    const seen = async (who: typeof support) =>
+      (await (await callAdmin(GET, who, "GET", "/api/quan-tri/ledger")).json()) as {
+        queue: { content: string | null; candidateCodes: string[] }[];
+        unresolved: { payload?: unknown }[];
+      };
+    const bySupport = await seen(support);
+    expect(bySupport.queue[0]!.content).toBeNull();
+    expect(bySupport.queue[0]!.candidateCodes).toEqual([s.code]);
+    expect(bySupport.unresolved[0]!.payload).toBeUndefined();
+    const byOwner = await seen(owner);
+    expect(byOwner.queue[0]!.content).toContain("NGUYEN VAN A");
+    expect(byOwner.unresolved[0]!.payload).toBeDefined();
+  });
+
+  it("#8: nhật ký nhập sao kê không chứa nội dung chuyển khoản", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    await enterStatementLine(support, line(s.code, new Date(), { content: "NOI DUNG RIENG TU 123" }));
+    const { sqlAsMigrator } = await import("../helpers/otp");
+    const { rows } = await sqlAsMigrator(`SELECT after::text AS after FROM admin_audit_log WHERE action = 'ledger_enter'`);
+    expect(rows[0].after).not.toContain("NOI DUNG RIENG TU");
+    expect(rows[0].after).toContain("bankRef");
   });
 });

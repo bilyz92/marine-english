@@ -7,7 +7,8 @@ export type QueueRow = {
   bankTransactionId: string;
   bankTime: Date;
   amountVnd: number;
-  content: string;
+  /** Nội dung chuyển khoản gốc; null khi người xem không có quyền xem dữ liệu ngân hàng thô. */
+  content: string | null;
   source: string;
   reason: QueueReason | "unverified";
   candidateCodes: string[];
@@ -35,12 +36,12 @@ async function openRows(): Promise<Row[]> {
     ORDER BY bt.bank_time, bt.id`;
 }
 
-export async function listQueue(): Promise<QueueRow[]> {
+export async function listQueue(opts: { raw: boolean } = { raw: true }): Promise<QueueRow[]> {
   return (await openRows()).map((r) => ({
     bankTransactionId: r.id,
     bankTime: r.bank_time,
     amountVnd: r.amount_vnd,
-    content: r.content,
+    content: opts.raw ? r.content : null,
     source: r.source,
     reason: r.verified ? (r.reason ?? "unverified") : "unverified",
     candidateCodes: r.candidate_codes ?? [],
@@ -53,14 +54,17 @@ export async function orderNeedsManual(orderId: string): Promise<boolean> {
   return (await openRows()).some((r) => r.candidate_order_id === orderId);
 }
 
-export type UnresolvedRow = { observationId: string; source: string; reason: "missing_ref" | "missing_time"; receivedAt: Date; payload: unknown };
+export type UnresolvedRow = { observationId: string; source: string; reason: "missing_ref" | "missing_time"; receivedAt: Date; payload?: unknown };
 
 /** Báo cáo thiếu mã tham chiếu/thời điểm chưa được dòng nhập tay nào giải quyết. */
-export async function listUnresolved(): Promise<UnresolvedRow[]> {
+export async function listUnresolved(opts: { raw: boolean } = { raw: true }): Promise<UnresolvedRow[]> {
   const rows = await prisma().$queryRaw<{ id: string; source: string; unresolved_reason: "missing_ref" | "missing_time"; received_at: Date; payload: unknown }[]>`
     SELECT o.id, o.source, o.unresolved_reason, o.received_at, o.payload FROM bank_transaction_observations o
     WHERE o.unresolved_reason IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM bank_transaction_observations r WHERE r.resolves_observation_id = o.id)
     ORDER BY o.received_at`;
-  return rows.map((r) => ({ observationId: r.id, source: r.source, reason: r.unresolved_reason, receivedAt: r.received_at, payload: r.payload }));
+  return rows.map((r) => ({
+    observationId: r.id, source: r.source, reason: r.unresolved_reason, receivedAt: r.received_at,
+    ...(opts.raw ? { payload: r.payload } : {}),
+  }));
 }

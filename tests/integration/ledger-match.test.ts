@@ -26,7 +26,7 @@ describe("ghép tay", () => {
     expect(alloc).toMatchObject({ kind: "manual", allocatedBy: support.adminId, orderId: s.orderId });
     expect(await prisma().enrollment.count({ where: { orderId: s.orderId } })).toBe(1);
     expect(await matchTransfers(support, { orderCode: s.code, bankTransactionIds: [tx], ...evidence })).toEqual({ result: "rejected", reason: "already_settled" });
-    expect((await auditRows("ledger_match")).map((r) => r.result)).toEqual(["ok"]);
+    expect((await auditRows("ledger_match")).map((r) => [r.result, r.reason])).toEqual([["ok", evidence.note], ["denied", "already_settled"]]);
     expect(await listQueue()).toEqual([]);
   });
 
@@ -138,6 +138,18 @@ describe("mở lại kết luận (review P2 I-3)", () => {
     expect(await reopenTransfer(owner, tx, "lần hai")).toBe("not_found");
     expect((await listQueue()).map((q) => q.bankTransactionId)).toEqual([tx]);
     expect(await matchTransfers(owner, { orderCode: s.code, bankTransactionIds: [tx], ...evidence })).toEqual({ result: "paid" });
-    expect((await auditRows("ledger_reopen")).map((r) => r.result)).toEqual(["denied", "ok"]);
+    expect((await auditRows("ledger_reopen")).map((r) => [r.result, r.reason])).toEqual([["denied", "role"], ["ok", "khách gọi lại"], ["denied", "not_found"]]);
+  });
+});
+
+
+describe("nhật ký thao tác bị từ chối (Codex #9)", () => {
+  it("ghép bị từ chối theo trạng thái → audit denied có lý do", async () => {
+    const s = await paidCourseSetup();
+    const owner = await adminCtx("owner");
+    const tx = await queuedTx(PRICE);
+    await matchTransfers(owner, { orderCode: s.code, bankTransactionIds: [tx], ...evidence });
+    expect(await matchTransfers(owner, { orderCode: s.code, bankTransactionIds: [tx], ...evidence })).toEqual({ result: "rejected", reason: "already_settled" });
+    expect((await auditRows("ledger_match")).map((r) => [r.result, r.reason])).toEqual([["ok", "khách gửi ảnh chuyển khoản"], ["denied", "already_settled"]]);
   });
 });

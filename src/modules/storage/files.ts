@@ -1,6 +1,6 @@
 // Lưu tệp media theo nội dung (tên = sha256). Không dùng alias "@/" để CLI chạy thẳng bằng Node cũng import được.
 import { createHash, randomBytes } from "node:crypto";
-import { lstat, mkdir, open, readFile, realpath, rename, rm, stat, type FileHandle } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, realpath, rename, rm, type FileHandle } from "node:fs/promises";
 import path from "node:path";
 
 export type Visibility = "public" | "protected";
@@ -41,7 +41,14 @@ export async function putFileAt(
   await mkdir(dir, { recursive: true });
   const target = path.join(dir, storageKey);
   const result = { storageKey, sha256: hash, bytes: input.bytes.length };
-  if (await stat(target).then(() => true, () => false)) return result;
+  const existing = await lstat(target).catch(() => null);
+  if (existing) {
+    // Tệp cùng tên đã có: chỉ tin khi là tệp thường, đúng kích thước và đúng sha256; sai thì báo lỗi, không ghi đè ngầm.
+    if (!existing.isFile() || existing.size !== input.bytes.length || sha256(await readFile(target)) !== hash) {
+      throw new Error(`Tệp đã có tại ${storageKey} không khớp nội dung`);
+    }
+    return result;
+  }
 
   const tmp = path.join(dir, `.tmp-${randomBytes(8).toString("hex")}`);
   try {

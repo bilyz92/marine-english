@@ -50,7 +50,9 @@ export async function enterStatementLine(ctx: AdminCtx, input: StatementLineInpu
     });
     await audit(tx, {
       adminId: ctx.adminId, action: "ledger_enter", targetType: "bank_transaction", targetId: line.bankRef,
-      after: { ...line, bankTime: line.bankTime.toISOString(), outcome }, result: "ok", ip: ctx.ip,
+      // Không ghi nội dung chuyển khoản hay bằng chứng vào nhật ký (đã nằm trong dòng sổ).
+      after: { bankRef: line.bankRef, amountVnd: line.amountVnd, bankTime: line.bankTime.toISOString(), outcome, evidenceProvided: true },
+      result: "ok", ip: ctx.ip,
     });
     return outcome;
   });
@@ -82,10 +84,10 @@ export async function verifyStatementLine(ctx: AdminCtx, bankTransactionId: stri
     });
     return { result: "verified", outcome };
   });
-  if (result.result === "self_entered") {
+  if (result.result !== "verified") {
     await auditDenied({
       adminId: ctx.adminId, action: "ledger_verify", targetType: "bank_transaction", targetId: bankTransactionId,
-      reason: "self_entered", ip: ctx.ip,
+      reason: result.result, ip: ctx.ip,
     });
   }
   return result;
