@@ -87,13 +87,13 @@ describe("API /api/quan-tri/admins", () => {
     expect(await auditRows("admin_invite")).toMatchObject([{ result: "denied", reason: "role", admin_user_id: s.adminId }]);
   });
 
-  it("owner xác thực 10 phút trước → 403 reauth_required + audit; 10 phút − 1 giây → được", async () => {
+  it("owner xác thực 10 phút trước → 403 reauth_required + audit; 9,5 phút trước → được", async () => {
     const stale = await sessionFor("chu@x.vn", "owner", new Date(Date.now() - 10 * MIN));
     const res = await call(POST, stale, "POST", { email: "moi@x.vn", role: "support" });
     expect([res.status, await res.json()]).toEqual([403, { error: "reauth_required" }]);
     expect(await auditRows("admin_invite")).toMatchObject([{ result: "denied", reason: "reauth_required" }]);
 
-    const fresh = await sessionFor("chu2@x.vn", "owner", new Date(Date.now() - 10 * MIN + MARGIN));
+    const fresh = await sessionFor("chu2@x.vn", "owner", new Date(Date.now() - 10 * MIN + 30 * MARGIN));
     const ok = await call(POST, fresh, "POST", { email: "moi@x.vn", role: "support" });
     expect([ok.status, await ok.json()]).toEqual([200, { result: "invited" }]);
     expect(await adminRow("moi@x.vn")).toMatchObject({ status: "invited", role: "support" });

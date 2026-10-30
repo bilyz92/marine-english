@@ -43,8 +43,8 @@ async function sendLinkCode(ctx: LearnerCtx, email: string): Promise<string> {
 const identities = (userId: string) => prisma().userIdentity.findMany({ where: { userId }, orderBy: { createdAt: "asc" } });
 
 describe("liên kết bằng mã OTP", () => {
-  it("xác thực gần đây: 10 phút − 1 giây được; đúng 10 phút → reauth_required", async () => {
-    const ok = await learner("a@x.vn", new Date(Date.now() - 10 * MIN + MARGIN));
+  it("xác thực gần đây: 9,5 phút trước được; đúng 10 phút → reauth_required (biên chính xác: tests/unit/recent-auth.test.ts)", async () => {
+    const ok = await learner("a@x.vn", new Date(Date.now() - 10 * MIN + 30 * MARGIN));
     const code = await sendLinkCode(ok, "a2@x.vn");
     expect(await completeLinkOtp(ok, { kind: "email", contact: "a2@x.vn", code })).toBe("linked");
     expect((await identities(ok.userId)).map((i) => i.valueCanonical)).toEqual(["a@x.vn", "a2@x.vn"]);
