@@ -11,22 +11,26 @@ datasource db {
 // nằm trong SQL viết tay ở cuối từng tệp migration.
 
 model User {
-  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName   String           @map("display_name")
-  rank          String?
-  status        String           @default("active")
-  mergedIntoId  String?          @map("merged_into_id") @db.Uuid
-  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  mergedInto    User?            @relation("UserMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
-  mergedFrom    User[]           @relation("UserMerge")
-  identities    UserIdentity[]
-  devices       Device[]
-  sessions      LearnerSession[]
-  loginTickets  LoginTicket[]
-  otpChallenges OtpChallenge[]
-  oidcStates    OidcState[]
-  orders        Order[]
-  enrollments   Enrollment[]
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName      String             @map("display_name")
+  rank             String?
+  status           String             @default("active")
+  mergedIntoId     String?            @map("merged_into_id") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  mergedInto       User?              @relation("UserMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
+  mergedFrom       User[]             @relation("UserMerge")
+  identities       UserIdentity[]
+  devices          Device[]
+  sessions         LearnerSession[]
+  loginTickets     LoginTicket[]
+  otpChallenges    OtpChallenge[]
+  oidcStates       OidcState[]
+  orders           Order[]
+  enrollments      Enrollment[]
+  learningEvents   LearningEvent[]
+  learningProgress LearningProgress[]
+  quizAttempts     QuizAttempt[]
+  syncRejections   SyncRejection[]
 
   @@map("users")
 }
@@ -45,15 +49,17 @@ model UserIdentity {
 }
 
 model Device {
-  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId        String           @map("user_id") @db.Uuid
-  deviceKeyHash String           @map("device_key_hash")
-  label         String
-  registeredAt  DateTime         @default(now()) @map("registered_at") @db.Timestamptz(6)
-  lastSeenAt    DateTime?        @map("last_seen_at") @db.Timestamptz(6)
-  revokedAt     DateTime?        @map("revoked_at") @db.Timestamptz(6)
-  user          User             @relation(fields: [userId], references: [id], onDelete: Restrict)
-  sessions      LearnerSession[]
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  deviceKeyHash  String           @map("device_key_hash")
+  label          String
+  registeredAt   DateTime         @default(now()) @map("registered_at") @db.Timestamptz(6)
+  lastSeenAt     DateTime?        @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt      DateTime?        @map("revoked_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  sessions       LearnerSession[]
+  learningEvents LearningEvent[]
+  syncRejections SyncRejection[]
 
   @@unique([userId, deviceKeyHash])
   @@map("devices")
@@ -266,6 +272,7 @@ model Course {
   versions         CourseVersion[] @relation("CourseVersions")
   orderItems       OrderItem[]
   enrollments      Enrollment[]
+  learningEvents   LearningEvent[]
 
   @@map("courses")
 }
@@ -288,23 +295,27 @@ model CourseVersion {
 }
 
 model Lesson {
-  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  externalId String          @unique @map("external_id")
-  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  versions   LessonVersion[]
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId   String             @unique @map("external_id")
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  versions     LessonVersion[]
+  progress     LearningProgress[]
+  quizAttempts QuizAttempt[]
 
   @@map("lessons")
 }
 
 model LessonVersion {
-  id          String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  lessonId    String                @map("lesson_id") @db.Uuid
-  version     Int
-  content     Json
-  contentHash String                @map("content_hash")
-  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  lesson      Lesson                @relation(fields: [lessonId], references: [id], onDelete: Restrict)
-  courses     CourseVersionLesson[]
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lessonId       String                @map("lesson_id") @db.Uuid
+  version        Int
+  content        Json
+  contentHash    String                @map("content_hash")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  lesson         Lesson                @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  courses        CourseVersionLesson[]
+  assets         LessonVersionAsset[]
+  learningEvents LearningEvent[]
 
   @@unique([lessonId, version])
   @@unique([lessonId, contentHash])
@@ -547,4 +558,97 @@ model OutboxEvent {
 
   @@index([status, nextAttemptAt], map: "outbox_events_due_idx")
   @@map("outbox_events")
+}
+
+// ===== Học tập (migration learning) =====
+
+model MediaAsset {
+  id             String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sha256         String
+  mime           String
+  bytes          Int
+  visibility     String
+  storageKey     String               @unique @map("storage_key")
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  lessonVersions LessonVersionAsset[]
+
+  @@map("media_assets")
+}
+
+model LessonVersionAsset {
+  lessonVersionId String        @map("lesson_version_id") @db.Uuid
+  mediaAssetId    String        @map("media_asset_id") @db.Uuid
+  role            String
+  lessonVersion   LessonVersion @relation(fields: [lessonVersionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  mediaAsset      MediaAsset    @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([lessonVersionId, mediaAssetId])
+  @@map("lesson_version_assets")
+}
+
+model LearningEvent {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId         String         @unique @map("event_id") @db.Uuid
+  userId          String         @map("user_id") @db.Uuid
+  deviceId        String         @map("device_id") @db.Uuid
+  seq             BigInt
+  lessonVersionId String?        @map("lesson_version_id") @db.Uuid
+  courseId        String?        @map("course_id") @db.Uuid
+  type            String
+  payload         Json
+  payloadHash     String         @map("payload_hash")
+  clientTime      DateTime?      @map("client_time") @db.Timestamptz(6)
+  receivedAt      DateTime       @default(now()) @map("received_at") @db.Timestamptz(6)
+  entitlementOk   Boolean        @map("entitlement_ok")
+  user            User           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  device          Device         @relation(fields: [deviceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  lessonVersion   LessonVersion? @relation(fields: [lessonVersionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  course          Course?        @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  quizAttempt     QuizAttempt?
+
+  @@unique([deviceId, seq], map: "learning_events_device_seq_key")
+  @@index([userId])
+  @@map("learning_events")
+}
+
+model LearningProgress {
+  userId              String   @map("user_id") @db.Uuid
+  lessonId            String   @map("lesson_id") @db.Uuid
+  status              String
+  completedActivities String[] @default([]) @map("completed_activities")
+  bestScorePct        Int?     @map("best_score_pct")
+  updatedAt           DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  lesson              Lesson   @relation(fields: [lessonId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([userId, lessonId])
+  @@map("learning_progress")
+}
+
+model QuizAttempt {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId   String        @unique @map("event_id") @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  lessonId  String        @map("lesson_id") @db.Uuid
+  scorePct  Int           @map("score_pct")
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  lesson    Lesson        @relation(fields: [lessonId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  event     LearningEvent @relation(fields: [eventId], references: [eventId], onDelete: Restrict, onUpdate: NoAction)
+
+  @@map("quiz_attempts")
+}
+
+model SyncRejection {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  deviceId  String   @map("device_id") @db.Uuid
+  eventId   String?  @map("event_id") @db.Uuid
+  reason    String
+  raw       Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@map("sync_rejections")
 }
