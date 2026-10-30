@@ -164,3 +164,28 @@ describe("ảnh chụp đơn không mở rộng được (Codex #3)", () => {
     ])).toBe("P0001");
   });
 });
+
+describe("ảnh chụp đơn gắn với transaction tạo đơn (Codex vòng 2)", () => {
+  it("cập nhật đơn cũ rồi chèn dòng giá 0 trong cùng transaction → lỗi; không sửa được created_xact", async () => {
+    const f = await moneyFixture();
+    expect(await txCode(insertOrderSql(f))).toBeNull();
+    const { rows: [other] } = await sqlAsMigrator(`SELECT id, current_version_id FROM courses WHERE slug = 'engine_cadet_dry_cargo'`);
+    expect(await txCode([
+      [`UPDATE orders SET status = 'expired', expired_at = now() WHERE code = $1`, [CODE]],
+      [`INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
+        SELECT id, $2, $3, 1000, 0 FROM orders WHERE code = $1`, [CODE, other.id, other.current_version_id]],
+    ])).toBe("P0001");
+    expect(await txCode([[`UPDATE orders SET created_xact = pg_current_xact_id() WHERE code = $1`, [CODE]]])).toBe("P0001");
+  });
+
+  it("giá trị created_xact client gửi khi tạo đơn bị bỏ qua", async () => {
+    const f = await moneyFixture();
+    expect(await txCode(insertOrderSql(f))).toBeNull();
+    expect(await txCode([
+      [`INSERT INTO orders (code, user_id, amount_due_vnd, refund_policy_version, expires_at, created_xact)
+        VALUES ('MECCCCCCCC', $1, 199000, 'x', now() + interval '15 minutes', '1'::xid8)`, [f.userId]],
+      [`INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
+        SELECT id, $1, $2, 199000, 199000 FROM orders WHERE code = 'MECCCCCCCC'`, [f.courseId, f.courseVersionId]],
+    ])).toBeNull();
+  });
+});

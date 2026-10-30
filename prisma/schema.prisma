@@ -350,6 +350,7 @@ model Order {
   paidAt              DateTime?                       @map("paid_at") @db.Timestamptz(6)
   expiredAt           DateTime?                       @map("expired_at") @db.Timestamptz(6)
   refundedAt          DateTime?                       @map("refunded_at") @db.Timestamptz(6)
+  createdXact         Unsupported("xid8")             @default(dbgenerated("pg_current_xact_id()")) @map("created_xact")
   user                User                            @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   items               OrderItem[]
   classifications     BankTransactionClassification[]
