@@ -29,6 +29,7 @@ export function applyTestEnv(): void {
     MAX_DEVICES: "2",
     SEPAY_BANK_CODE: "VCB",
     SEPAY_ACCOUNT_NO: "0123456789",
+    SEPAY_WEBHOOK_SECRETS: "s2:bi-mat-moi-dung-trong-test,s1:bi-mat-cu-dung-trong-test",
   };
   for (const [name, value] of Object.entries(defaults)) {
     if (process.env[name] === undefined) process.env[name] = value;

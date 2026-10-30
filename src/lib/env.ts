@@ -49,6 +49,18 @@ const schema = z
     // Tài khoản nhận tiền SePay theo dõi [G4]. Thiếu thì mọi báo cáo SePay bị bỏ qua và webhook trả 503.
     SEPAY_BANK_CODE: z.string().regex(/^[A-Z0-9]{2,20}$/).optional(),
     SEPAY_ACCOUNT_NO: z.string().regex(/^[0-9]{4,30}$/).optional(),
+    // Bí mật ký webhook "id:bí-mật,id:bí-mật" (khóa mới trước, khóa cũ giữ trong lúc đổi). Rỗng = chưa cấu hình.
+    SEPAY_WEBHOOK_SECRETS: z
+      .string()
+      .optional()
+      .transform((v) =>
+        (v ?? "")
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .map((part) => part.slice(part.indexOf(":") + 1))
+          .filter((secret) => secret.length > 0),
+      ),
   })
   .refine((e) => e.SESSION_ENC_KEYS.has(e.SESSION_ENC_KEY_CURRENT), {
     path: ["SESSION_ENC_KEY_CURRENT"],
