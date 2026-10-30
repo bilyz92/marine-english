@@ -72,3 +72,21 @@ export async function insertBankTx(app: Client | null, input: { ref: string; amo
     if (!app) await client.end();
   }
 }
+
+/** Lùi created_at/expires_at của mọi đơn (giả lập thời gian trôi). Tắt trigger bất biến trong cùng transaction của migrator. */
+export async function ageOrders(ms: number, where = "TRUE") {
+  const client = await pgAs("migrator");
+  try {
+    await client.query("BEGIN");
+    await client.query(`ALTER TABLE orders DISABLE TRIGGER orders_guard`);
+    await client.query(
+      `UPDATE orders SET created_at = created_at - make_interval(secs => $1::double precision / 1000),
+         expires_at = expires_at - make_interval(secs => $1::double precision / 1000) WHERE ${where}`,
+      [ms],
+    );
+    await client.query(`ALTER TABLE orders ENABLE TRIGGER orders_guard`);
+    await client.query("COMMIT");
+  } finally {
+    await client.end();
+  }
+}

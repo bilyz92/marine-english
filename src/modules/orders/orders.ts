@@ -1,0 +1,85 @@
+import { prisma, withTx, type Tx } from "@/lib/db";
+import { lockActiveUser } from "@/modules/auth-learner/devices";
+import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access";
+import type { LearnerCtx } from "@/modules/sessions/guards";
+import { newOrderCode } from "./codes";
+
+// Đơn: giá luôn lấy từ courses trên máy chủ, ghi ảnh chụp bất biến; mã đơn ngẫu nhiên, duy nhất nhờ ràng buộc DB.
+
+export const REFUND_POLICY_VERSION = "de-xuat-2026-10"; // [G13]
+const MAX_CODE_ATTEMPTS = 5;
+
+export class OrderCodeExhaustedError extends Error {
+  constructor() {
+    super("Không sinh được mã đơn chưa dùng");
+  }
+}
+
+export type OrderStatus = "pending" | "paid" | "expired" | "refunded";
+export type OrderView = { code: string; status: OrderStatus; amountDueVnd: number; expiresAt: Date; courseSlug: string; courseTitleVi: string };
+export type CreateOrderResult =
+  | { kind: "created" | "existing"; order: OrderView }
+  | { kind: "not_for_sale" | "already_enrolled" };
+
+type ViewRow = { code: string; status: OrderStatus; amount_due_vnd: number; expires_at: Date; slug: string; title_vi: string };
+
+const toView = (r: ViewRow): OrderView => ({
+  code: r.code, status: r.status, amountDueVnd: r.amount_due_vnd, expiresAt: r.expires_at, courseSlug: r.slug, courseTitleVi: r.title_vi,
+});
+
+async function orderViews(db: Tx | ReturnType<typeof prisma>, where: { code?: string; userIds: string[]; courseId?: string; pendingOnly?: boolean }) {
+  return db.$queryRaw<ViewRow[]>`
+    SELECT o.code, o.status, o.amount_due_vnd, o.expires_at, c.slug, c.title_vi
+    FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
+    WHERE o.user_id = ANY(${where.userIds}::uuid[])
+      AND (${where.code ?? null}::text IS NULL OR o.code = ${where.code ?? null})
+      AND (${where.courseId ?? null}::uuid IS NULL OR i.course_id = ${where.courseId ?? null}::uuid)
+      AND (NOT ${where.pendingOnly ?? false} OR (o.status = 'pending' AND o.expires_at > now()))
+    ORDER BY o.created_at DESC`;
+}
+
+export async function createOrder(
+  ctx: LearnerCtx,
+  courseSlug: string,
+  opts: { codeSource?: () => string } = {},
+): Promise<CreateOrderResult> {
+  const codeSource = opts.codeSource ?? newOrderCode;
+  return withTx(async (tx) => {
+    // Khóa học viên để hai lần bấm “mua” cùng lúc chỉ tạo một đơn.
+    await lockActiveUser(tx, ctx.userId);
+    const [course] = await tx.$queryRaw<{ id: string; price_vnd: number; current_version_id: string }[]>`
+      SELECT id, price_vnd, current_version_id FROM courses WHERE slug = ${courseSlug} AND status = 'published'`;
+    if (!course) return { kind: "not_for_sale" };
+    const group = await mergeGroupIds(tx, ctx.userId);
+    if (await hasActiveEnrollment(tx, group, course.id)) return { kind: "already_enrolled" };
+    const [pending] = await orderViews(tx, { userIds: group, courseId: course.id, pendingOnly: true });
+    if (pending) return { kind: "existing", order: toView(pending) };
+
+    for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
+      const [order] = await tx.$queryRaw<{ id: string; code: string }[]>`
+        INSERT INTO orders (code, user_id, amount_due_vnd, refund_policy_version, expires_at)
+        VALUES (${codeSource()}, ${ctx.userId}::uuid, ${course.price_vnd}, ${REFUND_POLICY_VERSION}, now() + interval '15 minutes')
+        ON CONFLICT (code) DO NOTHING
+        RETURNING id, code`;
+      if (!order) continue;
+      await tx.$executeRaw`
+        INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
+        VALUES (${order.id}::uuid, ${course.id}::uuid, ${course.current_version_id}::uuid, ${course.price_vnd}, ${course.price_vnd})`;
+      const [view] = await orderViews(tx, { userIds: [ctx.userId], code: order.code });
+      return { kind: "created", order: toView(view!) };
+    }
+    throw new OrderCodeExhaustedError();
+  });
+}
+
+/** Đơn của học viên (theo nhóm gộp). */
+export async function getOrderForLearner(ctx: LearnerCtx, code: string): Promise<OrderView | null> {
+  const [row] = await orderViews(prisma(), { userIds: await mergeGroupIds(null, ctx.userId), code });
+  return row ? toView(row) : null;
+}
+
+/** pending → expired khi đã quá hạn. P4 gọi mỗi phút. */
+export async function expireOrders(): Promise<number> {
+  return prisma().$executeRaw`
+    UPDATE orders SET status = 'expired', expired_at = now() WHERE status = 'pending' AND expires_at <= now()`;
+}
