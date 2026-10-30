@@ -1,0 +1,21 @@
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+import { json, readJson, route } from "@/lib/http";
+import { authorize } from "@/modules/auth-admin/authorize";
+import { requestFullRefund } from "@/modules/refunds/refunds";
+import { requireAdmin } from "@/modules/sessions/guards";
+
+export const GET = route(async (req: Request) => {
+  const ctx = await requireAdmin(req);
+  await authorize(ctx, "orders.view", { action: "refunds_list" });
+  const refunds = await prisma().refund.findMany({ orderBy: { requestedAt: "desc" }, include: { order: { select: { code: true } }, sources: true } });
+  return json({ refunds });
+});
+
+const Body = z.object({ orderCode: z.string().max(20), reason: z.string().trim().min(1).max(1000) });
+
+export const POST = route(async (req: Request) => {
+  const ctx = await requireAdmin(req);
+  const result = await requestFullRefund(ctx, await readJson(req, Body));
+  return json(result, { status: "refundId" in result ? 201 : 409 });
+});
