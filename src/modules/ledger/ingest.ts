@@ -78,14 +78,18 @@ export async function ingestInTx(tx: Tx, r: BankReport): Promise<IngestOutcome> 
             ${r.enteredBy ?? null}::uuid, ${r.evidence ?? null}, ${JSON.stringify(r.raw ?? null)}::jsonb)
     ON CONFLICT (bank_code, account_no, bank_ref) DO NOTHING
     RETURNING id`;
-  const [row] = await tx.$queryRaw<{ id: string; amount_vnd: number; bank_time: Date }[]>`
-    SELECT id, amount_vnd, bank_time FROM bank_transactions
+  const [row] = await tx.$queryRaw<{ id: string; amount_vnd: number; bank_time: Date; content: string }[]>`
+    SELECT id, amount_vnd, bank_time, content FROM bank_transactions
     WHERE bank_code = ${bankCode} AND account_no = ${accountNo} AND bank_ref = ${bankRef}
     FOR UPDATE`;
   const btId = row!.id;
   const isNew = created !== undefined;
-  // Dòng cũ: so chính xác với dữ kiện đã ghi; lệch thì cảnh báo chủ, không tự sửa, không xác minh.
-  const mismatch = !isNew && (row!.amount_vnd !== r.amountVnd || row!.bank_time.getTime() !== r.bankTime.getTime());
+  // Dòng cũ: so chính xác số tiền, thời điểm và các mã đơn trong nội dung (dòng nhập tay không được “xác minh hộ” nếu mã khác);
+  // lệch thì cảnh báo chủ, không tự sửa, không xác minh.
+  const sameCodes = (a: string, b: string) => extractOrderCodes(a).sort().join(",") === extractOrderCodes(b).sort().join(",");
+  const mismatch =
+    !isNew &&
+    (row!.amount_vnd !== r.amountVnd || row!.bank_time.getTime() !== r.bankTime.getTime() || !sameCodes(row!.content, r.content));
   if (!(await observe(tx, r, { bankTransactionId: btId, isFirst: isNew, mismatch }))) return "duplicate_event";
   if (mismatch) {
     await enqueueOutbox(tx, {

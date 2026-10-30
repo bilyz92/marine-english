@@ -110,3 +110,39 @@ describe("route quản trị sổ giao dịch", () => {
     expect([res.status, await res.json()]).toEqual([200, { result: "verified", outcome: "confirmed" }]);
   });
 });
+
+describe("sửa sau review P2", () => {
+  it("I-1: SePay báo cùng định danh, cùng tiền/giờ nhưng mã đơn trong nội dung khác dòng nhập tay → mismatch, không xác minh", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    const t = new Date(s.createdAt.getTime() + 60_000);
+    await enterStatementLine(support, line("MEAAAAAAAA", t, { bankRef: "FT-I1" }));
+    expect(await ingest(report({ bankRef: "FT-I1", bankTime: t, content: `ck ${s.code}` }))).toBe("mismatch");
+    expect(await prisma().bankTransactionVerification.count()).toBe(0);
+    expect((await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } })).status).toBe("pending");
+  });
+
+  it("I-1: nội dung khác chữ nhưng cùng mã đơn → vẫn khớp, provider_match", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    const t = new Date(s.createdAt.getTime() + 60_000);
+    await enterStatementLine(support, line(s.code, t, { bankRef: "FT-I1B", content: `NGUYEN VAN A CK ${s.code}` }));
+    expect(await ingest(report({ bankRef: "FT-I1B", bankTime: t, content: `ck ${s.code.toLowerCase()} cam on` }))).toBe("confirmed");
+  });
+
+  it("I-2: dòng nhập tay cho tài khoản khác tài khoản đã cấu hình → 400", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    await expect(enterStatementLine(support, line(s.code, new Date(), { bankCode: "VIETCOMBANK" }))).rejects.toMatchObject({ status: 400 });
+    await expect(enterStatementLine(support, line(s.code, new Date(), { accountNo: "9999999999" }))).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("I-4: giờ giao dịch nhập tay phải có múi giờ", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    await expect(enterStatementLine(support, line(s.code, new Date(), { bankTime: "2026-10-30T10:05:00" }))).rejects.toMatchObject({ status: 400 });
+    expect(await enterStatementLine(support, line(s.code, new Date(), { bankTime: "2026-10-30T10:05:00+07:00" }))).toBe("unverified");
+    const bt = await prisma().bankTransaction.findFirstOrThrow();
+    expect(bt.bankTime.toISOString()).toBe("2026-10-30T03:05:00.000Z");
+  });
+});

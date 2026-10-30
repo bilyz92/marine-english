@@ -114,3 +114,22 @@ export async function setDisposition(
     return "ok";
   });
 }
+
+/** Mở lại giao dịch đã có kết luận (bỏ qua/trùng) để ghép hoặc xử lý tiếp. Chỉ chủ; kết luận cũ được đánh dấu thay thế. */
+export async function reopenTransfer(ctx: AdminCtx, bankTransactionId: string, reason: string): Promise<"ok" | "not_found"> {
+  await authorize(ctx, "payments.match", { action: "ledger_reopen", resource: { type: "bank_transaction", id: bankTransactionId } });
+  await requireOwnerFor(ctx, "ledger_reopen", "bank_transaction", bankTransactionId);
+  if (!reason.trim()) throw new HttpError(400, "Cần lý do");
+  return withTx(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM bank_transactions WHERE id = ${bankTransactionId}::uuid FOR UPDATE`;
+    const [previous] = await tx.$queryRaw<{ kind: string }[]>`
+      UPDATE bank_transaction_dispositions SET superseded_at = now()
+      WHERE bank_transaction_id = ${bankTransactionId}::uuid AND superseded_at IS NULL RETURNING kind`;
+    if (!previous) return "not_found";
+    await audit(tx, {
+      adminId: ctx.adminId, action: "ledger_reopen", targetType: "bank_transaction", targetId: bankTransactionId,
+      before: { kind: previous.kind }, after: { kind: null }, result: "ok", reason: reason.trim(), ip: ctx.ip,
+    });
+    return "ok";
+  });
+}

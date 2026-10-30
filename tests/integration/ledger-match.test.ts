@@ -125,3 +125,19 @@ describe("route ghép tay, kết luận, cấp quyền", () => {
     expect((await callAdmin(grant, support, "POST", "/api/quan-tri/grants", { userId: s.learner.userId, courseId: course.id, reason: "x" })).status).toBe(403);
   });
 });
+
+describe("mở lại kết luận (review P2 I-3)", () => {
+  it("owner mở lại giao dịch đã bỏ qua → về hàng chờ, ghép được; support → 403; không có kết luận → not_found", async () => {
+    const { reopenTransfer } = await import("@/modules/ledger/match");
+    const s = await paidCourseSetup();
+    const owner = await adminCtx("owner");
+    const tx = await queuedTx(PRICE);
+    await setDisposition(owner, tx, { kind: "ignored", reason: "chờ liên hệ" });
+    expect(await rejected(reopenTransfer(await adminCtx("support"), tx, "khách gọi lại"))).toBe("role");
+    expect(await reopenTransfer(owner, tx, "khách gọi lại")).toBe("ok");
+    expect(await reopenTransfer(owner, tx, "lần hai")).toBe("not_found");
+    expect((await listQueue()).map((q) => q.bankTransactionId)).toEqual([tx]);
+    expect(await matchTransfers(owner, { orderCode: s.code, bankTransactionIds: [tx], ...evidence })).toEqual({ result: "paid" });
+    expect((await auditRows("ledger_reopen")).map((r) => r.result)).toEqual(["denied", "ok"]);
+  });
+});
