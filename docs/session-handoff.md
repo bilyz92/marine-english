@@ -232,3 +232,8 @@ ghép tay (một/nhiều giao dịch, thiếu/thừa tiền → hoàn phần th�
 (đề nghị → duyệt → chuyển → xác nhận; hoàn toàn phần thu hồi quyền học), gộp tài khoản, quyền học theo nhóm gộp. Thông báo mới ghi vào
 `outbox_events` (P4 gửi). Chờ chủ dự án: G4 (SePay thật), G5 (định dạng mã đơn), G13 (chính sách hoàn), G14 (giá, mã giảm giá — chưa làm).
 Quyết định khi chạy: dòng `Ruling:` trong `.superpowers/sdd/2026-10-30-p2-courses-orders-ledger/progress.md`.
+
+**Tab Spec đã cập nhật (30/10/2026):** tài khoản đăng nhập mới mở được tài liệu đặc tả; đã thêm mục “10. Thay đổi sau ngày chốt” vào tab
+“Spec giao diện v1 (chốt 29/10)” (quyết định 29–30/10 theo mã màn, sửa 11 điểm ở màn hiện có, 8 màn mới, việc đã làm trong mã). Không sửa
+các mục 1–9 anh viết. Còn lại của G1/G2: đối chiếu tab “Tài liệu BA” (FR/NFR, quy tắc nghiệp vụ) với các quyết định trong repo; sửa bảng
+thiết kế theo mục 10 rồi tải lại.

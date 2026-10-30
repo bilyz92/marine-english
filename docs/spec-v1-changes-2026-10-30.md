@@ -1,5 +1,8 @@
 # Thay đổi cần ghi vào tab “Spec giao diện v1 (chốt 29/10)” — soạn 30/10/2026
 
+**Đã ghi vào tab Spec (mục 10 “Thay đổi sau ngày chốt”, bản rev 15, 30/10/2026)** khi tài khoản mới mở được tài liệu; tên tệp đã đổi sang mã màn WEB/APP/ADM.
+Tệp này giữ làm bản nháp gốc; nguồn sự thật là tab Spec.
+
 Tab Spec nằm trong https://claude.ai/artifact/ENwhHxGCF4bSKAUXrbSrLD. Tài khoản đăng nhập ngày 30/10 không mở được tài liệu này,
 nên nội dung dưới đây được soạn sẵn để dán vào tab Spec khi có quyền, **trước** khi sửa bảng thiết kế (theo quy ước).
 Tên màn dùng tên tệp `.dc.html`; khi dán, đổi sang mã màn WEB/APP/ADM tương ứng trong tab Spec (chưa đối chiếu được).
