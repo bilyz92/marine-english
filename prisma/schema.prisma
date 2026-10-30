@@ -11,20 +11,22 @@ datasource db {
 // nằm trong SQL viết tay ở cuối từng tệp migration.
 
 model User {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName  String    @map("display_name")
-  rank         String?
-  status       String    @default("active")
-  mergedIntoId String?   @map("merged_into_id") @db.Uuid
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  mergedInto   User?     @relation("UserMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
-  mergedFrom   User[]    @relation("UserMerge")
-  identities   UserIdentity[]
-  devices      Device[]
-  sessions     LearnerSession[]
-  loginTickets LoginTicket[]
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName   String           @map("display_name")
+  rank          String?
+  status        String           @default("active")
+  mergedIntoId  String?          @map("merged_into_id") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  mergedInto    User?            @relation("UserMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
+  mergedFrom    User[]           @relation("UserMerge")
+  identities    UserIdentity[]
+  devices       Device[]
+  sessions      LearnerSession[]
+  loginTickets  LoginTicket[]
   otpChallenges OtpChallenge[]
-  oidcStates   OidcState[]
+  oidcStates    OidcState[]
+  orders        Order[]
+  enrollments   Enrollment[]
 
   @@map("users")
 }
@@ -43,14 +45,14 @@ model UserIdentity {
 }
 
 model Device {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId        String    @map("user_id") @db.Uuid
-  deviceKeyHash String    @map("device_key_hash")
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  deviceKeyHash String           @map("device_key_hash")
   label         String
-  registeredAt  DateTime  @default(now()) @map("registered_at") @db.Timestamptz(6)
-  lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz(6)
-  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(6)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  registeredAt  DateTime         @default(now()) @map("registered_at") @db.Timestamptz(6)
+  lastSeenAt    DateTime?        @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt     DateTime?        @map("revoked_at") @db.Timestamptz(6)
+  user          User             @relation(fields: [userId], references: [id], onDelete: Restrict)
   sessions      LearnerSession[]
 
   @@unique([userId, deviceKeyHash])
@@ -58,20 +60,20 @@ model Device {
 }
 
 model LearnerSession {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String    @map("user_id") @db.Uuid
-  deviceId          String    @map("device_id") @db.Uuid
-  tokenHash         String    @unique @map("token_hash")
-  tokenIssuedAt     DateTime  @default(now()) @map("token_issued_at") @db.Timestamptz(6)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  authAt            DateTime  @map("auth_at") @db.Timestamptz(6)
-  lastSeenAt        DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
-  absoluteExpiresAt DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
-  prevValidUntil    DateTime? @map("prev_valid_until") @db.Timestamptz(6)
-  nextTokenEnc      String?   @map("next_token_enc")
-  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
-  user              User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  device            Device    @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                @map("user_id") @db.Uuid
+  deviceId          String                @map("device_id") @db.Uuid
+  tokenHash         String                @unique @map("token_hash")
+  tokenIssuedAt     DateTime              @default(now()) @map("token_issued_at") @db.Timestamptz(6)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  authAt            DateTime              @map("auth_at") @db.Timestamptz(6)
+  lastSeenAt        DateTime              @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  absoluteExpiresAt DateTime              @map("absolute_expires_at") @db.Timestamptz(6)
+  prevValidUntil    DateTime?             @map("prev_valid_until") @db.Timestamptz(6)
+  nextTokenEnc      String?               @map("next_token_enc")
+  revokedAt         DateTime?             @map("revoked_at") @db.Timestamptz(6)
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  device            Device                @relation(fields: [deviceId], references: [id], onDelete: Restrict)
   history           SessionTokenHistory[]
 
   @@map("learner_sessions")
@@ -164,21 +166,30 @@ model OidcState {
 }
 
 model AdminUser {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  emailLower      String    @unique @map("email_lower")
-  role            String
-  status          String
-  invitedById     String?   @map("invited_by") @db.Uuid
-  invitedAt       DateTime  @map("invited_at") @db.Timestamptz(6)
-  inviteExpiresAt DateTime  @map("invite_expires_at") @db.Timestamptz(6)
-  activatedAt     DateTime? @map("activated_at") @db.Timestamptz(6)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  invitedBy       AdminUser?  @relation("AdminInvite", fields: [invitedById], references: [id], onDelete: Restrict)
-  invited         AdminUser[] @relation("AdminInvite")
-  identity        AdminIdentity?
-  sessions        AdminSession[]
-  emailLinks      AdminEmailLink[]
-  auditEntries    AdminAuditLog[]
+  id                      String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  emailLower              String                        @unique @map("email_lower")
+  role                    String
+  status                  String
+  invitedById             String?                       @map("invited_by") @db.Uuid
+  invitedAt               DateTime                      @map("invited_at") @db.Timestamptz(6)
+  inviteExpiresAt         DateTime                      @map("invite_expires_at") @db.Timestamptz(6)
+  activatedAt             DateTime?                     @map("activated_at") @db.Timestamptz(6)
+  createdAt               DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
+  invitedBy               AdminUser?                    @relation("AdminInvite", fields: [invitedById], references: [id], onDelete: Restrict)
+  invited                 AdminUser[]                   @relation("AdminInvite")
+  identity                AdminIdentity?
+  sessions                AdminSession[]
+  emailLinks              AdminEmailLink[]
+  auditEntries            AdminAuditLog[]
+  enteredBankTransactions BankTransaction[]             @relation("BankTxEnteredBy")
+  bankTxVerifications     BankTransactionVerification[] @relation("BankTxVerifiedBy")
+  allocations             PaymentAllocation[]           @relation("AllocatedBy")
+  dispositions            BankTransactionDisposition[]  @relation("DecidedBy")
+  refundsRequested        Refund[]                      @relation("RefundRequestedBy")
+  refundsApproved         Refund[]                      @relation("RefundApprovedBy")
+  refundsSent             Refund[]                      @relation("RefundSentBy")
+  refundsConfirmed        Refund[]                      @relation("RefundConfirmedBy")
+  grants                  Enrollment[]                  @relation("GrantedBy")
 
   @@map("admin_users")
 }
@@ -253,6 +264,8 @@ model Course {
   updatedAt        DateTime        @default(now()) @map("updated_at") @db.Timestamptz(6)
   currentVersion   CourseVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: Restrict)
   versions         CourseVersion[] @relation("CourseVersions")
+  orderItems       OrderItem[]
+  enrollments      Enrollment[]
 
   @@map("courses")
 }
@@ -267,6 +280,7 @@ model CourseVersion {
   course         Course                @relation("CourseVersions", fields: [courseId], references: [id], onDelete: Restrict)
   currentOf      Course[]              @relation("CurrentVersion")
   lessons        CourseVersionLesson[]
+  orderItems     OrderItem[]
 
   @@unique([courseId, version])
   @@unique([courseId, sourceHash])
@@ -308,4 +322,229 @@ model CourseVersionLesson {
   @@id([courseVersionId, position])
   @@unique([courseVersionId, lessonVersionId])
   @@map("course_version_lessons")
+}
+
+// ===== Tiền (migration money). CHECK, trigger, index một phần nằm trong SQL migration. =====
+
+model Order {
+  id                  String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                String                          @unique(map: "orders_code_key")
+  userId              String                          @map("user_id") @db.Uuid
+  status              String                          @default("pending")
+  amountDueVnd        Int                             @map("amount_due_vnd")
+  currency            String                          @default("VND")
+  refundPolicyVersion String                          @map("refund_policy_version")
+  createdAt           DateTime                        @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt           DateTime                        @map("expires_at") @db.Timestamptz(6)
+  paidAt              DateTime?                       @map("paid_at") @db.Timestamptz(6)
+  expiredAt           DateTime?                       @map("expired_at") @db.Timestamptz(6)
+  refundedAt          DateTime?                       @map("refunded_at") @db.Timestamptz(6)
+  user                User                            @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  items               OrderItem[]
+  classifications     BankTransactionClassification[]
+  allocations         PaymentAllocation[]
+  refunds             Refund[]
+  enrollments         Enrollment[]
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId         String        @map("order_id") @db.Uuid
+  courseId        String        @map("course_id") @db.Uuid
+  courseVersionId String        @map("course_version_id") @db.Uuid
+  listPriceVnd    Int           @map("list_price_vnd")
+  finalPriceVnd   Int           @map("final_price_vnd")
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  course          Course        @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  courseVersion   CourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model BankTransaction {
+  id              String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankCode        String                          @map("bank_code")
+  accountNo       String                          @map("account_no")
+  bankRef         String                          @map("bank_ref")
+  amountVnd       Int                             @map("amount_vnd")
+  currency        String                          @default("VND")
+  direction       String                          @default("in")
+  content         String
+  bankTime        DateTime                        @map("bank_time") @db.Timestamptz(6)
+  receivedAt      DateTime                        @default(now()) @map("received_at") @db.Timestamptz(6)
+  source          String
+  enteredBy       String?                         @map("entered_by") @db.Uuid
+  evidence        String?
+  raw             Json?
+  enteredByAdmin  AdminUser?                      @relation("BankTxEnteredBy", fields: [enteredBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  observations    BankTransactionObservation[]
+  verifications   BankTransactionVerification[]
+  classifications BankTransactionClassification[]
+  allocation      PaymentAllocation?
+  dispositions    BankTransactionDisposition[]
+  refundSources   RefundSource[]
+
+  @@unique([bankCode, accountNo, bankRef], map: "bank_transactions_identity_key")
+  @@map("bank_transactions")
+}
+
+model BankTransactionObservation {
+  id                    String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankTransactionId     String?                     @map("bank_transaction_id") @db.Uuid
+  source                String
+  providerEventId       String?                     @map("provider_event_id")
+  payload               Json?
+  receivedAt            DateTime                    @default(now()) @map("received_at") @db.Timestamptz(6)
+  isFirst               Boolean                     @default(false) @map("is_first")
+  mismatch              Boolean                     @default(false)
+  ignoredReason         String?                     @map("ignored_reason")
+  unresolvedReason      String?                     @map("unresolved_reason")
+  resolvesObservationId String?                     @unique @map("resolves_observation_id") @db.Uuid
+  bankTransaction       BankTransaction?            @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  resolves              BankTransactionObservation? @relation("ObservationResolves", fields: [resolvesObservationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  resolvedBy            BankTransactionObservation? @relation("ObservationResolves")
+
+  @@index([bankTransactionId], map: "observations_bank_transaction_id_idx")
+  @@map("bank_transaction_observations")
+}
+
+model BankTransactionVerification {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankTransactionId String          @map("bank_transaction_id") @db.Uuid
+  method            String
+  verifiedBy        String?         @map("verified_by") @db.Uuid
+  evidence          String?
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  bankTransaction   BankTransaction @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  verifier          AdminUser?      @relation("BankTxVerifiedBy", fields: [verifiedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([bankTransactionId], map: "verifications_bank_transaction_id_idx")
+  @@map("bank_transaction_verifications")
+}
+
+model BankTransactionClassification {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankTransactionId String          @map("bank_transaction_id") @db.Uuid
+  classifierVersion String          @map("classifier_version")
+  result            String
+  reason            String?
+  candidateCodes    String[]        @map("candidate_codes")
+  candidateOrderId  String?         @map("candidate_order_id") @db.Uuid
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  bankTransaction   BankTransaction @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  candidateOrder    Order?          @relation(fields: [candidateOrderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([bankTransactionId, createdAt], map: "classifications_bank_transaction_id_idx")
+  @@map("bank_transaction_classifications")
+}
+
+model PaymentAllocation {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankTransactionId String          @unique @map("bank_transaction_id") @db.Uuid
+  orderId           String          @map("order_id") @db.Uuid
+  amountVnd         Int             @map("amount_vnd")
+  kind              String
+  allocatedBy       String?         @map("allocated_by") @db.Uuid
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  bankTransaction   BankTransaction @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  order             Order           @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  allocator         AdminUser?      @relation("AllocatedBy", fields: [allocatedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([orderId], map: "allocations_order_id_idx")
+  @@map("payment_allocations")
+}
+
+model BankTransactionDisposition {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankTransactionId String          @map("bank_transaction_id") @db.Uuid
+  kind              String
+  reason            String
+  decidedBy         String          @map("decided_by") @db.Uuid
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  supersededAt      DateTime?       @map("superseded_at") @db.Timestamptz(6)
+  bankTransaction   BankTransaction @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  decider           AdminUser       @relation("DecidedBy", fields: [decidedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@map("bank_transaction_dispositions")
+}
+
+model Refund {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId     String         @map("order_id") @db.Uuid
+  kind        String
+  amountVnd   Int            @map("amount_vnd")
+  status      String         @default("requested")
+  reason      String
+  outBankRef  String?        @unique @map("out_bank_ref")
+  evidence    String?
+  requestedBy String?        @map("requested_by") @db.Uuid
+  approvedBy  String?        @map("approved_by") @db.Uuid
+  sentBy      String?        @map("sent_by") @db.Uuid
+  confirmedBy String?        @map("confirmed_by") @db.Uuid
+  requestedAt DateTime       @default(now()) @map("requested_at") @db.Timestamptz(6)
+  approvedAt  DateTime?      @map("approved_at") @db.Timestamptz(6)
+  sentAt      DateTime?      @map("sent_at") @db.Timestamptz(6)
+  confirmedAt DateTime?      @map("confirmed_at") @db.Timestamptz(6)
+  closedAt    DateTime?      @map("closed_at") @db.Timestamptz(6)
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  requester   AdminUser?     @relation("RefundRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  approver    AdminUser?     @relation("RefundApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  sender      AdminUser?     @relation("RefundSentBy", fields: [sentBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  confirmer   AdminUser?     @relation("RefundConfirmedBy", fields: [confirmedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  sources     RefundSource[]
+
+  @@map("refunds")
+}
+
+model RefundSource {
+  refundId          String          @map("refund_id") @db.Uuid
+  bankTransactionId String          @map("bank_transaction_id") @db.Uuid
+  amountVnd         Int             @map("amount_vnd")
+  refund            Refund          @relation(fields: [refundId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  bankTransaction   BankTransaction @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([refundId, bankTransactionId])
+  @@map("refund_sources")
+}
+
+model Enrollment {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String     @map("user_id") @db.Uuid
+  courseId      String     @map("course_id") @db.Uuid
+  source        String
+  orderId       String?    @map("order_id") @db.Uuid
+  grantReason   String?    @map("grant_reason")
+  grantedBy     String?    @map("granted_by") @db.Uuid
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt     DateTime?  @map("revoked_at") @db.Timestamptz(6)
+  revokedReason String?    @map("revoked_reason")
+  user          User       @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  course        Course     @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  order         Order?     @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  granter       AdminUser? @relation("GrantedBy", fields: [grantedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([orderId, courseId], map: "enrollments_order_course_key")
+  @@index([userId, courseId], map: "enrollments_user_course_idx")
+  @@map("enrollments")
+}
+
+model OutboxEvent {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dedupKey      String    @unique @map("dedup_key")
+  kind          String
+  channel       String
+  payload       Json
+  status        String    @default("pending")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  sentAt        DateTime? @map("sent_at") @db.Timestamptz(6)
+
+  @@index([status, nextAttemptAt], map: "outbox_events_due_idx")
+  @@map("outbox_events")
 }
