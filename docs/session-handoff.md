@@ -222,4 +222,13 @@ APPROVE; plan P1 được APPROVE. Không push/deploy; dịch vụ thật của 
 email, giới hạn 2 thiết bị + vé thay máy, Google OIDC (học viên + quản trị), liên kết/gỡ định danh, mời/đổi/thu hồi quản trị viên, link
 email quản trị, nhật ký quản trị, ma trận quyền (đề xuất G11), CLI `admin:bootstrap`/`admin:recover`. Zalo chỉ có adapter tắt (G6).
 Đổi thư viện OIDC sang `oauth4webapi` (lý do trong sổ `.superpowers/sdd/…/progress.md`). Mọi quyết định khi chạy tự động ghi ở dòng
-`Ruling:` của sổ đó. Tiếp theo: review toàn nhánh P1, rồi viết plan P2.
+`Ruling:` của sổ đó. Review toàn nhánh P1 xong (Codex hết credit → reviewer độc lập; 2 lỗi quan trọng đã sửa).
+
+**P2 đã cài đặt xong (30/10/2026)**, plan `docs/superpowers/plans/2026-10-30-p2-courses-orders-ledger.md` (12 task; Codex hết credit nên
+plan chỉ tự rà). Có: nhập nội dung Engine Cadet thành khóa có phiên bản (`pnpm cli content:import`, khóa ở trạng thái nháp, chưa giá),
+danh mục công khai + 3 bài học thử, chủ đặt giá/mở bán, tạo đơn (giá từ máy chủ, mã `ME`+8 ký tự, hạn 15 phút), sổ giao dịch bất biến,
+webhook SePay có chữ ký (hợp đồng giả định chờ G4), tự xác nhận đúng trường hợp hợp lệ, hàng chờ xử lý tay, nhập sao kê + chủ xác minh,
+ghép tay (một/nhiều giao dịch, thiếu/thừa tiền → hoàn phần thừa), kết luận bỏ qua/trùng, cấp quyền không thu tiền, hoàn tiền tay
+(đề nghị → duyệt → chuyển → xác nhận; hoàn toàn phần thu hồi quyền học), gộp tài khoản, quyền học theo nhóm gộp. Thông báo mới ghi vào
+`outbox_events` (P4 gửi). Chờ chủ dự án: G4 (SePay thật), G5 (định dạng mã đơn), G13 (chính sách hoàn), G14 (giá, mã giảm giá — chưa làm).
+Quyết định khi chạy: dòng `Ruling:` trong `.superpowers/sdd/2026-10-30-p2-courses-orders-ledger/progress.md`.
