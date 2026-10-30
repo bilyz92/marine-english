@@ -9,6 +9,6 @@ const Body = z.object({ courseSlug: z.string().min(1).max(100) });
 export const POST = route(async (req: Request) => {
   const ctx = await requireLearner(req);
   const result = await createOrder(ctx, (await readJson(req, Body)).courseSlug);
-  if (result.kind === "not_for_sale" || result.kind === "already_enrolled") return json({ error: result.kind }, { status: 409 });
+  if (!("order" in result)) return json({ error: result.kind }, { status: 409 });
   return json(result.order, { status: result.kind === "created" ? 201 : 200 });
 });
