@@ -55,6 +55,8 @@ describe("bank_transactions và kết quả xử lý", () => {
       expect(await errCode(c, `INSERT INTO bank_transactions (bank_code, account_no, bank_ref, amount_vnd, content, bank_time, source) VALUES ('VCB','0123456789','ft2',1,'',now(),'sepay_webhook')`)).toBe("23514");
       expect(await errCode(c, `INSERT INTO bank_transactions (bank_code, account_no, bank_ref, amount_vnd, content, bank_time, source) VALUES ('VCB','0123456789','FT3',1,'',now(),'manual')`)).toBe("23514");
       expect(await errCode(c, `UPDATE bank_transactions SET amount_vnd = 2`)).not.toBeNull();
+      expect(await errCode(c, `UPDATE bank_transactions SET id = id`)).toBe("P0001");
+      expect(await errCode(c, `SELECT id FROM bank_transactions FOR UPDATE`)).toBeNull();
       expect(await errCode(c, `DELETE FROM bank_transactions`)).toBe("42501");
     });
   });

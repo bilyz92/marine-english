@@ -46,6 +46,9 @@ const schema = z
     ZALO_LOGIN_ENABLED: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
     ZNS_DAILY_BUDGET: z.coerce.number().int().nonnegative().default(500),
     MAX_DEVICES: z.coerce.number().int().positive().default(2),
+    // Tài khoản nhận tiền SePay theo dõi [G4]. Thiếu thì mọi báo cáo SePay bị bỏ qua và webhook trả 503.
+    SEPAY_BANK_CODE: z.string().regex(/^[A-Z0-9]{2,20}$/).optional(),
+    SEPAY_ACCOUNT_NO: z.string().regex(/^[0-9]{4,30}$/).optional(),
   })
   .refine((e) => e.SESSION_ENC_KEYS.has(e.SESSION_ENC_KEY_CURRENT), {
     path: ["SESSION_ENC_KEY_CURRENT"],

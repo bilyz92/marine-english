@@ -27,6 +27,8 @@ export function applyTestEnv(): void {
     ZALO_LOGIN_ENABLED: "false",
     ZNS_DAILY_BUDGET: "500",
     MAX_DEVICES: "2",
+    SEPAY_BANK_CODE: "VCB",
+    SEPAY_ACCOUNT_NO: "0123456789",
   };
   for (const [name, value] of Object.entries(defaults)) {
     if (process.env[name] === undefined) process.env[name] = value;
