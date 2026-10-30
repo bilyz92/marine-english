@@ -8,6 +8,7 @@ import { isRecentAuth } from "@/modules/sessions/sessions";
 export const PERMISSIONS = [
   "orders.view", "payments.match", "grants.create", "refunds.request", "refunds.approve", "accounts.merge", "prices.edit",
   "coupons.edit", "data.export", "admins.manage", "bank.raw.view", "learner.phone.view", "devices.remove", "jobs.run",
+  "ledger.enter", "ledger.verify",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -40,6 +41,9 @@ export const POLICY: Record<Permission, Rule> = {
   "data.export": { roles: OWNER, recentAuth: true },
   "admins.manage": { roles: OWNER, recentAuth: true },
   "jobs.run": { roles: OWNER },
+  // Nhập sao kê: hỗ trợ được; xác minh dòng nhập tay: chỉ chủ, và không phải người đã nhập (DG §2.1).
+  "ledger.enter": { roles: BOTH },
+  "ledger.verify": { roles: OWNER, recentAuth: true },
 };
 
 type Denial = "role" | "reauth_required" | "condition";

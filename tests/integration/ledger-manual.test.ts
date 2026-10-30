@@ -1,0 +1,112 @@
+import { describe, expect, it } from "vitest";
+import { prisma } from "@/lib/db";
+import { ingest } from "@/modules/ledger/ingest";
+import { enterStatementLine, verifyStatementLine } from "@/modules/ledger/manual";
+import { listQueue, listUnresolved, orderNeedsManual } from "@/modules/ledger/queue";
+import { auditRows } from "../helpers/admin";
+import { adminCtx, rejected } from "../helpers/admin-ctx";
+import { paidCourseSetup, PRICE, report } from "../helpers/ledger";
+
+const line = (code: string, bankTime: Date, patch: Record<string, unknown> = {}) => ({
+  bankCode: "VCB", accountNo: "0123456789", bankRef: `ST${Math.floor(Math.random() * 1e9)}`, amountVnd: PRICE, bankTime,
+  content: `ck ${code}`, evidence: "ảnh sao kê ngày 30/10", ...patch,
+});
+
+describe("nhập sao kê và xác minh", () => {
+  it("support nhập → unverified, hiện trong hàng chờ; chủ khác xác minh → đơn paid", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    const owner = await adminCtx("owner");
+    const input = line(s.code, new Date(s.createdAt.getTime() + 60_000));
+    expect(await enterStatementLine(support, input)).toBe("unverified");
+    const [row] = await listQueue();
+    expect(row).toMatchObject({ reason: "unverified", amountVnd: PRICE });
+    expect(await verifyStatementLine(owner, row!.bankTransactionId, "đối chiếu sao kê")).toEqual({ result: "verified", outcome: "confirmed" });
+    expect((await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } })).status).toBe("paid");
+    expect(await listQueue()).toEqual([]);
+    expect(await verifyStatementLine(owner, row!.bankTransactionId, "lần hai")).toEqual({ result: "already_verified" });
+    expect((await auditRows("ledger_enter")).map((r) => r.result)).toEqual(["ok"]);
+    expect((await auditRows("ledger_verify")).map((r) => r.result)).toEqual(["ok"]);
+  });
+
+  it("chủ không tự xác minh dòng mình nhập (audit denied); support không xác minh được", async () => {
+    const s = await paidCourseSetup();
+    const owner = await adminCtx("owner");
+    const support = await adminCtx("support");
+    await enterStatementLine(owner, line(s.code, new Date()));
+    const [row] = await listQueue();
+    expect(await verifyStatementLine(owner, row!.bankTransactionId, "x")).toEqual({ result: "self_entered" });
+    expect((await auditRows("ledger_verify")).map((r) => [r.result, r.reason])).toEqual([["denied", "self_entered"]]);
+    expect(await rejected(verifyStatementLine(support, row!.bankTransactionId, "x"))).toBe("role");
+    expect(await verifyStatementLine(owner, crypto.randomUUID(), "x")).toEqual({ result: "not_found" });
+  });
+
+  it("nhập trùng định danh dòng từ webhook nhưng lệch tiền → mismatch", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    await ingest(report({ bankRef: "FT555", content: "khong ma", bankTime: new Date("2026-10-30T03:00:00Z") }));
+    expect(await enterStatementLine(support, line(s.code, new Date("2026-10-30T03:00:00Z"), { bankRef: "FT555", amountVnd: PRICE + 5 }))).toBe("mismatch");
+  });
+
+  it("dữ liệu nhập sai (thiếu bằng chứng, số tiền âm, mã ngân hàng sai) → lỗi 400", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    for (const patch of [{ evidence: " " }, { amountVnd: -1 }, { bankCode: "vcb!" }, { accountNo: "12ab" }]) {
+      await expect(enterStatementLine(support, line(s.code, new Date(), patch))).rejects.toMatchObject({ status: 400 });
+    }
+  });
+});
+
+describe("hàng chờ", () => {
+  it("chứa giao dịch không mã và giao dịch thiếu tiền; không chứa dòng đã phân bổ; cờ cần xử lý tay của đơn", async () => {
+    const s = await paidCourseSetup();
+    const t = new Date(s.createdAt.getTime() + 60_000);
+    await ingest(report({ content: "chuyen tien hoc", bankTime: t }));
+    await ingest(report({ content: s.code, amountVnd: PRICE - 1000, bankTime: t }));
+    const queue = await listQueue();
+    expect(queue.map((q) => q.reason).sort()).toEqual(["amount_short", "no_code"]);
+    expect(queue.find((q) => q.reason === "amount_short")!.candidateOrderCode).toBe(s.code);
+    expect(await orderNeedsManual(s.orderId)).toBe(true);
+    await ingest(report({ content: s.code, bankTime: t }));
+    expect((await listQueue()).map((q) => q.reason).sort()).toEqual(["amount_short", "no_code"]);
+  });
+
+  it("observation thiếu mã tham chiếu được giải quyết bằng dòng nhập tay", async () => {
+    const s = await paidCourseSetup();
+    const support = await adminCtx("support");
+    await ingest(report({ bankRef: null, content: s.code }));
+    const [missing] = await listUnresolved();
+    expect(missing).toMatchObject({ reason: "missing_ref" });
+    await enterStatementLine(support, { ...line(s.code, new Date()), resolvesObservationId: missing!.observationId });
+    expect(await listUnresolved()).toEqual([]);
+  });
+});
+
+describe("route quản trị sổ giao dịch", () => {
+  it("support nhập qua route, xem hàng chờ; chủ xác minh qua route", async () => {
+    const { GET, POST } = await import("@/app/api/quan-tri/ledger/route");
+    const { POST: verify } = await import("@/app/api/quan-tri/ledger/[id]/verify/route");
+    const { adminSession, insertAdmin } = await import("../helpers/admin");
+    const s = await paidCourseSetup();
+    const supportSession = await adminSession(await insertAdmin("ht@x.vn", "support"));
+    const ownerSession = await adminSession(await insertAdmin("chu@x.vn", "owner"));
+    const call = (handler: (r: Request, ...a: never[]) => Promise<Response>, sess: { token: string; csrf: string }, method: string, path: string, body?: unknown, extra: unknown[] = []) =>
+      (handler as (r: Request, ...a: unknown[]) => Promise<Response>)(
+        new Request(`${process.env.APP_ORIGIN}${path}`, {
+          method,
+          headers: { cookie: `__Host-me_admin=${sess.token}`, origin: process.env.APP_ORIGIN!, "x-csrf-token": sess.csrf, "content-type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body),
+        }),
+        ...extra,
+      );
+    const entered = await call(POST, supportSession, "POST", "/api/quan-tri/ledger", { ...line(s.code, new Date(s.createdAt.getTime() + 60_000)), bankTime: new Date(s.createdAt.getTime() + 60_000).toISOString() });
+    expect([entered.status, await entered.json()]).toEqual([200, { outcome: "unverified" }]);
+    const bad = await call(POST, supportSession, "POST", "/api/quan-tri/ledger", { bankCode: "VCB" });
+    expect(bad.status).toBe(400);
+    const { queue } = (await (await call(GET, supportSession, "GET", "/api/quan-tri/ledger")).json()) as { queue: { bankTransactionId: string }[] };
+    expect(queue).toHaveLength(1);
+    const id = queue[0]!.bankTransactionId;
+    const res = await call(verify, ownerSession, "POST", `/api/quan-tri/ledger/${id}/verify`, { evidence: "đã xem sao kê" }, [{ params: Promise.resolve({ id }) }]);
+    expect([res.status, await res.json()]).toEqual([200, { result: "verified", outcome: "confirmed" }]);
+  });
+});

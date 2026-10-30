@@ -49,7 +49,7 @@ describe("POLICY", () => {
 
   it("support chỉ có các quyền đã định", () => {
     const support = PERMISSIONS.filter((p) => POLICY[p].roles.includes("support")).sort();
-    expect(support).toEqual(["bank.raw.view", "devices.remove", "learner.phone.view", "orders.view", "payments.match", "refunds.request"]);
+    expect(support).toEqual(["bank.raw.view", "devices.remove", "learner.phone.view", "ledger.enter", "orders.view", "payments.match", "refunds.request"]);
   });
 });
 

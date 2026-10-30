@@ -58,7 +58,8 @@ export async function ingest(report: BankReport, opts: TxOptions = {}): Promise<
   return withTx((tx) => ingestInTx(tx, report), opts);
 }
 
-async function ingestInTx(tx: Tx, r: BankReport): Promise<IngestOutcome> {
+/** Như ingest() nhưng chạy trong transaction của người gọi (nhập sao kê kèm nhật ký trong cùng transaction). */
+export async function ingestInTx(tx: Tx, r: BankReport): Promise<IngestOutcome> {
   const ignored = ignoredReason(r);
   if (ignored) {
     return (await observe(tx, r, { ignoredReason: ignored })) ? "ignored" : "duplicate_event";
