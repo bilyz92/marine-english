@@ -1,4 +1,5 @@
 import { deliverBatch, defaultSenders } from "@/modules/outbox/deliver";
+import { reconcile, sepayApi } from "@/modules/ledger/reconcile";
 import { expireOrders } from "@/modules/orders/orders";
 import { cleanupSessionArtifacts } from "@/modules/sessions/sessions";
 import { enqueueDailySummary } from "./daily-summary";
@@ -71,5 +72,14 @@ export const JOBS: ScheduledJob[] = [
     schedule: { dailyAt: "03:30" },
     timeoutMs: 10 * MINUTE,
     run: async ({ lease, signal }) => releaseStaleDevices(lease, signal),
+  },
+  {
+    name: "me.sepay.reconcile",
+    schedule: { everyMs: HOUR },
+    timeoutMs: 30 * MINUTE,
+    run: async ({ lease, signal }) => {
+      const api = sepayApi();
+      return api ? reconcile(api, lease, signal) : { skippedReason: "not_configured" };
+    },
   },
 ];

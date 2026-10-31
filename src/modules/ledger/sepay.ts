@@ -30,8 +30,8 @@ function parseVnTime(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/** Ánh xạ payload webhook SePay sang báo cáo chung của sổ; sai kiểu các trường bắt buộc → null (400). */
-export function toBankReport(payload: unknown): BankReport | null {
+/** Ánh xạ payload SePay sang báo cáo chung của sổ; sai kiểu các trường bắt buộc → null. API đối soát giả định cùng dạng với webhook [G4]. */
+export function toBankReport(payload: unknown, source: "sepay_webhook" | "sepay_api" = "sepay_webhook"): BankReport | null {
   const p = payload as Record<string, unknown> | null;
   if (!p || typeof p !== "object") return null;
   const { id, gateway, accountNumber, transferType, transferAmount, content, referenceCode, transactionDate } = p;
@@ -46,7 +46,7 @@ export function toBankReport(payload: unknown): BankReport | null {
     return null;
   }
   return {
-    source: "sepay_webhook",
+    source,
     providerEventId: String(id),
     bankCode: gateway.trim().toUpperCase(),
     accountNo: accountNumber.trim(),

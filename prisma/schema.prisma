@@ -699,3 +699,15 @@ model JobRequest {
 
   @@map("job_requests")
 }
+
+model ReconciliationCursor {
+  provider             String
+  bankCode             String   @map("bank_code")
+  accountNo            String   @map("account_no")
+  lastCompleteBankTime DateTime @map("last_complete_bank_time") @db.Timestamptz(6)
+  lastCursorToken      String?  @map("last_cursor_token")
+  updatedAt            DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@id([provider, bankCode, accountNo])
+  @@map("reconciliation_cursors")
+}

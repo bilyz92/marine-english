@@ -10,7 +10,7 @@ export type JobDef = {
 };
 export type RunResult =
   | { status: "success"; runId: string; stats: JobStats }
-  | { status: "skipped"; runId: string }
+  | { status: "skipped"; runId: string; stats?: JobStats }
   | { status: "failed" | "timeout"; runId: string; error: string };
 
 const HEARTBEAT_MS = 30_000;
@@ -46,7 +46,8 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
     const raced = await Promise.race([work.then((stats) => ({ stats })), stopped.then((reason) => ({ reason }))]);
     // Job trả về sau khi đã bị hủy thì vẫn tính theo lý do hủy, không phải xong.
     const outcome = controller.signal.aborted ? { reason: controller.signal.reason as "timeout" | "lease_lost" } : raced;
-    if ("stats" in outcome) result = { status: "success", runId: run.id, stats: outcome.stats };
+    // Job tự báo chưa làm gì được (vd chưa cấu hình) qua skippedReason: không phải lỗi, không cảnh báo.
+    if ("stats" in outcome) result = { status: outcome.stats.skippedReason ? "skipped" : "success", runId: run.id, stats: outcome.stats };
     else if (outcome.reason === "timeout") result = { status: "timeout", runId: run.id, error: "timeout" };
     else result = { status: "failed", runId: run.id, error: "lease_lost" };
   } catch (error) {
@@ -64,7 +65,7 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
         status: result.status,
         finishedAt: new Date(),
         error: failure?.error ?? null,
-        stats: result.status === "success" ? (result.stats as object) : undefined,
+        stats: "stats" in result ? (result.stats as object) : undefined,
       },
     });
     if (failure) {
