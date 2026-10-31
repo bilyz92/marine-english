@@ -15,7 +15,8 @@
     "test:unit": "vitest run --project unit",
     "test:int": "prisma generate && vitest run --project integration",
     "typecheck": "prisma generate && next typegen && tsc --noEmit",
-    "cli": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/worker/cli.ts"
+    "cli": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/worker/cli.ts",
+    "worker": "node --experimental-transform-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./src/worker/alias-loader.mjs src/worker/worker.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

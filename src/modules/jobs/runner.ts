@@ -13,13 +13,15 @@ export type RunResult =
   | { status: "skipped"; runId: string; stats?: JobStats }
   | { status: "failed" | "timeout"; runId: string; error: string };
 
+type StopReason = "timeout" | "lease_lost" | "shutdown";
+
 const HEARTBEAT_MS = 30_000;
 
 /**
  * Chạy một job dưới lease: ghi job_runs, gia hạn lease định kỳ, hủy job khi mất lease hoặc quá giờ.
  * Lỗi/quá giờ gửi một cảnh báo Telegram cho nhóm lỗi (mỗi job tối đa một cảnh báo mỗi giờ).
  */
-export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: number } = {}): Promise<RunResult> {
+export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: number; signal?: AbortSignal } = {}): Promise<RunResult> {
   const lease = await acquireLease(def.name, holder);
   if (!lease) {
     const run = await prisma().jobRun.create({ data: { jobName: def.name, status: "skipped", finishedAt: new Date() } });
@@ -27,14 +29,17 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
   }
   const run = await prisma().jobRun.create({ data: { jobName: def.name, status: "running", generation: lease.generation } });
   const controller = new AbortController();
-  let stop: (reason: "timeout" | "lease_lost") => void = () => {};
-  const stopped = new Promise<"timeout" | "lease_lost">((resolve) => (stop = resolve));
-  const abort = (reason: "timeout" | "lease_lost") => {
+  let stop: (reason: StopReason) => void = () => {};
+  const stopped = new Promise<StopReason>((resolve) => (stop = resolve));
+  const abort = (reason: StopReason) => {
     if (controller.signal.aborted) return;
     controller.abort(reason);
     stop(reason);
   };
   const timer = setTimeout(() => abort("timeout"), def.timeoutMs);
+  const onShutdown = () => abort("shutdown");
+  if (opts.signal?.aborted) onShutdown();
+  opts.signal?.addEventListener("abort", onShutdown, { once: true });
   const beat = setInterval(() => {
     void heartbeat(lease).then((ok) => ok || abort("lease_lost"), () => abort("lease_lost"));
   }, opts.heartbeatMs ?? HEARTBEAT_MS);
@@ -45,16 +50,17 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
     work.catch(() => {}); // job bị bỏ giữa chừng vẫn có thể ném sau đó; ghi của nó đã bị chặn bằng fence
     const raced = await Promise.race([work.then((stats) => ({ stats })), stopped.then((reason) => ({ reason }))]);
     // Job trả về sau khi đã bị hủy thì vẫn tính theo lý do hủy, không phải xong.
-    const outcome = controller.signal.aborted ? { reason: controller.signal.reason as "timeout" | "lease_lost" } : raced;
+    const outcome = controller.signal.aborted ? { reason: controller.signal.reason as StopReason } : raced;
     // Job tự báo chưa làm gì được (vd chưa cấu hình) qua skippedReason: không phải lỗi, không cảnh báo.
     if ("stats" in outcome) result = { status: outcome.stats.skippedReason ? "skipped" : "success", runId: run.id, stats: outcome.stats };
     else if (outcome.reason === "timeout") result = { status: "timeout", runId: run.id, error: "timeout" };
-    else result = { status: "failed", runId: run.id, error: "lease_lost" };
+    else result = { status: "failed", runId: run.id, error: outcome.reason };
   } catch (error) {
     result = { status: "failed", runId: run.id, error: error instanceof Error ? error.message : String(error) };
   } finally {
     clearTimeout(timer);
     clearInterval(beat);
+    opts.signal?.removeEventListener("abort", onShutdown);
   }
 
   const failure = result.status === "failed" || result.status === "timeout" ? result : null;
@@ -68,7 +74,8 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
         stats: "stats" in result ? (result.stats as object) : undefined,
       },
     });
-    if (failure) {
+    // Tắt worker khi deploy là chuyện bình thường, không cảnh báo.
+    if (failure && failure.error !== "shutdown") {
       const hour = new Date().toISOString().slice(0, 13);
       await enqueueOutbox(tx, {
         dedupKey: `job_failed:${def.name}:${hour}`,

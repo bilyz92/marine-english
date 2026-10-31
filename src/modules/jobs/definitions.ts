@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db";
 import { deliverBatch, defaultSenders } from "@/modules/outbox/deliver";
 import { reconcile, sepayApi } from "@/modules/ledger/reconcile";
 import { expireOrders } from "@/modules/orders/orders";
@@ -80,6 +81,15 @@ export const JOBS: ScheduledJob[] = [
     run: async ({ lease, signal }) => {
       const api = sepayApi();
       return api ? reconcile(api, lease, signal) : { skippedReason: "not_configured" };
+    },
+  },
+  {
+    name: "me.jobs.prune",
+    schedule: { dailyAt: "04:00" },
+    timeoutMs: 5 * MINUTE,
+    run: async () => {
+      const [row] = await prisma().$queryRaw<{ n: number }[]>`SELECT prune_job_runs() AS n`;
+      return { deleted: row!.n };
     },
   },
 ];
