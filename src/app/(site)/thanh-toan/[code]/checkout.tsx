@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ui from "@/components/ui.module.css";
@@ -17,6 +17,7 @@ type Order = {
   courseTitleVi: string;
   enrolled: boolean;
   needsManual: boolean;
+  paymentUnavailable: boolean;
   payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string } | null;
 };
 
@@ -46,11 +47,16 @@ function CopyRow({ label, value, shown }: { label: string; value: string; shown?
 function Countdown({ expiresAt, clockOffsetMs, onDone }: { expiresAt: string; clockOffsetMs: number; onDone: () => void }) {
   const remaining = useCallback(() => Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now() - clockOffsetMs) / 1000)), [expiresAt, clockOffsetMs]);
   const [left, setLeft] = useState<number | null>(null);
+  // Hết giờ chỉ hỏi máy chủ một lần; lượt hỏi định kỳ lo phần còn lại.
+  const notified = useRef(false);
   useEffect(() => {
     const tick = () => {
       const value = remaining();
       setLeft(value);
-      if (value === 0) onDone();
+      if (value === 0 && !notified.current) {
+        notified.current = true;
+        onDone();
+      }
     };
     const timer = setInterval(tick, 1000);
     const first = setTimeout(tick, 0);
@@ -97,7 +103,7 @@ function Pending({ order, clockOffsetMs, onExpire }: { order: Order; clockOffset
 
 export function Checkout({ code }: { code: string }) {
   const [order, setOrder] = useState<Order | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "missing" | "offline">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "missing" | "offline" | "server">("loading");
   // Đếm ngược theo giờ máy chủ: đồng hồ điện thoại trên tàu có thể lệch.
   const [clockOffsetMs, setClockOffsetMs] = useState(0);
   const router = useRouter();
@@ -109,8 +115,9 @@ export function Checkout({ code }: { code: string }) {
       return;
     }
     if (res?.status === 404) return setState("missing");
-    // Mất mạng thì giữ màn đang có: thông tin chuyển khoản vẫn đọc được, chỉ báo thêm.
-    if (!res?.ok) return setState("offline");
+    // Mất mạng hay máy chủ lỗi thì giữ màn đang có: thông tin chuyển khoản vẫn đọc được, chỉ báo thêm.
+    if (!res) return setState("offline");
+    if (!res.ok) return setState("server");
     const next = (await res.json()) as Order;
     setClockOffsetMs(new Date(next.serverNow).getTime() - Date.now());
     setOrder(next);
@@ -150,6 +157,7 @@ export function Checkout({ code }: { code: string }) {
   return (
     <>
       {state === "offline" && <p className={ui.notice} role="status">Đang mất kết nối, trang sẽ tự thử lại.</p>}
+      {state === "server" && <p className={ui.notice} role="status">Máy chủ đang gặp lỗi, trang sẽ tự thử lại.</p>}
       {order.needsManual && !finished && (
         <p className={ui.notice} role="status">Hệ thống đã ghi nhận một khoản chuyển cho đơn này nhưng cần đối chiếu tay. Đừng chuyển lại.</p>
       )}
@@ -168,7 +176,13 @@ export function Checkout({ code }: { code: string }) {
         </div>
       )}
       {!finished && order.payment && <Pending order={order} clockOffsetMs={clockOffsetMs} onExpire={() => void load()} />}
-      {!finished && !order.payment && (
+      {!finished && order.paymentUnavailable && (
+        <div className={ui.card}>
+          <h1 className={ui.h2}>Tạm ngừng nhận thanh toán</h1>
+          <p className={ui.notice}>Chưa chuyển tiền thì đừng chuyển lúc này. Đã chuyển rồi thì đừng chuyển lại: trang này vẫn theo dõi đơn {order.code}.</p>
+        </div>
+      )}
+      {!finished && !order.payment && !order.paymentUnavailable && (
         <div className={ui.card}>
           <h1 className={ui.h2}>Đơn đã hết hạn</h1>
           <p className={ui.notice}>Đã chuyển tiền rồi? Đừng chuyển lại. Trang này vẫn theo dõi đơn; khoản chuyển sẽ được đối chiếu và mở khóa.</p>

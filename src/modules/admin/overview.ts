@@ -19,10 +19,10 @@ export async function overview(ctx: AdminCtx, days: number) {
   await authorize(ctx, "orders.view", { action: "overview_view" });
   const now = new Date();
   const from = vnRangeStart(days, now);
-  const [row] = await prisma().$queryRaw<{ received: number; refunded: number; auto: number; manual: number; learners: number; refunds_open: number }[]>`
+  const [row] = await prisma().$queryRaw<{ received: bigint; refunded: bigint; auto: number; manual: number; learners: number; refunds_open: number }[]>`
     SELECT
-      (SELECT coalesce(sum(amount_due_vnd), 0)::int FROM orders WHERE paid_at >= ${from} AND paid_at < ${now}) AS received,
-      (SELECT coalesce(sum(amount_vnd), 0)::int FROM refunds WHERE status = 'confirmed' AND confirmed_at >= ${from} AND confirmed_at < ${now}) AS refunded,
+      (SELECT coalesce(sum(amount_due_vnd), 0)::bigint FROM orders WHERE paid_at >= ${from} AND paid_at < ${now}) AS received,
+      (SELECT coalesce(sum(amount_vnd), 0)::bigint FROM refunds WHERE status = 'confirmed' AND confirmed_at >= ${from} AND confirmed_at < ${now}) AS refunded,
       (SELECT count(DISTINCT o.id)::int FROM orders o WHERE o.paid_at >= ${from} AND o.paid_at < ${now}
          AND EXISTS (SELECT 1 FROM payment_allocations a WHERE a.order_id = o.id AND a.kind = 'auto')) AS auto,
       (SELECT count(DISTINCT o.id)::int FROM orders o WHERE o.paid_at >= ${from} AND o.paid_at < ${now}
@@ -39,8 +39,9 @@ export async function overview(ctx: AdminCtx, days: number) {
     SELECT DISTINCT ON (job_name) job_name, status, started_at, error FROM job_runs
     WHERE started_at > now() - interval '3 days' ORDER BY job_name, started_at DESC`;
   return {
-    receivedVnd: row!.received,
-    refundedVnd: row!.refunded,
+    // Tổng có thể vượt int4 (khoảng 2,1 tỷ): tính bigint, đổi sang number (VND luôn nhỏ hơn giới hạn an toàn).
+    receivedVnd: Number(row!.received),
+    refundedVnd: Number(row!.refunded),
     paidOrders: { auto: row!.auto, manual: row!.manual },
     newLearners: row!.learners,
     refundsOpen: row!.refunds_open,

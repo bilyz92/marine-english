@@ -68,9 +68,10 @@ describe("điều kiện cảnh báo", () => {
   });
 
   it("outbox chờ quá 30 phút (trừ chưa cấu hình) hoặc có tin chết", async () => {
-    await sqlAsMigrator(`INSERT INTO outbox_events (dedup_key, kind, channel, payload, next_attempt_at, last_error) VALUES ('a', 'order_paid', 'telegram', '{}', $1, 'not_configured')`, [ago(2 * HOUR)]);
+    await sqlAsMigrator(`INSERT INTO outbox_events (dedup_key, kind, channel, payload, created_at, last_error) VALUES ('a', 'order_paid', 'telegram', '{}', $1, 'not_configured')`, [ago(2 * HOUR)]);
     expect(await types()).toEqual([]);
-    await sqlAsMigrator(`INSERT INTO outbox_events (dedup_key, kind, channel, payload, next_attempt_at, last_error) VALUES ('b', 'order_paid', 'telegram', '{}', $1, 'mất mạng')`, [ago(31 * MIN)]);
+    // Lỗi lặp lại: lần thử sau luôn ở tương lai, nhưng tin đã chờ từ 31 phút trước.
+    await sqlAsMigrator(`INSERT INTO outbox_events (dedup_key, kind, channel, payload, created_at, next_attempt_at, last_error) VALUES ('b', 'order_paid', 'telegram', '{}', $1, $2, 'mất mạng')`, [ago(31 * MIN), new Date(NOW.getTime() + 10 * MIN)]);
     expect(await types()).toEqual(["outbox_stuck"]);
     await sqlAsMigrator(`INSERT INTO outbox_events (dedup_key, kind, channel, payload, status) VALUES ('c', 'order_paid', 'email', '{}', 'dead')`);
     expect(await types()).toEqual(["outbox_dead", "outbox_stuck"]);

@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import pg from "pg";
+import { COUNT_TABLES, validateManifest, verifyManifestMac } from "./manifest-check.mjs";
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]?.startsWith("--") || all[i + 1] === undefined ? true : all[i + 1]]] : acc), []));
 for (const required of ["set", "store", "keys", "media-root"]) if (!args[required]) fail(`thiếu --${required}`);
@@ -27,16 +28,18 @@ function pgEnv(url) {
   const u = new URL(url);
   return { PGHOST: u.hostname, PGPORT: u.port || "5432", PGUSER: decodeURIComponent(u.username), PGPASSWORD: decodeURIComponent(u.password), PGDATABASE: u.pathname.slice(1) };
 }
-/** a | b, lỗi ở bất kỳ bước nào → lỗi. */
-function pipe(first, second) {
-  return new Promise((resolve, reject) => {
-    const a = spawn(first.cmd, first.args, { env: { PATH: process.env.PATH, HOME: "/tmp", ...first.env }, stdio: ["ignore", "pipe", "inherit"] });
-    const b = spawn(second.cmd, second.args, { env: { PATH: process.env.PATH, HOME: "/tmp", ...second.env }, stdio: [a.stdout, "ignore", "inherit"] });
-    const codes = [];
-    const done = () => (codes.length === 2 ? (codes.every((c) => c === 0) ? resolve() : reject(new Error(`${first.cmd}=${codes[0]} ${second.cmd}=${codes[1]}`))) : undefined);
-    a.on("exit", (c) => { codes[0] = c; done(); });
-    b.on("exit", (c) => { codes[1] = c; done(); });
-  });
+const exited = (child) => new Promise((resolve) => {
+  child.once("error", () => resolve(-1));
+  child.once("exit", (code) => resolve(code ?? -1));
+});
+
+/** a | b: chờ CẢ HAI tiến trình thoát; lỗi ở bất kỳ bước nào → lỗi. */
+async function pipe(first, second) {
+  const a = spawn(first.cmd, first.args, { env: { PATH: process.env.PATH, HOME: "/tmp", ...first.env }, stdio: ["ignore", "pipe", "inherit"] });
+  const b = spawn(second.cmd, second.args, { env: { PATH: process.env.PATH, HOME: "/tmp", ...second.env }, stdio: [a.stdout, "ignore", "inherit"] });
+  a.stdout.destroy();
+  const [ca, cb] = await Promise.all([exited(a), exited(b)]);
+  if (ca !== 0 || cb !== 0) throw new Error(`${first.cmd}=${ca} ${second.cmd}=${cb}`);
 }
 function run(cmd, cmdArgs) {
   return new Promise((resolve, reject) => {
@@ -49,7 +52,17 @@ const setDir = args.set;
 const manifestPath = join(setDir, "manifest.json");
 if (!existsSync(manifestPath)) fail(`không có ${manifestPath}`);
 const manifestRaw = readFileSync(manifestPath);
-const manifest = JSON.parse(manifestRaw);
+let manifest;
+try {
+  manifest = validateManifest(JSON.parse(manifestRaw));
+} catch (error) {
+  fail(error.message);
+}
+// Manifest phải ký bằng chính khóa sao lưu: không có khóa thì không giả được, kể cả khi sửa được nơi lưu ngoài.
+const macPath = join(setDir, "manifest.mac");
+if (!existsSync(macPath)) fail("thiếu manifest.mac");
+if (!existsSync(join(args.keys, manifest.kid))) fail(`thiếu tệp khóa ${manifest.kid}`);
+if (!verifyManifestMac(manifestRaw, readFileSync(macPath, "utf8"), readFileSync(join(args.keys, manifest.kid)))) fail("manifest.mac không khớp: manifest bị sửa hoặc sai khóa");
 log(`bản ${manifest.name}, tạo ${manifest.createdAt}, khóa ${manifest.kid}, migration ${manifest.migration}`);
 
 // 1. Bản sao lưu nguyên vẹn.
@@ -83,9 +96,9 @@ try {
 } catch (error) {
   fail(`pg_restore: ${error.message}`);
 }
-for (const [table, count] of Object.entries(manifest.counts)) {
+for (const table of COUNT_TABLES) {
   const { rows: [{ n }] } = await db.query(`SELECT count(*)::int AS n FROM ${table}`);
-  if (n !== count) fail(`${table}: ${n} dòng, manifest ghi ${count}`);
+  if (n !== manifest.counts[table]) fail(`${table}: ${n} dòng, manifest ghi ${manifest.counts[table]}`);
 }
 if (manifest.migration) {
   const { rows } = await db.query("SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name DESC LIMIT 1");

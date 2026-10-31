@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -90,6 +90,9 @@ describe("sao lưu", () => {
     expect(m.media.every((x) => x.storageKey.endsWith(".png"))).toBe(true);
     expect(m.counts).toMatchObject({ orders: 0, bank_transactions: 0, enrollments: 0 });
     expect(blobs()).toEqual([`${pub}.k1.gpg`, `${prot}.k1.gpg`].sort());
+    // MAC theo khóa sao lưu: sửa manifest ở nơi lưu ngoài thì khôi phục từ chối.
+    const raw = readFileSync(join(root, "backups/db", name!, "manifest.json"));
+    expect(readFileSync(join(root, "backups/db", name!, "manifest.mac"), "utf8")).toBe(createHmac("sha256", PASSPHRASE.k1).update(raw).digest("hex"));
     const dumpCall = calls.find((c) => c[0]!.cmd === "pg_dump")!;
     expect(dumpCall[0]!.args.some((a) => a.startsWith("--snapshot="))).toBe(true);
     expect(dumpCall[1]!.cmd).toBe("gpg");

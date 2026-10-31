@@ -56,9 +56,13 @@ export function problemOf(r: ApiResult<unknown>): string | null {
 /** Đọc dữ liệu cho một màn, gồm đủ trạng thái đang tải, lỗi, không có quyền. */
 export function useLoad<T>(path: string | null) {
   const [state, setState] = useState<{ data: T | null; error: string | null; forbidden: boolean; loading: boolean }>({ data: null, error: null, forbidden: false, loading: true });
+  // Đổi bộ lọc nhanh: chỉ giữ kết quả của lần gọi mới nhất.
+  const latest = useRef(0);
   const load = useCallback(async () => {
     if (!path) return;
+    const id = ++latest.current;
     const r = await adminApi<T>(path);
+    if (id !== latest.current) return;
     setState({ data: r.ok ? r.data : null, error: r.ok || r.status === 403 ? null : messageFor(r.data.error), forbidden: r.status === 403, loading: false });
   }, [path]);
   useEffect(() => {

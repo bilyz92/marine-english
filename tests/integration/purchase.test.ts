@@ -28,6 +28,7 @@ async function setup() {
 const buy = (l: TestLearner, body: object) => postOrder(learnerRequest("/api/me/orders", l, { method: "POST", body }));
 const read = async (l: TestLearner, code: string) => {
   const res = await getOrder(learnerRequest(`/api/me/orders/${code}`, l), { params: Promise.resolve({ code }) });
+  if (res.status === 200) expect(res.headers.get("cache-control")).toContain("no-store");
   return { status: res.status, body: (await res.json()) as Record<string, unknown> };
 };
 async function bought(l: TestLearner) {
@@ -100,7 +101,7 @@ describe("trạng thái đơn", () => {
     const code = await bought(l);
     const { body } = await read(l, code);
     expect(body).toMatchObject({
-      status: "pending", amountDueVnd: PRICE, enrolled: false, needsManual: false,
+      status: "pending", amountDueVnd: PRICE, enrolled: false, needsManual: false, paymentUnavailable: false,
       payment: { bankName: "Ngan hang thu", accountNo: "0123456789", accountName: "TEN THU NGHIEM", qrImageUrl: "/media/qr-thu.png" },
     });
     expect(typeof body.serverNow).toBe("string");
@@ -113,6 +114,13 @@ describe("trạng thái đơn", () => {
     await sqlAsMigrator(`UPDATE orders SET created_at = created_at - interval '20 minutes', expires_at = expires_at - interval '20 minutes'`);
     await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
     expect((await read(l, code)).body.payment).toBeNull();
+  });
+
+  it("đơn còn hạn nhưng cấu hình nhận tiền vừa bị gỡ → paymentUnavailable, không báo hết hạn", async () => {
+    const l = await setup();
+    const code = await bought(l);
+    payment.unavailable = true;
+    expect((await read(l, code)).body).toMatchObject({ status: "pending", payment: null, paymentUnavailable: true });
   });
 
   it("đơn người khác → 404", async () => {
@@ -172,6 +180,17 @@ describe("đơn gần đây của khóa", () => {
     await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
     expect((await recent(l)).unresolved).toEqual([expect.objectContaining({ code, status: "expired" })]);
     expect((await recent(await testLearner("Khac"))).unresolved).toEqual([]);
+  });
+
+  it("đơn đang chờ đối chiếu tay vẫn hiện dù đã quá 48 giờ", async () => {
+    const l = await setup();
+    const code = await bought(l);
+    const order = await orderOf(code);
+    await ingest(report({ content: code, amountVnd: PRICE - 1000, bankTime: new Date(order.createdAt.getTime() + 60_000) }));
+    await sqlAsMigrator(`ALTER TABLE orders DISABLE TRIGGER USER`);
+    await sqlAsMigrator(`UPDATE orders SET created_at = created_at - interval '5 days', expires_at = expires_at - interval '5 days', status = 'expired', expired_at = now()`);
+    await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
+    expect((await recent(l)).unresolved).toEqual([expect.objectContaining({ code })]);
   });
 
   it("đã có khóa → enrolled ngay khi mở trang mua", async () => {

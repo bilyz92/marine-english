@@ -48,7 +48,7 @@ export default function LedgerPage() {
       // Giờ nhập theo giờ Việt Nam; gửi kèm múi giờ để máy chủ không hiểu nhầm.
       r = await adminApi<{ outcome: string }>("/api/quan-tri/ledger", { method: "POST", body: {
         bankCode: form.bankCode?.trim().toUpperCase(), accountNo: form.accountNo?.trim(), bankRef: form.bankRef?.trim(), amountVnd: Number(form.amountVnd),
-        bankTime: `${form.bankTime}:00+07:00`, content: form.content ?? "", evidence: form.evidence,
+        bankTime: `${(form.bankTime ?? "").slice(0, 16)}:00+07:00`, content: form.content ?? "", evidence: form.evidence,
       } });
     }
     setBusy(false);

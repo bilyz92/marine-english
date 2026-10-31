@@ -6,6 +6,7 @@ export type RunOptions = { stdinFile?: string; stdoutFile?: string; signal: Abor
 export type RunTool = (steps: Step[], opts: RunOptions) => Promise<void>;
 
 const KILL_AFTER_MS = 10_000;
+const STDERR_TAIL = 500;
 
 /** Kết thúc cả nhóm tiến trình (tiến trình con có thể sinh tiến trình cháu). */
 function signalGroup(child: ChildProcess, signal: NodeJS.Signals) {
@@ -48,16 +49,23 @@ export const runTool: RunTool = async (steps, opts) => {
       killTimer = setTimeout(() => children.forEach((c) => signalGroup(c, "SIGKILL")), opts.killAfterMs ?? KILL_AFTER_MS);
     };
     opts.signal.addEventListener("abort", onAbort, { once: true });
+    const stderr = children.map(() => "");
+    children.forEach((child, i) => child.stderr?.on("data", (chunk: Buffer) => { stderr[i] = (stderr[i] + chunk.toString()).slice(-STDERR_TAIL); }));
     const results = await Promise.all(children.map((child, i) => new Promise<{ cmd: string; code: number | null; signal: string | null; error?: Error }>((resolve) => {
-      child.stderr?.resume();
       child.once("error", (error) => resolve({ cmd: steps[i]!.cmd, code: null, signal: null, error }));
       child.once("exit", (code, signal) => resolve({ cmd: steps[i]!.cmd, code, signal }));
     })));
     opts.signal.removeEventListener("abort", onAbort);
     clearTimeout(killTimer);
     if (opts.signal.aborted) throw new Error("tool_aborted");
-    const failed = results.find((r) => r.error || r.code !== 0);
-    if (failed) throw new Error(`tool_failed:${failed.cmd}:${failed.error ? "spawn" : (failed.code ?? failed.signal)}`);
+    const index = results.findIndex((r) => r.error || r.code !== 0);
+    if (index >= 0) {
+      const failed = results[index]!;
+      // Kèm đoạn cuối stderr để chẩn đoán; che mọi giá trị biến môi trường truyền vào (mật khẩu DB…) phòng khi công cụ in ra.
+      let tail = stderr[index]!.trim();
+      for (const value of Object.values(steps[index]!.env ?? {})) if (value.length >= 4) tail = tail.split(value).join("***");
+      throw new Error(`tool_failed:${failed.cmd}:${failed.error ? "spawn" : (failed.code ?? failed.signal)}${tail ? `: ${tail}` : ""}`);
+    }
   } finally {
     fds.forEach(closeSync);
   }

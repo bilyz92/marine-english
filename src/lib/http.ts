@@ -36,6 +36,11 @@ export function route<A extends unknown[]>(handler: (req: Request, ...rest: A) =
       if (!(error instanceof HttpError)) throw error;
       res = json({ error: error.message }, { status: error.status });
     }
+    // Dữ liệu theo phiên (đơn, quản trị) không bao giờ được lưu đệm ở trình duyệt hay proxy dùng chung.
+    const path = new URL(req.url).pathname;
+    if ((path.startsWith("/api/me") || path.startsWith("/api/quan-tri")) && !res.headers.has("cache-control")) {
+      res.headers.set("cache-control", "private, no-store");
+    }
     return withCookies(res, pendingCookies.get(req) ?? []);
   };
 }

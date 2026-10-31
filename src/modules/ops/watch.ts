@@ -68,7 +68,7 @@ export async function watch(now: Date, deps: WatchDeps): Promise<Alert[]> {
 
   const [outbox] = await prisma().$queryRaw<{ stuck: number; dead: number }[]>`
     SELECT
-      (SELECT count(*)::int FROM outbox_events WHERE status = 'pending' AND next_attempt_at < ${new Date(now.getTime() - 30 * MINUTE)}
+      (SELECT count(*)::int FROM outbox_events WHERE status IN ('pending', 'sending') AND created_at < ${new Date(now.getTime() - 30 * MINUTE)}
          AND coalesce(last_error, '') <> 'not_configured') AS stuck,
       (SELECT count(*)::int FROM outbox_events WHERE status = 'dead' AND kind <> ALL(${[...ERROR_KINDS]}::text[])) AS dead`;
   if (outbox!.stuck > 0) alerts.push({ type: "outbox_stuck", detail: { count: outbox!.stuck } });

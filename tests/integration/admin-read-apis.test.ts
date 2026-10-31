@@ -17,7 +17,7 @@ import { requestFullRefund, advanceRefund } from "@/modules/refunds/refunds";
 async function paidOrder(l: TestLearner): Promise<string> {
   const r = await createOrder(l, SLUG);
   if (r.kind !== "created") throw new Error(r.kind);
-  await ingest(report({ content: r.order.code, bankTime: new Date() }));
+  await ingest(report({ content: r.order.code, amountVnd: r.order.amountDueVnd, bankTime: new Date() }));
   return r.order.code;
 }
 const body = async (res: Response) => ({ status: res.status, data: (await res.json()) as never });
@@ -77,6 +77,50 @@ describe("/api/quan-tri/overview", () => {
     await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
     const { data } = await body(await callAdmin(overviewRoute, await adminSess("owner"), "GET", "/api/quan-tri/overview?days=1"));
     expect(data).toMatchObject({ receivedVnd: 0 });
+  });
+});
+
+describe("số lớn và phân trang chính xác", () => {
+  it("tổng tiền vượt giới hạn int4 không làm hỏng trang tổng quan", async () => {
+    await setup();
+    for (const name of ["L1", "L2"]) {
+      const l = await testLearner(name);
+      await publish(SLUG, 1_200_000_000);
+      await paidOrder(l);
+    }
+    const { status, data } = await body(await callAdmin(overviewRoute, await adminSess("owner"), "GET", "/api/quan-tri/overview?days=1"));
+    expect(status).toBe(200);
+    expect(data).toMatchObject({ receivedVnd: 2_400_000_000 });
+  });
+
+  it("hai đơn cùng mili giây khác micro giây không bị bỏ sót khi phân trang", async () => {
+    await setup();
+    const codes: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await createOrder(await testLearner(`M${i}`), SLUG);
+      if (r.kind !== "created") throw new Error(r.kind);
+      codes.push(r.order.code);
+    }
+    await sqlAsMigrator(`ALTER TABLE orders DISABLE TRIGGER USER`);
+    await sqlAsMigrator(`UPDATE orders SET created_at = '2026-10-31 10:00:00.123456+00', expires_at = '2026-10-31 10:15:00.123456+00' WHERE code = $1`, [codes[0]]);
+    await sqlAsMigrator(`UPDATE orders SET created_at = '2026-10-31 10:00:00.123100+00', expires_at = '2026-10-31 10:15:00.123100+00' WHERE code = $1`, [codes[1]]);
+    await sqlAsMigrator(`UPDATE orders SET created_at = '2026-10-31 10:00:00.123900+00', expires_at = '2026-10-31 10:15:00.123900+00' WHERE code = $1`, [codes[2]]);
+    await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
+    const s = await adminSess("owner");
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const url: string = `/api/quan-tri/orders?limit=1${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+      const page = (await body(await callAdmin(ordersRoute, s, "GET", url))).data as { orders: { code: string }[]; nextCursor: string | null };
+      seen.push(...page.orders.map((o) => o.code));
+      cursor = page.nextCursor;
+    } while (cursor);
+    expect([...seen].sort()).toEqual([...codes].sort());
+  });
+
+  it("dữ liệu quản trị và đơn của học viên không được lưu đệm", async () => {
+    const res = await callAdmin(me, await adminSess("owner"), "GET", "/api/quan-tri/me");
+    expect(res.headers.get("cache-control")).toContain("no-store");
   });
 });
 

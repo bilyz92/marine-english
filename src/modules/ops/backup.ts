@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import pg from "pg";
@@ -143,6 +143,8 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
   const tmp = join(tmpRoot, randomBytes(8).toString("hex"));
   mkdirSync(tmp, { recursive: true, mode: 0o700 });
   const name = stamp(now);
+  // Chỉ dọn tệp dở của chính lần chạy này: lần chạy cũ mất lease không được xóa tệp của lần chạy mới.
+  const partials = new Set<string>();
   try {
     const dumpPath = join(tmp, "db.dump.gpg");
     const { counts, migration, assets } = await dumpDatabase(config, keyFile, dumpPath, run, signal);
@@ -157,6 +159,7 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
         if (!existsSync(source)) throw new Error(`media_missing:${asset.storage_key}`);
         if ((await sha256File(source)) !== asset.sha256) throw new Error(`media_mismatch:${asset.storage_key}`);
         const partial = join(store, `.tmp-${randomBytes(6).toString("hex")}`);
+        partials.add(partial);
         await run([encrypt(keyFile, source, partial)], { signal });
         renameSync(partial, blob);
         mediaNew++;
@@ -168,12 +171,16 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
       dump: { file: "db.dump.gpg", bytes: statSync(dumpPath).size, sha256: await sha256File(dumpPath) },
       migration, counts, media,
     };
-    writeFileSync(join(tmp, "manifest.json"), JSON.stringify(manifest, null, 2), { mode: 0o600 });
+    const manifestRaw = Buffer.from(JSON.stringify(manifest, null, 2));
+    writeFileSync(join(tmp, "manifest.json"), manifestRaw, { mode: 0o600 });
+    // MAC theo khóa sao lưu: ai sửa được bản ở nơi lưu ngoài cũng không giả được manifest (khôi phục kiểm trước khi dùng).
+    writeFileSync(join(tmp, "manifest.mac"), createHmac("sha256", readFileSync(keyFile)).update(manifestRaw).digest("hex"), { mode: 0o600 });
     // Chỉ công bố và dọn khi còn giữ lease: lần chạy đã mất lease không được đụng tới bộ sao lưu.
+    // Dọn nhiều tệp (sau khi đổi khóa) có thể lâu hơn hạn mặc định 5 giây của transaction.
     const pruned = await withFence(lease, async () => {
       renameSync(tmp, join(config.dir, "db", name));
       return prune(config, now);
-    });
+    }, { txTimeoutMs: 120_000 });
     // Bản cục bộ đã an toàn: lỗi đẩy ra ngoài chỉ cảnh báo, không chạy lại cả bản dump mỗi 5 phút.
     let offsiteError: string | undefined;
     if (config.remote) {
@@ -190,7 +197,7 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
     return { name, dbBytes: manifest.dump.bytes, mediaNew, mediaTotal: media.length, pruned, offsite: Boolean(config.remote) && !offsiteError, offsiteError, missingKeys };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
-    for (const file of existsSync(store) ? readdirSync(store) : []) if (file.startsWith(".tmp-")) rmSync(join(store, file), { force: true });
+    for (const partial of partials) rmSync(partial, { force: true });
   }
 }
 

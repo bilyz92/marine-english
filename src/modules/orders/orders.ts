@@ -1,7 +1,7 @@
 import { prisma, withTx, type Tx } from "@/lib/db";
 import { lockActiveUser } from "@/modules/auth-learner/devices";
 import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access";
-import { orderNeedsManual } from "@/modules/ledger/queue";
+import { listQueue, orderNeedsManual } from "@/modules/ledger/queue";
 import type { LearnerCtx } from "@/modules/sessions/guards";
 import { newOrderCode } from "./codes";
 import { paymentInfo } from "./payment-info";
@@ -94,6 +94,8 @@ export async function getOrderForLearner(ctx: LearnerCtx, code: string): Promise
 export type CheckoutView = OrderView & {
   /** Thông tin chuyển khoản: chỉ có khi đơn còn trong hạn và đã đủ cấu hình. */
   payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string } | null;
+  /** Đơn còn hạn nhưng cấu hình nhận tiền vừa bị gỡ: không phải hết hạn, chỉ là tạm ngừng nhận tiền. */
+  paymentUnavailable: boolean;
   enrolled: boolean;
   needsManual: boolean;
   /** Giờ máy chủ: máy trên tàu có thể lệch giờ, đếm ngược không dựa vào đồng hồ máy. */
@@ -111,6 +113,7 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
   return {
     ...toView(row),
     payment: info && { bankName: info.bankName, accountNo: info.accountNo, accountName: info.accountName, qrImageUrl: info.qrImageUrl },
+    paymentUnavailable: open && !info,
     enrolled: await hasActiveEnrollment(prisma(), group, row.course_id),
     needsManual: await orderNeedsManual(row.id),
     serverNow,
@@ -125,15 +128,18 @@ export async function recentOrdersForCourse(ctx: LearnerCtx, courseSlug: string)
   const group = await mergeGroupIds(null, ctx.userId);
   const [course] = await prisma().$queryRaw<{ id: string }[]>`SELECT id FROM courses WHERE slug = ${courseSlug}`;
   if (!course) return { enrolled: false, unresolved: [] };
-  const rows = await prisma().$queryRaw<ViewRow[]>`
-    SELECT o.id, c.id AS course_id, o.code, o.status, o.amount_due_vnd, o.expires_at, c.slug, c.title_vi
+  const rows = await prisma().$queryRaw<(ViewRow & { recent: boolean })[]>`
+    SELECT o.id, c.id AS course_id, o.code, o.status, o.amount_due_vnd, o.expires_at, c.slug, c.title_vi,
+           o.expires_at > now() - interval '48 hours' AS recent
     FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
     WHERE o.user_id = ANY(${group}::uuid[]) AND i.course_id = ${course.id}::uuid
-      AND o.status IN ('pending', 'expired') AND o.expires_at <= now() AND o.expires_at > now() - interval '48 hours'
+      AND o.status IN ('pending', 'expired') AND o.expires_at <= now()
     ORDER BY o.created_at DESC`;
+  // Đơn có khoản chuyển đang chờ đối chiếu tay hiện mãi tới khi xử lý xong, không chỉ trong 48 giờ.
+  const manual = new Set((await listQueue({ raw: false })).map((q) => q.candidateOrderCode).filter(Boolean));
   return {
     enrolled: await hasActiveEnrollment(prisma(), group, course.id),
-    unresolved: rows.map((r) => ({ code: r.code, status: r.status, expiresAt: r.expires_at })),
+    unresolved: rows.filter((r) => r.recent || manual.has(r.code)).map((r) => ({ code: r.code, status: r.status, expiresAt: r.expires_at })),
   };
 }
 

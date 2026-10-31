@@ -23,6 +23,11 @@ describe("runTool", () => {
     expect((error as Error).message).not.toContain("bi-mat-123");
   });
 
+  it("lỗi kèm đoạn cuối stderr để chẩn đoán (công cụ không in mật khẩu)", async () => {
+    const error = await runTool([{ cmd: "sh", args: ["-c", "echo 'pg_dump: error: connection refused' >&2; exit 1"] }], { signal: new AbortController().signal }).catch((e: Error) => e);
+    expect((error as Error).message).toContain("connection refused");
+  });
+
   it("hủy → SIGTERM; tiến trình bỏ qua SIGTERM bị SIGKILL; khi hàm trả về thì đã thoát hẳn", async () => {
     const d = dir();
     const controller = new AbortController();
