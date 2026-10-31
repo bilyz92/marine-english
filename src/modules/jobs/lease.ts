@@ -1,4 +1,4 @@
-import { prisma, withTx, type Tx } from "@/lib/db";
+import { prisma, withTx, type Tx, type TxOptions } from "@/lib/db";
 
 export type Lease = { job: string; token: string; generation: bigint };
 
@@ -40,12 +40,12 @@ export async function releaseLease(lease: Lease): Promise<void> {
 }
 
 /** Chạy fn trong transaction đang khóa dòng lease; lease không còn hiệu lực thì không ghi gì và ném LeaseLostError. */
-export async function withFence<T>(lease: Lease, fn: (tx: Tx) => Promise<T>): Promise<T> {
+export async function withFence<T>(lease: Lease, fn: (tx: Tx) => Promise<T>, opts?: TxOptions): Promise<T> {
   return withTx(async (tx) => {
     const rows = await tx.$queryRaw<{ ok: boolean }[]>`
       SELECT (token = ${lease.token}::uuid AND generation = ${lease.generation} AND expires_at >= now()) AS ok
       FROM job_leases WHERE job_name = ${lease.job} FOR UPDATE`;
     if (!rows[0]?.ok) throw new LeaseLostError(lease.job);
     return fn(tx);
-  });
+  }, opts);
 }

@@ -2,6 +2,7 @@ import { deliverBatch, defaultSenders } from "@/modules/outbox/deliver";
 import { expireOrders } from "@/modules/orders/orders";
 import { cleanupSessionArtifacts } from "@/modules/sessions/sessions";
 import { enqueueDailySummary } from "./daily-summary";
+import { releaseStaleDevices } from "./devices-release";
 import { withFence } from "./lease";
 import type { JobDef } from "./runner";
 
@@ -64,5 +65,11 @@ export const JOBS: ScheduledJob[] = [
     schedule: { dailyAt: "21:00" },
     timeoutMs: MINUTE,
     run: async ({ lease }) => enqueueDailySummary(lease, new Date()),
+  },
+  {
+    name: "me.devices.release",
+    schedule: { dailyAt: "03:30" },
+    timeoutMs: 10 * MINUTE,
+    run: async ({ lease, signal }) => releaseStaleDevices(lease, signal),
   },
 ];
