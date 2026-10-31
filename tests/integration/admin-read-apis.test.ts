@@ -1,3 +1,4 @@
+import { TEST_PAYOUT } from "../helpers/ledger";
 import { describe, expect, it } from "vitest";
 import { GET as me } from "@/app/api/quan-tri/me/route";
 import { GET as overviewRoute } from "@/app/api/quan-tri/overview/route";
@@ -54,7 +55,7 @@ describe("/api/quan-tri/overview", () => {
     await paidOrder(b);
     await ingest(report({ content: "khong co ma", amountVnd: 12_000, bankTime: new Date() }));
     const owner = await adminCtx("owner");
-    const req = await requestFullRefund(owner, { orderCode: refunded, reason: "thử" });
+    const req = await requestFullRefund(owner, { orderCode: refunded, reason: "thử", payout: TEST_PAYOUT });
     if (!("refundId" in req)) throw new Error("no refund");
     await advanceRefund(owner, req.refundId, { action: "approve" });
     await advanceRefund(owner, req.refundId, { action: "send", outBankRef: "OUT1", evidence: "ảnh" });

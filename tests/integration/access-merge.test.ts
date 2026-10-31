@@ -1,3 +1,4 @@
+import { TEST_PAYOUT } from "../helpers/ledger";
 import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { hasCourseAccess } from "@/modules/enrollments/access";
@@ -44,7 +45,7 @@ describe("gộp tài khoản", () => {
     const owner = await adminCtx("owner");
     await mergeAccounts(owner, { sourceUserId: s.a.userId, targetUserId: s.b.userId, reason: "gộp", preview: false });
     expect(await createOrder(s.b, "engine_cadet_tanker")).toEqual({ kind: "already_enrolled" });
-    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn" });
+    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn", payout: TEST_PAYOUT });
     if (!("refundId" in r)) throw new Error();
     await advanceRefund(owner, r.refundId, { action: "approve" });
     await advanceRefund(owner, r.refundId, { action: "send", outBankRef: "OUT-M", evidence: "x" });

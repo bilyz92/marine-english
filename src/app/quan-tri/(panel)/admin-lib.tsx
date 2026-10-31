@@ -29,6 +29,9 @@ const MESSAGES: Record<string, string> = {
   not_verified: "Giao dịch chưa được xác minh.",
   order_refunded: "Đơn đã hoàn tiền.",
   order_paid: "Đơn đã thanh toán.",
+  missing_payout: "Chưa có tài khoản nhận tiền của học viên: nhập trước khi duyệt.",
+  active_full_refund: "Đơn này đã có yêu cầu hoàn tiền đang mở.",
+  not_paid: "Đơn chưa thanh toán hoặc đã hoàn.",
 };
 export const messageFor = (code: unknown) => (typeof code === "string" && MESSAGES[code]) || (typeof code === "string" && code) || "Có lỗi, thử lại sau.";
 

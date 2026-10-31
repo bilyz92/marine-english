@@ -1,9 +1,10 @@
+import { TEST_PAYOUT } from "../helpers/ledger";
 import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { hasCourseAccess } from "@/modules/enrollments/access";
 import { ingest } from "@/modules/ledger/ingest";
 import { matchTransfers } from "@/modules/ledger/match";
-import { advanceRefund, requestFullRefund } from "@/modules/refunds/refunds";
+import { advanceRefund, requestFullRefund, setRefundPayout } from "@/modules/refunds/refunds";
 import { auditRows } from "../helpers/admin";
 import { adminCtx, rejected } from "../helpers/admin-ctx";
 import { paidCourseSetup, PRICE, report } from "../helpers/ledger";
@@ -26,7 +27,7 @@ describe("hoàn tiền toàn phần", () => {
     const s = await paid();
     const support = await adminCtx("support");
     const owner = await adminCtx("owner");
-    const r = await requestFullRefund(support, { orderCode: s.code, reason: "khách đổi ý trong 7 ngày" });
+    const r = await requestFullRefund(support, { orderCode: s.code, reason: "khách đổi ý trong 7 ngày", payout: TEST_PAYOUT });
     if (!("refundId" in r)) throw new Error(JSON.stringify(r));
     await runToConfirmed(owner, r.refundId);
     expect(await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } })).toMatchObject({ status: "refunded" });
@@ -42,16 +43,16 @@ describe("hoàn tiền toàn phần", () => {
   it("đề nghị lần hai khi lần một chưa đóng → active_full_refund; đơn chưa paid → not_paid", async () => {
     const s = await paid();
     const owner = await adminCtx("owner");
-    expect(await requestFullRefund(owner, { orderCode: s.code, reason: "x" })).toHaveProperty("refundId");
-    expect(await requestFullRefund(owner, { orderCode: s.code, reason: "x" })).toEqual({ rejected: "active_full_refund" });
-    expect(await requestFullRefund(owner, { orderCode: "MEAAAAAAAA", reason: "x" })).toEqual({ rejected: "not_paid" });
+    expect(await requestFullRefund(owner, { orderCode: s.code, reason: "x", payout: TEST_PAYOUT })).toHaveProperty("refundId");
+    expect(await requestFullRefund(owner, { orderCode: s.code, reason: "x", payout: TEST_PAYOUT })).toEqual({ rejected: "active_full_refund" });
+    expect(await requestFullRefund(owner, { orderCode: "MEAAAAAAAA", reason: "x", payout: TEST_PAYOUT })).toEqual({ rejected: "not_paid" });
   });
 
   it("bước sai thứ tự → invalid_transition; trùng out_bank_ref → duplicate_out_ref; support duyệt → 403", async () => {
     const s = await paid();
     const owner = await adminCtx("owner");
     const support = await adminCtx("support");
-    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "x" });
+    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "x", payout: TEST_PAYOUT });
     if (!("refundId" in r)) throw new Error();
     expect(await advanceRefund(owner, r.refundId, { action: "confirm" })).toBe("invalid_transition");
     expect(await rejected(advanceRefund(support, r.refundId, { action: "approve" }))).toBe("role");
@@ -59,7 +60,7 @@ describe("hoàn tiền toàn phần", () => {
     await advanceRefund(owner, r.refundId, { action: "send", outBankRef: "OUT-9", evidence: "x" });
     expect(await advanceRefund(owner, r.refundId, { action: "fail", reason: "ngân hàng trả lại" })).toBe("ok");
     expect(await hasCourseAccess(s.learner.userId, s.courseId)).toBe(true);
-    const again = await requestFullRefund(owner, { orderCode: s.code, reason: "thử lại" });
+    const again = await requestFullRefund(owner, { orderCode: s.code, reason: "thử lại", payout: TEST_PAYOUT });
     if (!("refundId" in again)) throw new Error();
     await advanceRefund(owner, again.refundId, { action: "approve" });
     expect(await advanceRefund(owner, again.refundId, { action: "send", outBankRef: "OUT-9", evidence: "x" })).toBe("duplicate_out_ref");
@@ -76,9 +77,12 @@ describe("hoàn phần thừa", () => {
     const tx = (await prisma().bankTransaction.findFirstOrThrow()).id;
     expect(await matchTransfers(owner, { orderCode: s.code, bankTransactionIds: [tx], note: "x", evidence: "y" })).toEqual({ result: "paid_with_excess_refund" });
     const excess = await prisma().refund.findFirstOrThrow({ where: { kind: "excess" } });
+    // Hoàn phần thừa tự sinh khi ghép tay chưa có tài khoản nhận: phải nhập trước khi duyệt (BR-18).
+    expect(await advanceRefund(owner, excess.id, { action: "approve" })).toBe("missing_payout");
+    expect(await setRefundPayout(owner, excess.id, TEST_PAYOUT)).toBe("ok");
     await runToConfirmed(owner, excess.id, "OUT-EX");
     expect((await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } })).status).toBe("paid");
-    const full = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn nốt" });
+    const full = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn nốt", payout: TEST_PAYOUT });
     if (!("refundId" in full)) throw new Error(JSON.stringify(full));
     await runToConfirmed(owner, full.refundId, "OUT-FULL");
     const sources = await prisma().refundSource.findMany();
@@ -91,7 +95,7 @@ describe("đồng thời", () => {
     const s = await paid();
     const owner = await adminCtx("owner");
     const support = await adminCtx("support");
-    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "x" });
+    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "x", payout: TEST_PAYOUT });
     if (!("refundId" in r)) throw new Error();
     await advanceRefund(owner, r.refundId, { action: "approve" });
     await advanceRefund(owner, r.refundId, { action: "send", outBankRef: "OUT-C", evidence: "x" });
@@ -115,7 +119,7 @@ describe("route hoàn tiền", () => {
     const s = await paid();
     const support = await adminSess("support");
     const owner = await adminSess("owner");
-    const created = await callAdmin(POST, support, "POST", "/api/quan-tri/refunds", { orderCode: s.code, reason: "khách yêu cầu" });
+    const created = await callAdmin(POST, support, "POST", "/api/quan-tri/refunds", { orderCode: s.code, reason: "khách yêu cầu", payout: TEST_PAYOUT });
     expect(created.status).toBe(201);
     const { refundId } = (await created.json()) as { refundId: string };
     const call = (body: unknown, who = owner) => callAdmin(step, who, "POST", `/api/quan-tri/refunds/${refundId}`, body, { id: refundId });
@@ -133,14 +137,14 @@ describe("sửa sau Codex vòng 1 (hoàn tiền)", () => {
   it("#2: hai lệnh chuyển song song cùng mã giao dịch trả lại → một ok, một duplicate_out_ref, không 500", async () => {
     const a = await paid();
     const owner = await adminCtx("owner");
-    const r1 = await requestFullRefund(owner, { orderCode: a.code, reason: "x" });
+    const r1 = await requestFullRefund(owner, { orderCode: a.code, reason: "x", payout: TEST_PAYOUT });
     const { createOrder } = await import("@/modules/orders/orders");
     const b = await (await import("../helpers/learner-ctx")).testLearner("B");
     const o2 = await createOrder(b, "engine_cadet_tanker");
     if (o2.kind !== "created") throw new Error();
     const created = await prisma().order.findUniqueOrThrow({ where: { code: o2.order.code } });
     await ingest(report({ content: o2.order.code, bankTime: new Date(created.createdAt.getTime() + 60_000) }));
-    const r2 = await requestFullRefund(owner, { orderCode: o2.order.code, reason: "y" });
+    const r2 = await requestFullRefund(owner, { orderCode: o2.order.code, reason: "y", payout: TEST_PAYOUT });
     if (!("refundId" in r1) || !("refundId" in r2)) throw new Error();
     await advanceRefund(owner, r1.refundId, { action: "approve" });
     await advanceRefund(owner, r2.refundId, { action: "approve" });
@@ -154,10 +158,10 @@ describe("sửa sau Codex vòng 1 (hoàn tiền)", () => {
   it("#9: bước hoàn tiền sai thứ tự → audit denied", async () => {
     const s = await paid();
     const owner = await adminCtx("owner");
-    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "x" });
+    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "x", payout: TEST_PAYOUT });
     if (!("refundId" in r)) throw new Error();
     expect(await advanceRefund(owner, r.refundId, { action: "confirm" })).toBe("invalid_transition");
-    expect(await requestFullRefund(owner, { orderCode: s.code, reason: "lần hai" })).toEqual({ rejected: "active_full_refund" });
+    expect(await requestFullRefund(owner, { orderCode: s.code, reason: "lần hai", payout: TEST_PAYOUT })).toEqual({ rejected: "active_full_refund" });
     const denied = (await auditRows()).filter((a) => a.result === "denied").map((a) => [a.action, a.reason]);
     expect(denied).toEqual([["refund_confirm", "invalid_transition"], ["refund_request", "active_full_refund"]]);
   });

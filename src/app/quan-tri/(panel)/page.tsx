@@ -9,6 +9,7 @@ import styles from "./admin.module.css";
 type Overview = {
   receivedVnd: number; refundedVnd: number; paidOrders: { auto: number; manual: number }; newLearners: number; refundsOpen: number; queueOpen: number;
   oldestQueue: { bankTransactionId: string; bankTime: string; amountVnd: number; reason: string; candidateOrderCode: string | null }[];
+  byCourse: { course: string; paidOrders: number; receivedVnd: number }[];
   recentOrders: { code: string; status: string; amountVnd: number; createdAt: string; course: string; learner: string }[];
   jobs: { name: string; status: string; startedAt: string; error: string | null }[];
 };
@@ -39,6 +40,16 @@ export default function OverviewPage() {
             <div className={styles.card}><span className={styles.label}>Tỷ lệ tự động</span><span className={styles.stat}>{paid ? `${Math.round((data.paidOrders.auto / paid) * 100)}%` : "—"}</span></div>
             <div className={styles.card}><span className={styles.label}>Học viên mới</span><span className={styles.stat}>{data.newLearners}</span></div>
           </div>
+          <section className={styles.card}>
+            <h2 className={styles.h2}>Theo khóa học</h2>
+            {data.byCourse.length === 0 && <p className={styles.muted}>Chưa có đơn đã thanh toán trong khoảng này.</p>}
+            {data.byCourse.map((c) => (
+              <div key={c.course} className={styles.item}>
+                <div className={styles.itemText}><span>{c.course}</span><span className={styles.muted}>{c.paidOrders} đơn</span></div>
+                <strong>{formatVnd(c.receivedVnd)}</strong>
+              </div>
+            ))}
+          </section>
           <section className={styles.card}>
             <h2 className={styles.h2}>Khoản chờ lâu nhất</h2>
             {data.oldestQueue.length === 0 && <p className={styles.muted}>Không có khoản nào cần xử lý.</p>}

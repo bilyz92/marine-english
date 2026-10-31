@@ -29,6 +29,11 @@ export async function overview(ctx: AdminCtx, days: number) {
          AND EXISTS (SELECT 1 FROM payment_allocations a WHERE a.order_id = o.id AND a.kind = 'manual')) AS manual,
       (SELECT count(*)::int FROM users WHERE created_at >= ${from} AND created_at < ${now}) AS learners,
       (SELECT count(*)::int FROM refunds WHERE status IN ('requested', 'approved', 'sent')) AS refunds_open`;
+  const byCourse = await prisma().$queryRaw<{ course: string; paid: number; received: bigint }[]>`
+    SELECT c.title_vi AS course, count(DISTINCT o.id)::int AS paid, coalesce(sum(o.amount_due_vnd), 0)::bigint AS received
+    FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
+    WHERE o.paid_at >= ${from} AND o.paid_at < ${now}
+    GROUP BY c.title_vi ORDER BY received DESC, c.title_vi`;
   const queue = await listQueue({ raw: false });
   const canSeeJobErrors = permissionsFor(ctx).includes("jobs.run");
   const recentOrders = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; title_vi: string; display_name: string }[]>`
@@ -44,6 +49,7 @@ export async function overview(ctx: AdminCtx, days: number) {
     refundedVnd: Number(row!.refunded),
     paidOrders: { auto: row!.auto, manual: row!.manual },
     newLearners: row!.learners,
+    byCourse: byCourse.map((c) => ({ course: c.course, paidOrders: c.paid, receivedVnd: Number(c.received) })),
     refundsOpen: row!.refunds_open,
     queueOpen: queue.length,
     oldestQueue: [...queue].sort((a, b) => Number(a.bankTime) - Number(b.bankTime)).slice(0, 5),

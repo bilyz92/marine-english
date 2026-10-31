@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { json, readJson, route } from "@/lib/http";
 import { authorize } from "@/modules/auth-admin/authorize";
-import { requestFullRefund } from "@/modules/refunds/refunds";
+import { PayoutSchema, requestFullRefund } from "@/modules/refunds/refunds";
 import { requireAdmin } from "@/modules/sessions/guards";
 
 export const GET = route(async (req: Request) => {
@@ -12,7 +12,7 @@ export const GET = route(async (req: Request) => {
   return json({ refunds });
 });
 
-const Body = z.object({ orderCode: z.string().max(20), reason: z.string().trim().min(1).max(1000) });
+const Body = z.object({ orderCode: z.string().max(20), reason: z.string().trim().min(1).max(1000), payout: PayoutSchema.optional() });
 
 export const POST = route(async (req: Request) => {
   const ctx = await requireAdmin(req);

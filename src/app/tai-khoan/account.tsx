@@ -5,6 +5,7 @@ import { clearLocal, licenseStatus, loadIdentity, signOut, type Identity, type L
 import { learnerCsrfHeader } from "@/lib/client/api";
 import { forgetDeviceKey } from "../(site)/dang-nhap/device-key";
 import styles from "../hoc/learn.module.css";
+import { MyOrders } from "./my-orders";
 
 type Device = { id: string; label: string; lastSeenAt: string | null; current: boolean };
 type IdentityRow = { id: string; kind: string; valueCanonical: string };
@@ -84,6 +85,7 @@ export function Account() {
         </div>
         {!online && <div className={styles.banner}>Đang không có mạng. Thiết bị và cách đăng nhập sẽ hiện khi có mạng.</div>}
         {message && <div className={styles.bannerDanger}>{message}</div>}
+        {online && <MyOrders />}
         <div className={styles.card}>
           <h2 className={styles.h2}>Cách đăng nhập</h2>
           {logins.map((l) => (

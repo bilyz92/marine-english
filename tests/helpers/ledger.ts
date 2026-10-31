@@ -41,3 +41,7 @@ export const counts = async () => ({
   outbox: await prisma().outboxEvent.count(),
   observations: await prisma().bankTransactionObservation.count(),
 });
+
+/** Tài khoản nhận tiền hoàn mẫu (BR-18: hoàn chỉ về tài khoản học viên khai). */
+export const TEST_PAYOUT = { bankName: "Vietcombank", accountNo: "0011223344", accountName: "NGUYEN VAN THU" };
+

@@ -20,6 +20,7 @@ function opsAlertText(p: Payload): string {
 // Chỉ dùng các trường liệt kê ở đây: không đưa nội dung chuyển khoản, số tài khoản, mã OTP hay token vào tin.
 const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: string }> = {
   order_paid: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã thanh toán: ${vnd(p.amountVnd)}.` }),
+  refund_requested: (p) => ({ chat: "business", text: `Học viên yêu cầu hoàn tiền đơn ${p.orderCode}: ${vnd(p.amountVnd)}. Xem trang Hoàn tiền.` }),
   order_refunded: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã hoàn tiền: ${vnd(p.amountVnd)}.` }),
   ledger_queued: (p) => ({
     chat: "business",

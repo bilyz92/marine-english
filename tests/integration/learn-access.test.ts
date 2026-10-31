@@ -1,3 +1,4 @@
+import { TEST_PAYOUT } from "../helpers/ledger";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -79,7 +80,7 @@ describe("quyền học", () => {
     expect((await lesson(l, paidLesson)).status).toBe(200);
 
     const owner = await adminCtx("owner");
-    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn" });
+    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn", payout: TEST_PAYOUT });
     if (!("refundId" in r)) throw new Error();
     await advanceRefund(owner, r.refundId, { action: "approve" });
     await advanceRefund(owner, r.refundId, { action: "send", outBankRef: "OUT-L", evidence: "x" });

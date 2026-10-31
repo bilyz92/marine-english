@@ -131,7 +131,11 @@ try {
   await waitFor(() => b.evaluate(`document.querySelector("dialog[open]") !== null`));
   await fill("Mã đơn", orderCode);
   await fill("Lý do", "thử hoàn");
+  await fill("Ngân hàng", "Vietcombank");
+  await fill("Số tài khoản", "0011223344");
+  await fill("Tên chủ tài khoản", "NGUYEN VAN THU");
   await click("Gửi đề nghị");
+  check("hiện tài khoản nhận", await see("Nhận: Vietcombank · 0011223344"));
   check("có yêu cầu hoàn", await see("thử hoàn"));
   await click("Duyệt"); await waitFor(() => b.evaluate(`document.querySelector("dialog[open]") !== null`)); await click("Duyệt");
   check("đã duyệt", await see("Đã duyệt"));

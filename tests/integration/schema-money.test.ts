@@ -121,7 +121,12 @@ describe("refunds", () => {
     await txCode(refund(oid, "full", 199_000, tx, f.ownerId));
     await app(async (c) => {
       expect(await errCode(c, `UPDATE refunds SET status = 'sent', out_bank_ref = 'OUT1'`)).toBe("P0001");
+      // BR-18: chưa có tài khoản nhận thì không duyệt được.
+      expect(await errCode(c, `UPDATE refunds SET status = 'approved'`)).toBe("23514");
+      expect(await errCode(c, `UPDATE refunds SET payout_bank_name = 'VCB', payout_account_no = '001122'`)).toBe("23514");
+      expect(await errCode(c, `UPDATE refunds SET payout_bank_name = 'VCB', payout_account_no = '001122', payout_account_name = 'A'`)).toBeNull();
       expect(await errCode(c, `UPDATE refunds SET status = 'approved'`)).toBeNull();
+      expect(await errCode(c, `UPDATE refunds SET payout_account_no = '999999'`)).toBe("P0001");
       expect(await errCode(c, `UPDATE refunds SET status = 'sent'`)).toBe("23514");
       expect(await errCode(c, `UPDATE refunds SET status = 'sent', out_bank_ref = 'OUT1'`)).toBeNull();
       expect(await errCode(c, `UPDATE refunds SET amount_vnd = 1`)).toBe("P0001");

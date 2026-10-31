@@ -13,6 +13,7 @@ datasource db {
 model User {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   termsAcceptances OrderTermsAcceptance[]
+  refundRequests   Refund[] @relation("RefundRequestedByLearner")
   displayName      String             @map("display_name")
   rank             String?
   status           String             @default("active")
@@ -507,6 +508,11 @@ model Refund {
   sentAt      DateTime?      @map("sent_at") @db.Timestamptz(6)
   confirmedAt DateTime?      @map("confirmed_at") @db.Timestamptz(6)
   closedAt    DateTime?      @map("closed_at") @db.Timestamptz(6)
+  payoutBankName    String? @map("payout_bank_name")
+  payoutAccountNo   String? @map("payout_account_no")
+  payoutAccountName String? @map("payout_account_name")
+  requestedByUser   String? @map("requested_by_user") @db.Uuid
+  learner           User?   @relation("RefundRequestedByLearner", fields: [requestedByUser], references: [id], onDelete: Restrict, onUpdate: NoAction)
   order       Order          @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   requester   AdminUser?     @relation("RefundRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
   approver    AdminUser?     @relation("RefundApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)

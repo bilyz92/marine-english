@@ -31,7 +31,8 @@ try {
   await setValue("input[maxlength='100']", "Người mua thử");
   await setValue("input[type=email]", email);
   await click("Gửi mã xác minh");
-  check("bước nhập mã nêu kênh gửi", await waitFor(async () => (await text()).includes(`qua email tới ${email}`)));
+  // Server dev vừa khởi động phải biên dịch route gửi mã lần đầu: chờ lâu hơn.
+  check("bước nhập mã nêu kênh gửi", await waitFor(async () => (await text()).includes(`qua email tới ${email}`), 90000));
   check("nút gửi lại đang đếm ngược", (await text()).includes("Gửi lại mã sau"));
   const inbox = await b.evaluate(`fetch("/dev/thu").then((r) => r.text())`);
   const code = inbox.slice(inbox.indexOf(email)).match(/\b\d{6}\b/)[0];
@@ -84,6 +85,21 @@ try {
   await problems("thành công");
   check("có nút vào học", await click("Vào học ngay"));
   check("vào đúng khóa", await waitFor(async () => (await b.evaluate("location.pathname + location.search")) === `/hoc?khoa=${SLUG}`));
+
+  // 6b. Học viên tự gửi yêu cầu hoàn tiền trên trang Tài khoản (FR-28, BR-18).
+  await b.go(`${BASE}/tai-khoan`);
+  check("trang tài khoản có đơn đã mua", await waitFor(async () => (await text()).includes(orderCode)));
+  await hydrated();
+  await click("Yêu cầu hoàn tiền");
+  await waitFor(() => b.evaluate(`document.querySelector("textarea") !== null`));
+  const set = (selector, value) => b.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement : HTMLInputElement; Object.getOwnPropertyDescriptor(proto.prototype, "value").set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+  await set("textarea", "thử hoàn tiền");
+  const inputs = await b.evaluate(`[...document.querySelectorAll("form input")].length`);
+  await b.evaluate(`(() => { const els = [...document.querySelectorAll("form input")]; const vals = ["Vietcombank", "0011223344", "NGUYEN VAN THU"]; els.forEach((el, i) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); }); })()`);
+  check("form hoàn tiền có 3 ô tài khoản", inputs === 3, String(inputs));
+  await click("Gửi yêu cầu hoàn tiền");
+  check("gửi yêu cầu hoàn tiền xong", await waitFor(async () => (await text()).includes("Đã gửi yêu cầu hoàn tiền")));
+  await b.shot(`${OUT}/tai-khoan-hoan-tien-390.png`);
 
   // 6. Mua lại khóa đã có: báo ngay khi mở trang, không cần tích điều khoản.
   await b.go(`${BASE}/mua/${SLUG}`);

@@ -46,7 +46,7 @@ describe("tổng kết hằng ngày", () => {
     const order = await paidOrder(vn("10:00"), 50_000);
     await sqlAsMigrator(`ALTER TABLE refunds DISABLE TRIGGER USER`);
     await sqlAsMigrator(
-      `INSERT INTO refunds (order_id, kind, amount_vnd, status, reason, out_bank_ref, confirmed_at) VALUES ($1, 'full', 50000, 'confirmed', 'x', 'R1', $2)`,
+      `INSERT INTO refunds (order_id, kind, amount_vnd, status, reason, out_bank_ref, confirmed_at, payout_bank_name, payout_account_no, payout_account_name) VALUES ($1, 'full', 50000, 'confirmed', 'x', 'R1', $2, 'VCB', '001122', 'A')`,
       [order, vn("11:00")],
     );
     await sqlAsMigrator(`ALTER TABLE refunds ENABLE TRIGGER USER`);

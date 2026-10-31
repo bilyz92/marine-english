@@ -1,3 +1,4 @@
+import { TEST_PAYOUT } from "../helpers/ledger";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
@@ -32,7 +33,7 @@ const progress = (userId: string, lessonId: string) =>
 
 async function refund(code: string) {
   const owner = await adminCtx("owner");
-  const r = await requestFullRefund(owner, { orderCode: code, reason: "hoàn" });
+  const r = await requestFullRefund(owner, { orderCode: code, reason: "hoàn", payout: TEST_PAYOUT });
   if (!("refundId" in r)) throw new Error();
   await advanceRefund(owner, r.refundId, { action: "approve" });
   await advanceRefund(owner, r.refundId, { action: "send", outBankRef: `OUT-${code}`, evidence: "x" });
