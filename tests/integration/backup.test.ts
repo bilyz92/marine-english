@@ -184,6 +184,16 @@ describe("sao lưu", () => {
     expect(blobs()).toEqual([`${hash}.k2.gpg`]);
   });
 
+  it("thiếu tệp khóa của một bản còn giữ → báo trong kết quả", async () => {
+    await media("anh", "public");
+    await run(new Date("2026-10-20T02:30:00Z"));
+    rmSync(join(root, "keys", "k1"));
+    const stats = await run(new Date("2026-10-31T02:30:00Z"), { ...config, keyId: "k2" });
+    expect(stats.missingKeys).toEqual(["k1"]);
+    const ok = await run(new Date("2026-10-31T03:30:00Z"), { ...config, keyId: "k2" });
+    expect(ok.missingKeys).toEqual(["k1"]);
+  });
+
   it("có nơi lưu ngoài: đẩy media và bản dump, kiểm, rồi mới ghi COMPLETE", async () => {
     await media("anh", "public");
     const remote = join(root, "remote");
@@ -221,8 +231,9 @@ describe("job sao lưu", () => {
     await backupAlerts({ offsite: false }, new Date("2026-10-31T19:30:00Z"));
     await backupAlerts({ offsite: false }, new Date("2026-10-31T20:30:00Z"));
     await backupAlerts({ notConfigured: true }, new Date("2026-10-31T20:30:00Z"));
+    await backupAlerts({ missingKeys: ["k1"] }, new Date("2026-10-31T20:30:00Z"));
     const alerts = await prisma().outboxEvent.findMany({ where: { kind: "backup_alert" }, orderBy: { dedupKey: "asc" } });
-    expect(alerts.map((a) => (a.payload as { reason: string }).reason)).toEqual(["no_offsite", "not_configured"]);
+    expect(alerts.map((a) => (a.payload as { reason: string }).reason)).toEqual(["missing_key", "no_offsite", "not_configured"]);
     expect(alerts.every((a) => a.channel === "telegram")).toBe(true);
   });
 });

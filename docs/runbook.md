@@ -1,0 +1,128 @@
+# Runbook vận hành Marine English
+
+Viết cho người vận hành trên bờ. Chủ dự án thường ở trên tàu: việc gì cần quyết thì nhắn chủ, việc vận hành thường ngày làm theo tài liệu này.
+
+Mọi lệnh chạy trong thư mục mã nguồn trên máy chủ. `ENV=deploy/prod.env` (quyền 600, không commit).
+
+## 1. Hệ thống gồm gì
+
+Một máy chủ, một tệp `docker-compose.prod.yml`:
+
+| Dịch vụ | Việc | Ghi chú |
+| --- | --- | --- |
+| `caddy` | HTTPS, chuyển tiếp vào app | Chỉ dịch vụ này mở cổng 80/443 |
+| `app` | Website, app học, API, trang quản trị | `/api/health` |
+| `worker` | Gửi thông báo, job định kỳ, sao lưu, giám sát | Không mở cổng; `/api/health/worker` báo nó còn sống |
+| `postgres` | Cơ sở dữ liệu | Không mở cổng ra ngoài |
+| `migrate` | Chạy migration rồi thoát | Chạy trước app và worker |
+
+Dữ liệu nằm ở các volume `pgdata`, `media`, `backups`, `caddy_data`. Khóa sao lưu nằm ở `BACKUP_KEYS_HOST_DIR` trên máy chủ (không trong volume).
+
+## 2. Cài máy mới từ đầu
+
+1. Cài Docker và Docker Compose. Bật NTP. Tường lửa chỉ mở 80, 443 và SSH (đăng nhập bằng khóa, tắt mật khẩu).
+2. Lấy mã nguồn, chép `deploy/prod.env.example` thành `deploy/prod.env`, `chmod 600`, điền mọi mục. Khóa 32 byte: `openssl rand -base64 32`. `NEXT_PUBLIC_LICENSE_PUBLIC_KEYS`: chạy `pnpm cli license:public-keys` trên máy có mã nguồn với `LICENSE_SIGNING_KEYS` đã điền.
+3. Khóa sao lưu: tạo thư mục `BACKUP_KEYS_HOST_DIR`, mỗi khóa một tệp tên là mã khóa (ví dụ `b2026a`), nội dung `openssl rand -base64 48`, `chown 1000:1000`, `chmod 600`. Đặt `BACKUP_KEY_ID` là mã đó. Làm ngay bản lưu khóa ngoài máy (mục 6).
+4. `docker compose -f docker-compose.prod.yml --env-file $ENV up -d --build`. Đợi mọi dịch vụ `healthy`: `docker compose ... ps`.
+5. Tạo tài khoản chủ: `docker compose ... run --rm -e MIGRATOR_DATABASE_URL=postgresql://me_migrator:<mật khẩu>@postgres:5432/<DB> worker node src/worker/cli.ts admin:bootstrap <email chủ>`.
+6. Kiểm: `https://<tên miền>/api/health` trả `{"ok":true}`, `/api/health/worker` trả `{"ok":true}` (nếu trả `alerts_not_configured` là chưa điền Telegram).
+
+## 3. Deploy và quay lại bản trước
+
+```
+deploy/deploy.sh $ENV <tag mới>
+```
+
+Script build, chạy migration, chạy thử app mới trong mạng nội bộ; app mới không khỏe thì **dừng, bản đang chạy giữ nguyên**. Khỏe thì thay app (trang gián đoạn khoảng 4–5 giây, đo ngày 31/10/2026 trên máy thử), rồi dừng worker cũ (tối đa 60 giây để làm xong việc dở) và chạy worker mới.
+
+Quay lại bản trước (không đảo migration):
+
+```
+deploy/deploy.sh $ENV <tag cũ> --skip-build --skip-migrate
+```
+
+Đã thử 31/10/2026: bản cũ chạy được trên DB đã có migration mới hơn; chạy `migrate` của bản cũ trên DB mới hơn chỉ báo “No pending migrations” và không làm gì.
+
+**Quy tắc migration (để quay lại được):** mỗi bản phải chạy được với DB của bản kế tiếp. Thêm trước, xóa sau: thêm cột hay bảng ở bản N, bản N+1 mới bỏ dùng cái cũ, bản N+2 mới xóa. Không đổi tên cột trong một bước.
+
+## 4. Sao lưu
+
+Job `me.backup.daily` chạy 02:30 giờ Việt Nam: bản dump DB (nối thẳng `pg_dump` vào `gpg`, không có bản chưa mã hóa trên đĩa), media mã hóa từng tệp vào kho theo mã băm, `manifest.json` ghi đủ để dựng lại. Giữ 30 ngày, không bao giờ xóa bản mới nhất. Có `BACKUP_RCLONE_REMOTE` thì đẩy ra ngoài, kiểm, rồi mới ghi `COMPLETE`; bản ở ngoài không có `COMPLETE` là chưa xong, không dùng.
+
+Chạy ngay: trang quản trị → Job → `me.backup.daily` → Chạy ngay.
+
+## 5. Khôi phục
+
+**Thử khôi phục** (không đụng hệ thống đang chạy, chạy trên máy bất kỳ có Docker và image worker):
+
+```
+deploy/restore-drill.sh <volume hoặc thư mục sao lưu> <thư mục khóa> [tên bản] [--require-complete]
+```
+
+Kết thúc bằng `KHÔI PHỤC ĐẠT` và mã thoát 0. Bản lấy từ nơi lưu ngoài thì thêm `--require-complete`.
+
+**Khôi phục thật** khi mất máy chủ:
+
+1. Dựng máy mới theo mục 2 bước 1–3, với tệp env và khóa lấy từ bản lưu ngoài máy (mục 6).
+2. Tải bản sao lưu từ nơi lưu ngoài về một thư mục (giữ cấu trúc `db/` và `media-store/`).
+3. `docker compose -f docker-compose.prod.yml --env-file $ENV up -d postgres` (chỉ Postgres; tạo vai trò và DB trống).
+4. `deploy/restore.sh $ENV <thư mục sao lưu> <thư mục khóa>`. Script từ chối nếu DB hoặc media đích không trống.
+5. `docker compose ... up -d`. `migrate` sẽ báo không có gì để làm.
+6. Kiểm như mục 2 bước 6, mở thử một khóa học và trang quản trị.
+
+Mục tiêu đề xuất (chờ G8): mất tối đa 24 giờ dữ liệu, dựng lại trong 1 ngày.
+
+### Thử khôi phục mỗi quý trên máy khác
+
+Người vận hành trên bờ làm, báo kết quả cho chủ dự án.
+
+1. Trên một máy **không phải** máy chủ: tải bản mới nhất từ nơi lưu ngoài.
+2. Mở bản lưu tệp env và khóa (mục 6) để chứng minh vẫn mở được.
+3. `deploy/restore-drill.sh <thư mục tải về> <thư mục khóa> --require-complete`.
+4. Ghi vào bảng dưới. Hỏng thì coi như **không có sao lưu**: sửa ngay, không để sang quý sau.
+
+| Ngày | Người làm | Bản sao lưu | Thời gian khôi phục | Kết quả |
+| --- | --- | --- | --- | --- |
+| 31/10/2026 | (thử trên máy phát triển, chưa phải máy khác) | bản thử | dưới 1 phút | Đạt; chưa tính cho G8 |
+
+## 6. Khóa và bí mật
+
+Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong bản sao lưu (nếu có thì muốn mở bản sao lưu lại cần chính nó). Vì vậy:
+
+- Giữ một bản mã hóa của hai thứ này ở ngoài máy chủ, do chủ dự án và người vận hành cùng giữ (ví dụ trình quản lý mật khẩu dùng chung). Cập nhật mỗi lần đổi khóa. Mỗi lần thử khôi phục phải mở được bản này.
+- **Mất khóa sao lưu là mất mọi bản sao lưu dùng khóa đó.** Không có cách lấy lại.
+- Mất khóa ký giấy phép học offline: tạo khóa mới, build lại app; học viên chỉ cần đồng bộ lại khi có mạng.
+
+**Đổi khóa sao lưu:** tạo tệp khóa mới (mã mới), đổi `BACKUP_KEY_ID`, `deploy/deploy.sh $ENV <tag hiện tại> --skip-build --skip-migrate` để worker đọc cấu hình mới. Bản mới mã hóa lại dần media bằng khóa mới. **Giữ khóa cũ ít nhất 30 ngày** (tới khi bản cuối dùng nó hết hạn); job sao lưu báo nếu thiếu khóa của bản còn giữ. Cập nhật bản lưu ngoài máy.
+
+**Đổi khóa phiên, pepper OTP, khóa ký giấy phép, bí mật SePay:** thêm khóa mới vào danh sách (khóa mới đứng trước), đổi mã khóa hiện tại, deploy; giữ khóa cũ tới khi hết hạn dùng rồi mới bỏ.
+
+## 7. Cảnh báo (nhóm Telegram lỗi)
+
+| Tin | Nghĩa là | Làm gì |
+| --- | --- | --- |
+| Ổ đĩa đã dùng 70% / 85% | Sắp đầy đĩa | Xem `docker system df`; xóa image cũ không dùng; nâng gói đĩa nếu media lớn dần |
+| Trang web không trả lời | App chết hoặc treo | `docker compose ... ps`, `logs app --tail 100`; `restart app`; vẫn hỏng thì quay lại bản trước |
+| Chứng chỉ HTTPS còn N ngày | Caddy không gia hạn được | `logs caddy`; kiểm tên miền còn trỏ đúng máy chủ, cổng 80 mở |
+| Quá 26 giờ không có bản sao lưu | Sao lưu hỏng hoặc không chạy | Trang quản trị → Job xem lỗi `me.backup.daily`; chạy ngay; kiểm khóa, chỗ trống đĩa, nơi lưu ngoài |
+| Sao lưu chỉ nằm trên máy chủ | Chưa cấu hình nơi lưu ngoài | Cấu hình `BACKUP_RCLONE_REMOTE` (G8) |
+| Sao lưu không chạy: chưa cấu hình | Thiếu `BACKUP_*` | Điền theo mục 2 bước 3 |
+| Thiếu tệp khóa sao lưu … | Một bản còn giữ dùng khóa đã bị xóa khỏi máy chủ | Chép lại tệp khóa từ bản lưu ngoài máy (mục 6); không có thì các bản đó không mở được |
+| N thông báo chờ gửi quá 30 phút | Telegram hoặc email lỗi kéo dài | Kiểm token, mạng máy chủ; tin không mất, sẽ gửi khi hết lỗi |
+| N thông báo đã ngừng thử gửi | Một thông báo lỗi 8 lần | Xem `last_error` trong bảng `outbox_events`; báo chủ nếu là thông báo cho học viên |
+| Job … không hoàn thành trong 3 chu kỳ / lỡ lịch | Job lỗi liên tục hoặc worker treo | Trang quản trị → Job xem lỗi; `logs worker`; `restart worker` |
+| Job … lỗi / quá giờ | Một lần chạy hỏng | Xem lỗi; thường tự hết ở lần sau; lặp lại thì báo chủ |
+
+**Không nhận được tin nào cả** cũng là dấu hiệu: worker hoặc Telegram có thể đã chết. Dịch vụ theo dõi bên ngoài (G8) gọi `/api/health` và `/api/health/worker` để báo trong trường hợp này.
+
+## 8. Trước khi ra mắt (G8)
+
+- [ ] Chọn VPS, đặt giới hạn CPU/RAM trong `docker-compose.prod.yml` theo cấu hình thật.
+- [ ] Tên miền trỏ về máy chủ; HTTPS chạy.
+- [ ] Tường lửa 80/443 + SSH bằng khóa; NTP; cập nhật bảo mật tự động; cảnh báo RAM/CPU của nhà cung cấp VPS.
+- [ ] Cấu hình Telegram (`TELEGRAM_*`), **gửi thử một cảnh báo tới nhóm lỗi** và xác nhận có người nhận khi chủ ở biển.
+- [ ] Nơi lưu ngoài (`BACKUP_RCLONE_REMOTE` + cấu hình rclone), chạy một lần sao lưu có `offsite: true`.
+- [ ] Dịch vụ theo dõi bên ngoài gọi `/api/health` và `/api/health/worker`.
+- [ ] Bản lưu ngoài máy của tệp env và khóa (mục 6).
+- [ ] Thử khôi phục trên một máy khác, ghi vào bảng mục 5.
+- [ ] Các mục nội dung và thanh toán trong `docs/noi-dung-can-chu-du-an.md`.

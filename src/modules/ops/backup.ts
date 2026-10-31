@@ -20,7 +20,7 @@ export type Manifest = {
   counts: Record<string, number>;
   media: MediaEntry[];
 };
-export type BackupStats = { name: string; dbBytes: number; mediaNew: number; mediaTotal: number; pruned: number; offsite: boolean };
+export type BackupStats = { name: string; dbBytes: number; mediaNew: number; mediaTotal: number; pruned: number; offsite: boolean; missingKeys: string[] };
 
 const RETENTION_MS = 30 * 86_400_000;
 const COUNTED = ["orders", "bank_transactions", "enrollments"] as const;
@@ -155,7 +155,10 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
       return prune(config, now);
     });
     if (config.remote) await pushOffsite(config, name, run, signal);
-    return { name, dbBytes: manifest.dump.bytes, mediaNew, mediaTotal: media.length, pruned, offsite: Boolean(config.remote) };
+    // Khóa của mọi bản còn giữ phải còn: mất khóa là mất bản sao lưu đó.
+    const kids = new Set(readManifests(join(config.dir, "db")).flatMap((m) => [m.kid, ...m.media.map((x) => x.kid)]));
+    const missingKeys = [...kids].filter((kid) => !existsSync(join(config.keysDir, kid))).sort();
+    return { name, dbBytes: manifest.dump.bytes, mediaNew, mediaTotal: media.length, pruned, offsite: Boolean(config.remote), missingKeys };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
     for (const file of existsSync(store) ? readdirSync(store) : []) if (file.startsWith(".tmp-")) rmSync(join(store, file), { force: true });
@@ -163,9 +166,15 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
 }
 
 /** Cảnh báo vận hành về sao lưu, mỗi lý do một tin mỗi ngày (giờ Việt Nam). */
-export async function backupAlerts(state: { offsite?: boolean; notConfigured?: boolean }, now = new Date()) {
+export async function backupAlerts(state: { offsite?: boolean; notConfigured?: boolean; missingKeys?: string[] }, now = new Date()) {
   const day = new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
-  const reason = state.notConfigured ? "not_configured" : state.offsite === false ? "no_offsite" : null;
-  if (!reason) return;
-  await withTx((tx) => enqueueOutbox(tx, { dedupKey: `backup_alert:${reason}:${day}`, kind: "backup_alert", channel: "telegram", payload: { reason, day } }));
+  const reasons: { reason: string; keys?: string[] }[] = [];
+  if (state.notConfigured) reasons.push({ reason: "not_configured" });
+  if (state.offsite === false) reasons.push({ reason: "no_offsite" });
+  if (state.missingKeys?.length) reasons.push({ reason: "missing_key", keys: state.missingKeys });
+  await withTx(async (tx) => {
+    for (const r of reasons) {
+      await enqueueOutbox(tx, { dedupKey: `backup_alert:${r.reason}:${day}`, kind: "backup_alert", channel: "telegram", payload: { ...r, day } });
+    }
+  });
 }
