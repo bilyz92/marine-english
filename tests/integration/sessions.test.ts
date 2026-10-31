@@ -163,7 +163,8 @@ describe("xoay token học viên", () => {
   it("token cũ trong cửa sổ 2 phút → hợp lệ, cấp lại token hiện tại; cả sau khi khởi động lại", async () => {
     const s = await newLearner();
     const next = await rotate(s.sessionId);
-    await shiftBack("learner_sessions", s.sessionId, ["prev_valid_until"], 2 * MIN - MARGIN);
+    // Còn 30 giây trong cửa sổ: đủ dư cho bước kết nối lại DB khi cả bộ test chạy nặng.
+    await shiftBack("learner_sessions", s.sessionId, ["prev_valid_until"], 2 * MIN - 30_000);
     const view = await validateSession("learner", s.token);
     expect(view?.reissue).toEqual({ token: next.token, csrf: next.csrf });
     await disconnectDb();
