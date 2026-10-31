@@ -1,0 +1,27 @@
+/* Biến thiết kế dùng chung (Spec giao diện v1, mục 3). Màu chỉ khai báo ở đây. */
+:root {
+  --color-primary: #5b21b6;
+  --color-primary-dark: #4c1d95;
+  --color-primary-soft: #ede5fb;
+  --color-action: #c2410c;
+  --color-text: #1c1630;
+  --color-text-2: #3a3550;
+  --color-muted: #5b5670;
+  --color-bg: #ffffff;
+  --color-bg-alt: #f8f7fb;
+  --color-bg-soft: #f7f4fd;
+  --color-border: #e7e5ee;
+  --color-border-input: #cfc6e6;
+  --color-line: #f1f0f5;
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fef2f2;
+  --color-success: #166534;
+  --color-success-bg: #f0fdf4;
+  --color-warning: #7c2d12;
+  --color-warning-bg: #fff7ed;
+  --color-warning-border: #fdba74;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --touch: 44px;
+  --touch-main: 48px;
+}

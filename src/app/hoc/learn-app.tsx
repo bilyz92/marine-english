@@ -6,6 +6,7 @@ import {
   loadIdentity, licenseStatus, pendingCount, syncNow,
   type Identity, type LicenseStatus,
 } from "@/lib/offline/engine";
+import { NEXT_KEY } from "../(site)/dang-nhap/api";
 import { CourseList } from "./course-list";
 import { CourseView } from "./course-view";
 import { LessonView } from "./lesson-view";
@@ -49,6 +50,12 @@ export function LearnApp() {
   }, []);
 
   useEffect(() => {
+    // Đăng nhập Google và bước chọn máy luôn về đây: quay lại trang đang mua nếu có.
+    const next = sessionStorage.getItem(NEXT_KEY);
+    if (next) {
+      sessionStorage.removeItem(NEXT_KEY);
+      if (next !== "/hoc") return window.location.replace(next);
+    }
     registerServiceWorker();
     loadIdentity().then(({ identity, online }) => {
       setOffline(!online);

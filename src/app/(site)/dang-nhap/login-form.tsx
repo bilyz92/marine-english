@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./login.module.css";
-import { DEVICES_KEY, postJson, type VerifyResult } from "./api";
+import { DEVICES_KEY, NEXT_KEY, postJson, type VerifyResult } from "./api";
 import { deviceLabel, getDeviceKey } from "./device-key";
 
 const RANKS = [
@@ -13,7 +13,9 @@ const RANKS = [
 
 type Mode = "signup" | "login";
 
-export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean; googleFailed: boolean }) {
+const RESEND_SECONDS = 60;
+
+export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: boolean; googleFailed: boolean; next: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signup");
   const [step, setStep] = useState<"form" | "code" | "done">("form");
@@ -23,6 +25,13 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(googleFailed ? "Đăng nhập Google không thành công. Thử lại hoặc dùng email." : null);
   const [busy, setBusy] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn(resendIn - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
 
   const profile = mode === "signup" ? { displayName: displayName.trim(), rank: rank || null } : {};
 
@@ -35,17 +44,27 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
     setBusy(false);
     if (status !== 200) return setError(data.error ?? "Không gửi được mã, thử lại sau.");
     setError(null);
+    setResendIn(RESEND_SECONDS);
     setStep("code");
+  }
+
+  async function resend() {
+    setBusy(true);
+    const { status, data } = await postJson<{ error?: string }>("/api/auth/learner/otp/send", { contact, ...profile });
+    setBusy(false);
+    if (status !== 200) return setError(data.error ?? "Không gửi được mã, thử lại sau.");
+    setError(null);
+    setResendIn(RESEND_SECONDS);
   }
 
   function openLearning() {
     // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.assign("/hoc");
+    window.location.assign(next);
   }
 
   async function google() {
     setBusy(true);
+    sessionStorage.setItem(NEXT_KEY, next);
     const { status, data } = await postJson<{ redirectUrl?: string }>("/api/auth/learner/google/start", {
       deviceKey: await getDeviceKey(), deviceLabel: deviceLabel(),
     });
@@ -65,6 +84,7 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
     if (data.next === "done") return setStep("done");
     if (data.next === "choose_device") {
       sessionStorage.setItem(DEVICES_KEY, JSON.stringify(data.devices ?? []));
+      sessionStorage.setItem(NEXT_KEY, next);
       return router.push("/dang-nhap/chon-thiet-bi");
     }
     setError(data.error ?? "Mã không đúng hoặc đã hết hạn. Kiểm tra lại hoặc gửi mã mới.");
@@ -75,7 +95,7 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
       <div>
         <h2 className={styles.title}>{mode === "signup" ? "Đã tạo tài khoản" : "Đã đăng nhập"}</h2>
         <p className={styles.lead}>Quyền lợi đã mở trong tài khoản.</p>
-        <button className={styles.primary} onClick={openLearning}>Vào khóa học của tôi</button>
+        <button className={styles.primary} onClick={openLearning}>Tiếp tục</button>
       </div>
     );
   }
@@ -84,13 +104,17 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
     return (
       <form onSubmit={verify}>
         <h2 className={styles.title}>Nhập mã xác minh</h2>
-        <p className={styles.lead}>Mã gửi tới {contact}. Mã có hiệu lực 5 phút.</p>
+        <p className={styles.lead}>Nếu thông tin đúng, mã đã được gửi qua {contact.includes("@") ? "email" : "Zalo"} tới {contact}. Mã có hiệu lực 5 phút.</p>
         <div className={styles.field}>
           <input className={styles.input} inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-            value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} aria-label="Mã 6 chữ số" />
+            value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} aria-label="Mã 6 chữ số" aria-invalid={Boolean(error)} />
           {error && <span className={styles.error}>{error}</span>}
         </div>
         <button className={styles.primary} disabled={busy}>Xác minh</button>
+        <button type="button" className={styles.link} disabled={busy || resendIn > 0} onClick={resend}>
+          {resendIn > 0 ? `Gửi lại mã sau ${resendIn} giây` : "Gửi lại mã"}
+        </button>
+        <p className={styles.note}>Gửi nhiều lần có thể bị giới hạn, đợi ít phút rồi thử lại.</p>
         <button type="button" className={styles.link} onClick={() => { setStep("form"); setCode(""); setError(null); }}>
           ← Đổi cách liên hệ
         </button>
@@ -115,7 +139,9 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
       <label className={styles.field}>
         <span className={styles.label}>Email</span>
         <input className={styles.input} type="email" autoComplete="email" value={contact} onChange={(e) => setContact(e.target.value)} />
-        {!zaloEnabled && <span className={styles.note}>Đăng nhập bằng số điện thoại qua Zalo sẽ mở sau.</span>}
+        {zaloEnabled
+          ? <span className={styles.note}>Không dùng Zalo? Đăng nhập bằng email hoặc Google.</span>
+          : <span className={styles.note}>Đăng nhập bằng số điện thoại qua Zalo sẽ mở sau.</span>}
       </label>
       {mode === "signup" && (
         <label className={styles.field}>

@@ -8,3 +8,6 @@ export type Device = { id: string; label: string; lastSeenAt: string | null };
 export type VerifyResult = { next: "done" | "invalid" | "choose_device"; devices?: Device[]; error?: string };
 
 export const DEVICES_KEY = "me-choose-devices";
+
+/** Nơi về sau khi đăng nhập, giữ qua bước chọn máy. */
+export const NEXT_KEY = "me.login.next";

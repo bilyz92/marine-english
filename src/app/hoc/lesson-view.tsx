@@ -7,20 +7,9 @@ import {
 } from "@/lib/offline/engine";
 import { canOpenLesson } from "@/lib/offline/access";
 import { licenseStatus, nowSeconds } from "@/lib/offline/engine";
+import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
-
-type Text = { en?: string; vi?: string };
-type Activity = { id: string; order: number; type: string; requires_microphone?: boolean };
-type LessonContent = {
-  question?: { text?: Text };
-  key_points?: { id: string; text?: Text }[];
-  vocabulary?: { id: string; text?: Text }[];
-  model_answer?: { text?: Text };
-  follow_up_questions?: { id: string; prompt?: Text }[];
-  recall_cards?: { id: string; front?: Text; back?: Text }[];
-  activities?: Activity[];
-};
 
 const ACTIVITY_LABEL: Record<string, string> = {
   listen: "Nghe",
@@ -30,15 +19,6 @@ const ACTIVITY_LABEL: Record<string, string> = {
   record_audio: "Tập nói",
   self_review: "Tự đánh giá",
 };
-
-function Bilingual({ text }: { text?: Text }) {
-  return (
-    <>
-      {text?.en && <p className={styles.en}>{text.en}</p>}
-      {text?.vi && <p className={styles.vi}>{text.vi}</p>}
-    </>
-  );
-}
 
 type Props = {
   identity: Identity;
@@ -54,8 +34,6 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
   const [loaded, setLoaded] = useState<
     { manifest: Manifest; lesson: ManifestLesson; content: LessonContent | null; license: LicenseStatus } | "missing" | null
   >(null);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [shownCards, setShownCards] = useState<Set<string>>(new Set());
   const [doneActivities, setDoneActivities] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState(false);
   const [audio, setAudio] = useState<string[]>([]);
@@ -133,48 +111,10 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
       <div className={styles.actions}>
         <button className={styles.secondary} onClick={() => go({ khoa: slug })}>← Danh sách bài</button>
       </div>
-      <div className={styles.card}>
-        <p className={styles.muted}>Bài {lesson.externalId} · Câu hỏi phỏng vấn</p>
-        <Bilingual text={content.question?.text} />
+      <LessonBody externalId={lesson.externalId} content={content}>
         {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
         {audio.length === 0 && <p className={styles.muted}>Bài này chưa có âm thanh.</p>}
-      </div>
-      {!!content.key_points?.length && (
-        <div className={styles.card}>
-          <h2 className={styles.h2}>Ý bắt buộc</h2>
-          {content.key_points.map((k) => <div key={k.id} className={styles.item}><Bilingual text={k.text} /></div>)}
-        </div>
-      )}
-      {!!content.vocabulary?.length && (
-        <div className={styles.card}>
-          <h2 className={styles.h2}>Từ vựng</h2>
-          {content.vocabulary.map((v) => <div key={v.id} className={styles.item}><Bilingual text={v.text} /></div>)}
-        </div>
-      )}
-      <div className={styles.card}>
-        <h2 className={styles.h2}>Đáp án mẫu</h2>
-        {showAnswer ? <Bilingual text={content.model_answer?.text} /> : <p className={styles.muted}>Đáp án đang che. Tự nói câu trả lời bằng tiếng Anh trước.</p>}
-        <p><button className={styles.secondary} onClick={() => setShowAnswer(!showAnswer)}>{showAnswer ? "Che đáp án" : "Xem đáp án"}</button></p>
-      </div>
-      {!!content.recall_cards?.length && (
-        <div className={styles.card}>
-          <h2 className={styles.h2}>Thẻ ôn</h2>
-          {content.recall_cards.map((c) => (
-            <div key={c.id} className={styles.item}>
-              <Bilingual text={c.front} />
-              {shownCards.has(c.id) ? <Bilingual text={c.back} /> : (
-                <p><button className={styles.secondary} onClick={() => setShownCards(new Set(shownCards).add(c.id))}>Xem ý trả lời</button></p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      {!!content.follow_up_questions?.length && (
-        <div className={styles.card}>
-          <h2 className={styles.h2}>Câu hỏi tiếp theo</h2>
-          {content.follow_up_questions.map((q) => <div key={q.id} className={styles.item}><Bilingual text={q.prompt} /></div>)}
-        </div>
-      )}
+      </LessonBody>
       {!!content.activities?.length && (
         <div className={styles.card}>
           <h2 className={styles.h2}>Hoạt động</h2>

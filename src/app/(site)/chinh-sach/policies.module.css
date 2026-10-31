@@ -1,0 +1,5 @@
+.page { max-width: 768px; display: flex; flex-direction: column; gap: 16px; }
+.page ul { margin: 0; padding-left: 20px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab { min-height: var(--touch); padding: 0 16px; display: flex; align-items: center; border-radius: var(--radius-control); border: 1px solid var(--color-border); color: var(--color-text-2); text-decoration: none; font-weight: 500; }
+.tabActive { composes: tab; border-color: var(--color-primary); color: var(--color-primary); font-weight: 700; }

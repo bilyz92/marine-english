@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../login.module.css";
-import { DEVICES_KEY, postJson, type Device } from "../api";
+import { DEVICES_KEY, postJson, type Device, NEXT_KEY } from "../api";
 import { getDeviceKey } from "../device-key";
 
 function loadDevices(): Device[] {
@@ -37,8 +37,7 @@ export function ChooseDevice() {
     setBusy(false);
     sessionStorage.removeItem(DEVICES_KEY);
     // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    if (data.next === "done") return window.location.assign("/hoc");
+    if (data.next === "done") return window.location.assign(sessionStorage.getItem(NEXT_KEY) ?? "/hoc");
     setError("Phiên chọn máy đã hết hạn. Đăng nhập lại để thử tiếp.");
   }
 

@@ -1,0 +1,7 @@
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 32px; align-items: start; }
+.main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.lessons { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.lesson { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+.lesson > :last-child { flex: none; white-space: nowrap; }
+.buy { position: sticky; top: 16px; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } .buy { position: static; order: -1; } }
