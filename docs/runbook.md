@@ -68,7 +68,7 @@ Nơi lưu ngoài chỉ dọn bản quá 30 ngày theo ngày của chính nó, kh
 deploy/restore-drill.sh <volume hoặc thư mục sao lưu> <thư mục khóa> [tên bản] [--require-complete]
 ```
 
-Kết thúc bằng `KHÔI PHỤC ĐẠT` và mã thoát 0. Bản lấy từ nơi lưu ngoài thì thêm `--require-complete`.
+Kết thúc bằng `KHÔI PHỤC ĐẠT` và mã thoát 0. Bản lấy từ nơi lưu ngoài thì thêm `--require-complete`. Mỗi bản có `manifest.mac` ký bằng khóa sao lưu: manifest bị sửa (kể cả ở nơi lưu ngoài) hoặc sai khóa thì khôi phục từ chối trước khi chạy gì.
 
 **Khôi phục thật** khi mất máy chủ:
 

@@ -36,6 +36,3 @@ Anh duyệt lại. Câu nào đúng trở lại thì đưa về nguyên văn.
 
 Bài “Câu chuyện người sáng lập” giữ nguyên văn. Bài dùng tên **Marine Engine Academy** trong khi trang dùng **Marine English**: anh xem có cần thống nhất không.
 
-## Đăng nhập
-
-Đăng nhập Google xong luôn về `/hoc`, chưa quay lại đúng trang mua như đăng nhập bằng email.

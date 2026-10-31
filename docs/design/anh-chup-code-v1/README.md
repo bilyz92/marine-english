@@ -21,7 +21,8 @@ Mỗi trang được kiểm tự động: không tràn ngang, mọi ô nhập c�
 | Tổng quan, Đơn hàng, Học viên, Sổ giao dịch, Hoàn tiền, Khóa học, Quản trị viên, Job | có | có câu riêng | có, kèm nút thử lại | “không có quyền xem” | có | admin.mjs |
 | Hộp xác nhận | — | — | lỗi hiện trong hộp, hộp không đóng | — | đóng và tải lại | admin.mjs (Escape, focus quay về nút) |
 
+- `node tests/e2e-ui/keyboard.mjs <địa chỉ> <mã khóa> <thư mục>`: chỉ dùng bàn phím trên trang mua và thanh toán (Tab tới ô đồng ý, Space tích, Enter sang thanh toán, Tab tới 3 nút chép, mọi chỗ dừng có viền focus 2px), và nhánh đăng nhập Google quay về đúng trang mua (12 điểm kiểm).
+
 ## Chưa kiểm
 
-- Thứ tự Tab trên trang mua và thanh toán (plan yêu cầu thử bằng bàn phím): chưa thử.
-- Trình đọc màn hình: chưa thử.
+- Trình đọc màn hình (VoiceOver, TalkBack): chưa thử, cần người thử trên điện thoại thật.
