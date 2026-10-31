@@ -197,6 +197,8 @@ model AdminUser {
   refundsConfirmed        Refund[]                      @relation("RefundConfirmedBy")
   grants                  Enrollment[]                  @relation("GrantedBy")
 
+  jobRequests JobRequest[]
+
   @@map("admin_users")
 }
 
@@ -557,6 +559,8 @@ model OutboxEvent {
   lastError     String?   @map("last_error")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   sentAt        DateTime? @map("sent_at") @db.Timestamptz(6)
+  claimToken    String?   @map("claim_token") @db.Uuid
+  claimedUntil  DateTime? @map("claimed_until") @db.Timestamptz(6)
 
   @@index([status, nextAttemptAt], map: "outbox_events_due_idx")
   @@map("outbox_events")
@@ -654,4 +658,44 @@ model SyncRejection {
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@map("sync_rejections")
+}
+
+// ===== Worker (migration jobs) =====
+
+model JobLease {
+  jobName    String   @id @map("job_name")
+  token      String   @db.Uuid
+  generation BigInt
+  holder     String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@map("job_leases")
+}
+
+model JobRun {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobName    String       @map("job_name")
+  startedAt  DateTime     @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime?    @map("finished_at") @db.Timestamptz(6)
+  status     String
+  error      String?
+  stats      Json?
+  generation BigInt?
+  requests   JobRequest[]
+
+  @@index([jobName, startedAt(sort: Desc)], map: "job_runs_job_started_idx")
+  @@map("job_runs")
+}
+
+model JobRequest {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobName     String    @map("job_name")
+  requestedBy String    @map("requested_by") @db.Uuid
+  requestedAt DateTime  @default(now()) @map("requested_at") @db.Timestamptz(6)
+  pickedAt    DateTime? @map("picked_at") @db.Timestamptz(6)
+  runId       String?   @map("run_id") @db.Uuid
+  requester   AdminUser @relation(fields: [requestedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  run         JobRun?   @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@map("job_requests")
 }
