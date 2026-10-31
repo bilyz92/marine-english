@@ -46,7 +46,8 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
 
   let result: RunResult;
   try {
-    const work = def.run({ lease, signal: controller.signal });
+    // Worker đã tắt trước khi tới lượt thì không bắt đầu job; kết quả tính theo lý do hủy ở dưới.
+    const work = controller.signal.aborted ? Promise.resolve<JobStats>({}) : def.run({ lease, signal: controller.signal });
     work.catch(() => {}); // job bị bỏ giữa chừng vẫn có thể ném sau đó; ghi của nó đã bị chặn bằng fence
     const raced = await Promise.race([work.then((stats) => ({ stats })), stopped.then((reason) => ({ reason }))]);
     // Job trả về sau khi đã bị hủy thì vẫn tính theo lý do hủy, không phải xong.

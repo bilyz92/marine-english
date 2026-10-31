@@ -16,7 +16,6 @@ const scheduler = createScheduler(JOBS, `${hostname()}:${process.pid}`, { signal
 
 let stopping = false;
 const timer = setInterval(() => {
-  if (stopping) return;
   scheduler.tick().catch((error: unknown) => {
     log({ error: error instanceof Error ? error.message : String(error) });
   });
@@ -26,6 +25,7 @@ async function shutdown(signal: string) {
   if (stopping) return;
   stopping = true;
   clearInterval(timer);
+  scheduler.stop();
   log({ stopping: signal });
   // Chờ job đang chạy xong; quá hạn thì hủy để runner ghi nhật ký và nhả lease trước khi thoát.
   await Promise.race([scheduler.drain(), sleep(SHUTDOWN_GRACE_MS)]);

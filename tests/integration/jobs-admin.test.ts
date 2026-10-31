@@ -175,6 +175,31 @@ describe("worker tick", () => {
     expect((await prisma().jobRequest.findFirstOrThrow()).pickedAt).toBeNull();
   });
 
+  it("dừng khi lượt tick còn dở → không khởi động job mới; drain chờ cả lượt đó; tick sau không làm gì", async () => {
+    const b = blocking("me.stop");
+    b.release();
+    const s = createScheduler([b.def], "w1");
+    const tick = s.tick();
+    s.stop();
+    await s.drain();
+    expect(b.runs()).toBe(0);
+    await tick;
+    await s.tick();
+    await s.drain();
+    expect(b.runs()).toBe(0);
+    expect(await prisma().jobRun.count({ where: { jobName: "me.stop" } })).toBe(0);
+  });
+
+  it("runJob với tín hiệu đã hủy sẵn → không gọi job, ghi shutdown, nhả lease", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    let called = false;
+    const def = { name: "me.pre", timeoutMs: 5000, run: async () => { called = true; return {}; } };
+    expect(await runJob(def, "w1", { signal: controller.signal })).toMatchObject({ status: "failed", error: "shutdown" });
+    expect(called).toBe(false);
+    expect((await prisma().jobLease.findUniqueOrThrow({ where: { jobName: "me.pre" } })).expiresAt.getTime()).toBeLessThan(Date.now());
+  });
+
   it("yêu cầu cho job đã bỏ khỏi danh sách → đánh dấu đã nhận, không kẹt", async () => {
     const owner = await adminSess("owner");
     await callAdmin(POST, owner, "POST", PATH, { job: "me.orders.expire" });

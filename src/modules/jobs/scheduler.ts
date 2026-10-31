@@ -49,9 +49,10 @@ function consumesRequest(result: RunResult): boolean {
 export function createScheduler(jobs: ScheduledJob[], holder: string, opts: { signal?: AbortSignal } = {}) {
   const inflight = new Map<string, Promise<void>>();
   let ticking: Promise<void> | null = null;
+  let stopped = false;
 
   function start(job: ScheduledJob, requestIds: string[] = []) {
-    if (inflight.has(job.name)) return;
+    if (stopped || inflight.has(job.name)) return;
     const task = runJob(job, holder, { signal: opts.signal })
       .then(async (result) => {
         if (requestIds.length > 0 && consumesRequest(result)) await markPicked(requestIds, result.runId);
@@ -79,12 +80,19 @@ export function createScheduler(jobs: ScheduledJob[], holder: string, opts: { si
   return {
     /** Lượt đang chạy dở thì dùng chung lượt đó, không chạy chồng. */
     tick(): Promise<void> {
+      if (stopped) return Promise.resolve();
       ticking ??= runTick().finally(() => {
         ticking = null;
       });
       return ticking;
     },
+    /** Ngừng nhận việc mới ngay lập tức, kể cả với lượt tick đang chạy dở. */
+    stop(): void {
+      stopped = true;
+    },
+    /** Chờ lượt tick đang dở rồi tới mọi job nó đã khởi động. */
     async drain(): Promise<void> {
+      await ticking?.catch(() => undefined);
       await Promise.allSettled([...inflight.values()]);
     },
   };
