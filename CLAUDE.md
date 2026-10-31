@@ -43,6 +43,7 @@ Trước khi tiếp tục phát triển, đọc docs/session-handoff.md và tài
 - `docs/technical-design-draft-2026-10-30.md`: DRAFT v2 technical design (decision D1 approved 30/10/2026: own database sessions + openid-client, no Auth.js) (deployment on one VPS, code layout, database tables and constraints, payment ledger flows, learner/admin auth, offline licence and sync, media access, worker jobs, tests). Not checked against the spec doc; gate dependencies marked `[Gx]`; the design-gates file wins on conflict.
 - `docs/lessons-from-lms-cole.md`: lessons from the Cole LMS project (Spring Boot), mainly its working Zalo ZNS OTP and OnePay handling, plus its OTP security gaps to avoid (30/10/2026). Read before building Zalo login or the payment webhook.
 - `docs/lessons-from-waker.md`: patterns to reuse and mistakes to avoid, learned from the owner's Rails project Waker (29/10/2026). Read before designing orders, admin commands, permissions or scheduled jobs.
+- `docs/ba-doi-chieu-2026-11-01.md`: where the BA tab and the code disagree (01/11/2026), each with the decision behind it; the owner decides whether the BA or the code changes. `docs/noi-dung-can-chu-du-an.md`: content and payment details only the owner can supply, and the claims removed from the home page. `docs/runbook.md`: operations.
 - `docs/data-flows.md`: business and data flows built so far. They are all clickable prototypes on the UI design canvas https://claude.ai/artifact/GGG6B1yonpRgD2FQ5hizCy, with no backend.
 
 ## Product
