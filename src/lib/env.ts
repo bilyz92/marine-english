@@ -65,6 +65,10 @@ const schema = z
           .map((part) => part.slice(part.indexOf(":") + 1))
           .filter((secret) => secret.length > 0),
       ),
+    // Telegram cho kinh doanh và nhóm lỗi; thiếu thì tin nằm chờ trong outbox, không mất.
+    TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+    TELEGRAM_BUSINESS_CHAT_ID: z.string().min(1).optional(),
+    TELEGRAM_ERROR_CHAT_ID: z.string().min(1).optional(),
   })
   .refine((e) => e.SESSION_ENC_KEYS.has(e.SESSION_ENC_KEY_CURRENT), {
     path: ["SESSION_ENC_KEY_CURRENT"],

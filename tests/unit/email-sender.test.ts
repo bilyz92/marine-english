@@ -11,6 +11,13 @@ describe("bộ gửi email", () => {
     expect(otpSenderFor("email")).toBe(devMailbox);
   });
 
+  it("thư thông báo: dev vào hộp thư giả, production báo chưa cấu hình", async () => {
+    await emailSender().sendNotice("tb@x.vn", "Chủ đề", "Nội dung");
+    expect(devMailbox.messages().at(-1)).toMatchObject({ to: "tb@x.vn", kind: "notice", body: "Chủ đề\n\nNội dung" });
+    vi.stubEnv("NODE_ENV", "production");
+    await expect(emailSender().sendNotice("tb@x.vn", "c", "n")).rejects.toBeInstanceOf(EmailNotConfiguredError);
+  });
+
   it("production chưa có nhà cung cấp email (G7) → báo lỗi gửi, không giữ mã trong bộ nhớ", async () => {
     vi.stubEnv("NODE_ENV", "production");
     devMailbox.clear();

@@ -9,3 +9,8 @@ export interface OtpSender {
 export interface AdminLinkSender {
   sendAdminLink(email: string, url: string): Promise<void>;
 }
+
+/** Gửi thư thông báo cho học viên (đơn đã thanh toán, đã hoàn tiền). */
+export interface NoticeSender {
+  sendNotice(email: string, subject: string, body: string): Promise<void>;
+}

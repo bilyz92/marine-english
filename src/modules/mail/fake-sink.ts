@@ -1,11 +1,11 @@
-import type { AdminLinkSender, OtpKind, OtpSender } from "./contracts";
+import type { AdminLinkSender, NoticeSender, OtpKind, OtpSender } from "./contracts";
 
 const MAX_MESSAGES = 200;
 
-export type FakeMessage = { to: string; kind: "otp" | "admin_link"; body: string };
+export type FakeMessage = { to: string; kind: "otp" | "admin_link" | "notice"; body: string };
 
 // Bộ gửi giả cho dev/test: chỉ giữ thư trong bộ nhớ, không ghi log (thư chứa mã thô).
-export class FakeEmailSink implements OtpSender, AdminLinkSender {
+export class FakeEmailSink implements OtpSender, AdminLinkSender, NoticeSender {
   private inbox: FakeMessage[] = [];
 
   async send(_kind: OtpKind, valueCanonical: string, code: string): Promise<void> {
@@ -14,6 +14,10 @@ export class FakeEmailSink implements OtpSender, AdminLinkSender {
 
   async sendAdminLink(email: string, url: string): Promise<void> {
     this.keep({ to: email, kind: "admin_link", body: url });
+  }
+
+  async sendNotice(email: string, subject: string, body: string): Promise<void> {
+    this.keep({ to: email, kind: "notice", body: `${subject}\n\n${body}` });
   }
 
   private keep(message: FakeMessage): void {
