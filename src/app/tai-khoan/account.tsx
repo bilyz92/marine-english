@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { licenseStatus, loadIdentity, signOut, type Identity, type LicenseStatus } from "@/lib/offline/engine";
+import { clearLocal, licenseStatus, loadIdentity, signOut, type Identity, type LicenseStatus } from "@/lib/offline/engine";
 import { forgetDeviceKey } from "../(site)/dang-nhap/device-key";
 import styles from "../hoc/learn.module.css";
 
@@ -45,9 +45,12 @@ export function Account() {
     const res = await fetch(`/api/me/devices?id=${device.id}`, { method: "DELETE", headers: csrfHeader() });
     if (res.status === 403) return setMessage("Vì an toàn, cần đăng nhập lại trong 10 phút gần đây mới gỡ được thiết bị.");
     if (!res.ok) return setMessage("Không gỡ được thiết bị, thử lại sau.");
-    // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    if (device.current) return window.location.assign("/dang-nhap");
+    if (device.current) {
+      await clearLocal(identity);
+      // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      return window.location.assign("/dang-nhap");
+    }
     setMessage(null);
     await refreshDevices();
   }

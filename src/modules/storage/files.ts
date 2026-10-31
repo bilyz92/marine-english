@@ -70,10 +70,18 @@ export async function putFileAt(
 }
 
 /** Mở tệp được bảo vệ theo storageKey (không bao giờ lấy đường dẫn từ client); từ chối symlink và mọi thứ ngoài thư mục gốc. */
-export async function openProtectedAt(root: string, storageKey: string): Promise<{ handle: FileHandle; size: number } | null> {
+export function openProtectedAt(root: string, storageKey: string) {
+  return openAt(root, "protected", storageKey);
+}
+
+export function openPublicAt(root: string, storageKey: string) {
+  return openAt(root, "public", storageKey);
+}
+
+async function openAt(root: string, visibility: Visibility, storageKey: string): Promise<{ handle: FileHandle; size: number } | null> {
   if (!STORAGE_KEY.test(storageKey)) return null;
   try {
-    const base = await realpath(path.join(root, "protected"));
+    const base = await realpath(path.join(root, visibility));
     const candidate = path.join(base, storageKey);
     const info = await lstat(candidate);
     if (!info.isFile() || info.isSymbolicLink()) return null;

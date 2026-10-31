@@ -10,7 +10,7 @@ export type Manifest = {
   titleVi: string;
   versionId: string;
   lessons: { position: number; lessonVersionId: string; externalId: string; title: string; contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[] }[];
-  assets: { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string }[];
+  assets: { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string; visibility: "public" | "protected"; url: string }[];
   totalBytes: number;
 };
 
@@ -35,8 +35,10 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
     LEFT JOIN learning_progress lp ON lp.lesson_id = l.id AND lp.user_id = ${ctx.userId}::uuid
     WHERE cvl.course_version_id = ${course.current_version_id}::uuid
     ORDER BY cvl.position`;
-  const assets = await db.$queryRaw<{ id: string; lesson_version_id: string; role: string; mime: string; bytes: number; sha256: string }[]>`
-    SELECT ma.id, lva.lesson_version_id, lva.role, ma.mime, ma.bytes, ma.sha256
+  const assets = await db.$queryRaw<
+    { id: string; lesson_version_id: string; role: string; mime: string; bytes: number; sha256: string; visibility: "public" | "protected"; storage_key: string }[]
+  >`
+    SELECT ma.id, lva.lesson_version_id, lva.role, ma.mime, ma.bytes, ma.sha256, ma.visibility, ma.storage_key
     FROM lesson_version_assets lva
     JOIN media_assets ma ON ma.id = lva.media_asset_id
     JOIN course_version_lessons cvl ON cvl.lesson_version_id = lva.lesson_version_id
@@ -54,7 +56,11 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
       title: l.title ?? l.external_id, contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
       status: l.status, completedActivities: l.completed_activities ?? [],
     })),
-    assets: assets.map((a) => ({ assetId: a.id, lessonVersionId: a.lesson_version_id, role: a.role, mime: a.mime, bytes: a.bytes, sha256: a.sha256 })),
+    // Tệp công khai tải theo đường dẫn ổn định (Caddy phục vụ ở production); tệp bảo vệ chỉ qua API có kiểm quyền.
+    assets: assets.map((a) => ({
+      assetId: a.id, lessonVersionId: a.lesson_version_id, role: a.role, mime: a.mime, bytes: a.bytes, sha256: a.sha256, visibility: a.visibility,
+      url: a.visibility === "public" ? `/media/${a.storage_key}` : `/api/learn/files/${a.id}`,
+    })),
     totalBytes: [...bytesById.values()].reduce((sum, b) => sum + b, 0),
   };
 }

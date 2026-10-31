@@ -83,3 +83,12 @@ describe("gộp tài khoản chép tiến độ", () => {
     expect(await prisma().learningProgress.count({ where: { userId: s.learner.userId } })).toBe(2);
   });
 });
+
+describe("gỡ hộ đồng thời (Codex P3 #7)", () => {
+  it("hai quản trị cùng gỡ một máy → một removed, một not_found", async () => {
+    const a = await testLearner("A");
+    const [s1, s2] = [await adminCtx("support"), await adminCtx("support")];
+    const results = await Promise.all([adminRemoveDevice(s1, a.deviceId, "mất máy"), adminRemoveDevice(s2, a.deviceId, "mất máy")]);
+    expect(results.sort()).toEqual(["not_found", "removed"]);
+  });
+});

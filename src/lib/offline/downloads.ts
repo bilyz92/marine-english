@@ -1,6 +1,9 @@
 // Tải khóa về máy: tính phần còn thiếu theo manifest và kiểm sha256 từng tệp. Chỉ “đã tải xong” khi không còn gì thiếu.
 
-export type ManifestAsset = { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string };
+export type ManifestAsset = {
+  assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string;
+  visibility: "public" | "protected"; url: string;
+};
 export type ManifestLessonRef = { lessonVersionId: string; contentHash: string };
 
 export function planDownloads<L extends ManifestLessonRef>(

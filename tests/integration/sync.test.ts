@@ -193,3 +193,21 @@ describe("nhiều thiết bị đồng bộ cùng lúc", () => {
     expect(Date.now() - started).toBeLessThan(15_000);
   }, 60_000);
 });
+
+describe("đồng bộ kiểm lại người, máy, phiên (Codex P3 #4)", () => {
+  it("tài khoản đã gộp, thiết bị đã gỡ hoặc phiên đã thu hồi → 401, không lưu sự kiện", async () => {
+    const s = await setup();
+    const { testLearner } = await import("../helpers/learner-ctx");
+    const { mergeAccounts } = await import("@/modules/enrollments/merge");
+    const target = await testLearner("Đích");
+    await mergeAccounts(await adminCtx("owner"), { sourceUserId: s.l.userId, targetUserId: target.userId, reason: "gộp", preview: false });
+    await expect(syncEvents(s.l, { events: [ev(1, s.ids.T001!.lv, "lesson_opened")] })).rejects.toMatchObject({ status: 401 });
+    const other = await testLearner("Khác");
+    await prisma().device.update({ where: { id: other.deviceId }, data: { revokedAt: new Date() } });
+    await expect(syncEvents(other, { events: [] })).rejects.toMatchObject({ status: 401 });
+    const third = await testLearner("Ba");
+    await prisma().learnerSession.update({ where: { id: third.sessionId }, data: { revokedAt: new Date() } });
+    await expect(syncEvents(third, { events: [] })).rejects.toMatchObject({ status: 401 });
+    expect(await prisma().learningEvent.count()).toBe(0);
+  });
+});

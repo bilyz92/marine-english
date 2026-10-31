@@ -5,6 +5,7 @@ import {
   downloadCourse, downloadState, loadManifest,
   type DownloadState, type Identity, type LicenseStatus, type Manifest,
 } from "@/lib/offline/engine";
+import { canOpenLesson } from "@/lib/offline/access";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
 
@@ -38,7 +39,6 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
     );
   }
 
-  const locked = license?.state === "locked";
   const done = manifest.lessons.filter((l) => l.status === "completed").length;
 
   async function download() {
@@ -79,7 +79,7 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
       </div>
       <ul className={styles.list}>
         {manifest.lessons.map((l) => {
-          const blocked = locked && !l.isFreeTrial;
+          const blocked = !canOpenLesson({ isFreeTrial: l.isFreeTrial, courseId: manifest.courseId, license, identity });
           return (
             <li key={l.lessonVersionId}>
               <button className={styles.row} disabled={blocked} onClick={() => go({ khoa: slug, bai: l.position })}>

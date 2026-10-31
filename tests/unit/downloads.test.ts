@@ -8,9 +8,9 @@ const manifest = {
     { lessonVersionId: "l2", contentHash: "h2" },
   ],
   assets: [
-    { assetId: "a1", lessonVersionId: "l1", role: "audio", mime: "audio/mpeg", bytes: 100, sha256: "s1" },
-    { assetId: "a1", lessonVersionId: "l2", role: "audio", mime: "audio/mpeg", bytes: 100, sha256: "s1" },
-    { assetId: "a2", lessonVersionId: "l2", role: "audio", mime: "audio/mpeg", bytes: 50, sha256: "s2" },
+    { assetId: "a1", lessonVersionId: "l1", role: "audio", mime: "audio/mpeg", bytes: 100, sha256: "s1", visibility: "protected" as const, url: "/api/learn/files/a1" },
+    { assetId: "a1", lessonVersionId: "l2", role: "audio", mime: "audio/mpeg", bytes: 100, sha256: "s1", visibility: "protected" as const, url: "/api/learn/files/a1" },
+    { assetId: "a2", lessonVersionId: "l2", role: "audio", mime: "audio/mpeg", bytes: 50, sha256: "s2", visibility: "protected" as const, url: "/api/learn/files/a2" },
   ],
 };
 

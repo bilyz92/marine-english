@@ -5,6 +5,7 @@ import {
   assetUrl, loadLesson, loadManifest, recordEvent,
   type Identity, type LicenseStatus, type Manifest, type ManifestLesson,
 } from "@/lib/offline/engine";
+import { canOpenLesson } from "@/lib/offline/access";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
 
@@ -80,8 +81,11 @@ export function LessonView({ identity, slug, position, license, onEvent, onFinis
   if (loaded === "missing") return <div className={styles.card}><p className={styles.muted}>Không tìm thấy bài này trên máy. Kết nối mạng để tải.</p></div>;
 
   const { manifest, lesson, content } = loaded;
-  if (license?.state === "locked" && !lesson.isFreeTrial) {
-    return <div className={styles.card}><p className={styles.muted}>Bài này đang khóa vì đã quá hạn học offline. Kết nối mạng để đồng bộ rồi học tiếp.</p></div>;
+  if (!canOpenLesson({ isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, license, identity })) {
+    const why = license?.state === "unverifiable"
+      ? "Trình duyệt này chưa kiểm được giấy phép học offline. Cập nhật trình duyệt hoặc học khi có mạng."
+      : "Bài này chưa mở được trên máy: kết nối mạng để đồng bộ giấy phép học rồi học tiếp.";
+    return <div className={styles.card}><p className={styles.muted}>{why}</p></div>;
   }
   if (!content) {
     return <div className={styles.card}><p className={styles.muted}>Bài này chưa được tải về máy. Khi có mạng, mở lại bài hoặc bấm “Tải khóa về máy” ở trang khóa.</p></div>;

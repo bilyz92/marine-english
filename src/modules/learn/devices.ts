@@ -45,8 +45,12 @@ export async function adminRemoveDevice(ctx: AdminCtx, deviceId: string, reason:
   const why = reason.trim();
   if (!why) throw new HttpError(400, "Cần lý do gỡ thiết bị");
   const result = await withTx(async (tx) => {
+    const [owner] = await tx.$queryRaw<{ user_id: string }[]>`SELECT user_id FROM devices WHERE id = ${deviceId}::uuid`;
+    if (!owner) return "not_found" as const;
+    // Cùng thứ tự khóa với đồng bộ: học viên → thiết bị. Thu hồi có điều kiện: hai người gỡ cùng lúc chỉ một người thắng.
+    await tx.$queryRaw`SELECT id FROM users WHERE id = ${owner.user_id}::uuid FOR UPDATE`;
     const [device] = await tx.$queryRaw<{ user_id: string }[]>`
-      SELECT user_id FROM devices WHERE id = ${deviceId}::uuid AND revoked_at IS NULL`;
+      UPDATE devices SET revoked_at = now() WHERE id = ${deviceId}::uuid AND revoked_at IS NULL RETURNING user_id`;
     if (!device) return "not_found" as const;
     await revokeDevice(tx, deviceId);
     await audit(tx, {

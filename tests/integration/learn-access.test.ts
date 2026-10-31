@@ -166,3 +166,27 @@ describe("tải tệp", () => {
     expect(await prisma().mediaAsset.count()).toBe(1);
   });
 });
+
+
+describe("tệp công khai (Codex P3 #5)", () => {
+  it("manifest trả visibility + url; tệp công khai tải qua /media không cần đăng nhập; tệp bảo vệ không đi qua /media", async () => {
+    const { GET: mediaRoute } = await import("@/app/media/[key]/route");
+    const s = await paidCourseSetup();
+    await pay(s);
+    const protectedAsset = await attach("T001");
+    const pub = await putFile({ bytes: Buffer.from("ảnh công khai"), mime: "image/png", visibility: "public" });
+    const { rows } = await sqlAsMigrator(
+      `INSERT INTO media_assets (sha256, mime, bytes, visibility, storage_key) VALUES ($1, 'image/png', $2, 'public', $3) RETURNING id`,
+      [pub.sha256, pub.bytes, pub.storageKey],
+    );
+    await sqlAsMigrator(`INSERT INTO lesson_version_assets (lesson_version_id, media_asset_id, role) VALUES ($1, $2, 'image')`, [await versionId("T001"), rows[0].id]);
+    const m = (await (await manifest(s.learner)).json()) as { assets: { assetId: string; visibility: string; url: string }[] };
+    expect(m.assets.find((a) => a.assetId === rows[0].id)).toMatchObject({ visibility: "public", url: `/media/${pub.storageKey}` });
+    expect(m.assets.find((a) => a.assetId === protectedAsset.id)).toMatchObject({ visibility: "protected", url: `/api/learn/files/${protectedAsset.id}` });
+    const res = await mediaRoute(new Request(`${process.env.APP_ORIGIN}/media/${pub.storageKey}`), { params: Promise.resolve({ key: pub.storageKey }) });
+    expect(res.status).toBe(200);
+    expect(Buffer.from(await res.arrayBuffer()).toString()).toBe("ảnh công khai");
+    const leaked = await mediaRoute(new Request(`${process.env.APP_ORIGIN}/media/x`), { params: Promise.resolve({ key: `${protectedAsset.sha256}.mp3` }) });
+    expect(leaked.status).toBe(404);
+  });
+});

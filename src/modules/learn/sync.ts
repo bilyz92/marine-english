@@ -123,8 +123,14 @@ export async function syncEvents(
   if (input.events.length > MAX_EVENTS) throw new HttpError(400, `Tối đa ${MAX_EVENTS} sự kiện mỗi lần`);
   const results = await withTx(
     async (tx) => {
-      // Hai lô cùng thiết bị chạy lần lượt.
-      await tx.$queryRaw`SELECT id FROM devices WHERE id = ${ctx.deviceId}::uuid FOR UPDATE`;
+      // Thứ tự khóa chung với gộp tài khoản và gỡ thiết bị: học viên → thiết bị. Kiểm lại sau khi khóa:
+      // tài khoản bị gộp/khóa, máy bị gỡ hay phiên bị thu hồi trong lúc chờ thì không nhận lô này.
+      const [user] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM users WHERE id = ${ctx.userId}::uuid FOR UPDATE`;
+      const [device] = await tx.$queryRaw<{ revoked: boolean }[]>`
+        SELECT revoked_at IS NOT NULL AS revoked FROM devices WHERE id = ${ctx.deviceId}::uuid AND user_id = ${ctx.userId}::uuid FOR UPDATE`;
+      const [session] = await tx.$queryRaw<{ live: boolean }[]>`
+        SELECT revoked_at IS NULL AS live FROM learner_sessions WHERE id = ${ctx.sessionId}::uuid AND device_id = ${ctx.deviceId}::uuid`;
+      if (user?.status !== "active" || !device || device.revoked || !session?.live) throw new HttpError(401, "Cần đăng nhập lại");
       const enrolled = await entitledCourses(ctx.userId, tx);
       const out: EventResult[] = [];
       for (const raw of input.events) {

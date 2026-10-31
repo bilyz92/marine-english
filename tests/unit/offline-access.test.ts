@@ -1,0 +1,27 @@
+import { describe, expect, it } from "vitest";
+import { canOpenLesson } from "@/lib/offline/access";
+
+const claims = { v: 1, sub: "u1", did: "d1", courses: [{ id: "c1", versionId: "v1" }], iat: 0, exp: 100, grace: 50 };
+const who = { userId: "u1", deviceId: "d1" };
+const ok = { state: "ok" as const, claims, daysLeft: 1 };
+
+describe("quyền mở bài khi offline (Codex P3 #1)", () => {
+  it("bài học thử luôn mở", () => {
+    expect(canOpenLesson({ isFreeTrial: true, courseId: "c1", license: null, identity: who })).toBe(true);
+  });
+  it("bài trả phí: chỉ khi giấy phép ok/grace, đúng người, đúng máy, có khóa", () => {
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license: ok, identity: who })).toBe(true);
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license: { ...ok, state: "grace" }, identity: who })).toBe(true);
+  });
+  it.each([
+    ["đang tải", null],
+    ["không có giấy phép", { state: "none" as const, claims: null, daysLeft: null }],
+    ["quá hạn", { ...ok, state: "locked" as const }],
+    ["không chứa khóa", { ...ok, claims: { ...claims, courses: [{ id: "c2", versionId: "v" }] } }],
+    ["người khác", { ...ok, claims: { ...claims, sub: "u2" } }],
+    ["máy khác", { ...ok, claims: { ...claims, did: "d2" } }],
+    ["không kiểm được chữ ký", { state: "unverifiable" as const, claims: null, daysLeft: null }],
+  ])("bài trả phí bị chặn: %s", (_name, license) => {
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license, identity: who })).toBe(false);
+  });
+});

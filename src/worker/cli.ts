@@ -2,12 +2,14 @@
 //   pnpm cli admin:bootstrap <email>
 //   pnpm cli admin:recover <email> --reason "<lý do>" --confirm <email>
 //   pnpm cli content:import <tệp.json>
+//   pnpm cli license:public-keys   (in NEXT_PUBLIC_LICENSE_PUBLIC_KEYS từ LICENSE_SIGNING_KEYS, dùng khi build app)
 //   pnpm cli media:add <mã bài> <tệp> [--role audio|image|attachment] [--public]   (MEDIA_ROOT, mặc định ./media)
 // Tệp tự chứa (chỉ dùng pg) để chạy thẳng bằng Node, không cần bước build.
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { importContent } from "./content-import.ts";
 import { addMedia } from "./media-import.ts";
+import { publicKeyringFromSeeds } from "./license-keys.ts";
 
 type Client = pg.Client;
 
@@ -93,6 +95,10 @@ function flag(args: string[], name: string): string {
 
 async function main(argv: string[]): Promise<number> {
   const [command, email = ""] = argv;
+  if (command === "license:public-keys") {
+    console.log(`NEXT_PUBLIC_LICENSE_PUBLIC_KEYS=${publicKeyringFromSeeds(process.env.LICENSE_SIGNING_KEYS ?? "")}`);
+    return 0;
+  }
   const url = process.env.MIGRATOR_DATABASE_URL;
   if (!url) {
     console.error("Thiếu MIGRATOR_DATABASE_URL");

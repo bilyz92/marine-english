@@ -14,21 +14,55 @@ function promised<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
+// Một kết nối cho mỗi kho trong tab này; tab khác xóa kho thì kết nối tự đóng (versionchange) để việc xóa không bị chặn.
+const connections = new Map<string, Promise<IDBDatabase>>();
+
 export function openOfflineDb(who: { userId: string; deviceId: string }): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(dbName(who), 1);
-    req.onupgradeneeded = () => {
-      for (const name of STORES) req.result.createObjectStore(name);
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  const name = dbName(who);
+  let pending = connections.get(name);
+  if (!pending) {
+    pending = new Promise((resolve, reject) => {
+      const req = indexedDB.open(name, 1);
+      req.onupgradeneeded = () => {
+        for (const store of STORES) req.result.createObjectStore(store);
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        db.onversionchange = () => {
+          db.close();
+          connections.delete(name);
+        };
+        resolve(db);
+      };
+      req.onerror = () => {
+        connections.delete(name);
+        reject(req.error);
+      };
+    });
+    connections.set(name, pending);
+  }
+  return pending;
 }
 
-export function deleteOfflineDb(who: { userId: string; deviceId: string }): Promise<void> {
-  return new Promise((resolve) => {
-    const req = indexedDB.deleteDatabase(dbName(who));
-    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+const DELETE_TIMEOUT_MS = 10_000;
+
+/** Xóa hẳn kho của một người: đóng kết nối trong tab này, chờ tab khác đóng; chỉ báo xong khi trình duyệt xác nhận đã xóa. */
+export async function deleteOfflineDb(who: { userId: string; deviceId: string }): Promise<void> {
+  const name = dbName(who);
+  const open = connections.get(name);
+  connections.delete(name);
+  if (open) (await open.catch(() => null))?.close();
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.deleteDatabase(name);
+    const timer = setTimeout(() => reject(new Error("Chưa xóa được dữ liệu học trên máy: còn tab khác đang mở app")), DELETE_TIMEOUT_MS);
+    req.onsuccess = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    req.onerror = () => {
+      clearTimeout(timer);
+      reject(req.error);
+    };
   });
 }
 

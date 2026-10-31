@@ -1,8 +1,9 @@
 // Điều phối app học trên máy: nhận diện người dùng, đồng bộ, giấy phép, tải bài. Các quyết định nằm ở hàm thuần (sync-queue, downloads, license-state).
 import { deleteOfflineDb, dbDelete, dbGet, dbGetAll, dbPut, enqueueWithSeq, openOfflineDb, type Identity } from "./db";
 import { planDownloads, verifyAsset, type ManifestAsset } from "./downloads";
-import { licenseState, type LicenseState } from "./license-state";
-import { verifyLicense, type LicenseClaims, type LicensePublicKey } from "./license-verify";
+import type { LicenseView } from "./access";
+import { licenseState } from "./license-state";
+import { parsePublicKeyring, verifyLicense } from "./license-verify";
 import { applySyncResults, buildEvent, nextBatch, type EventResult, type EventType, type QueuedEvent } from "./sync-queue";
 
 export type { Identity } from "./db";
@@ -17,6 +18,8 @@ type StoredLesson = { lessonVersionId: string; contentHash: string; content: unk
 type StoredFile = { assetId: string; sha256: string; mime: string; bytes: ArrayBuffer };
 
 const IDENTITY_KEY = "me-identity";
+// Khóa công khai kiểm giấy phép được nhúng vào bản app lúc build; đổi khóa đi qua bản app mới (TD §6).
+const TRUSTED_KEYS = parsePublicKeyring(process.env.NEXT_PUBLIC_LICENSE_PUBLIC_KEYS);
 
 function csrfToken(): string {
   return document.cookie.split("; ").find((c) => c.startsWith("__Host-me_csrf_learner="))?.split("=")[1] ?? "";
@@ -44,6 +47,12 @@ export type IdentityResult = { identity: Identity | null; online: boolean };
  * Có mạng: hỏi máy chủ (đổi người hoặc đổi máy thì xóa dữ liệu bảo vệ của người trước). Mất mạng: dùng người đã lưu.
  * Máy chủ trả 401 nghĩa là phiên không còn hiệu lực: phải đăng nhập lại.
  */
+/** Xóa dữ liệu học được bảo vệ của người này trên máy và quên người đó. */
+export async function clearLocal(identity: Identity | null): Promise<void> {
+  localStorage.removeItem(IDENTITY_KEY);
+  if (identity) await deleteOfflineDb(identity);
+}
+
 export async function loadIdentity(): Promise<IdentityResult> {
   const saved = savedIdentity();
   let res: Response;
@@ -52,7 +61,11 @@ export async function loadIdentity(): Promise<IdentityResult> {
   } catch {
     return { identity: saved, online: false };
   }
-  if (res.status === 401) return { identity: null, online: true };
+  if (res.status === 401) {
+    // Phiên hết hoặc thiết bị đã bị gỡ: không giữ bài trả phí của người đó trên máy.
+    await clearLocal(saved);
+    return { identity: null, online: true };
+  }
   if (!res.ok) return { identity: saved, online: false };
   const identity = (await res.json()) as Identity;
   if (saved && (saved.userId !== identity.userId || saved.deviceId !== identity.deviceId)) await deleteOfflineDb(saved);
@@ -62,24 +75,18 @@ export async function loadIdentity(): Promise<IdentityResult> {
 
 /** Đăng xuất. switchAccount: thu hồi cả thiết bị. Luôn xóa dữ liệu bảo vệ trên máy. */
 export async function signOut(identity: Identity, opts: { switchAccount?: boolean } = {}): Promise<void> {
-  // Gửi nốt tiến độ chưa đồng bộ trước khi xóa dữ liệu trên máy.
-  await syncNow(identity);
-  await postJson("/api/auth/learner/logout", opts.switchAccount ? { switchAccount: true } : {});
-  await deleteOfflineDb(identity);
-  localStorage.removeItem(IDENTITY_KEY);
+  try {
+    // Gửi nốt tiến độ chưa đồng bộ trước khi xóa dữ liệu trên máy.
+    await syncNow(identity);
+    await postJson("/api/auth/learner/logout", opts.switchAccount ? { switchAccount: true } : {});
+  } finally {
+    await clearLocal(identity);
+  }
 }
 
 // ===== Giấy phép =====
 
-function decodeClaims(token: string): LicenseClaims | null {
-  try {
-    return JSON.parse(atob((token.split(".")[1] ?? "").replace(/-/g, "+").replace(/_/g, "/"))) as LicenseClaims;
-  } catch {
-    return null;
-  }
-}
-
-/** Trình duyệt cũ chưa có Ed25519 trong WebCrypto thì không xác minh được chữ ký: đọc claims, vì mọi quyền thật đều kiểm ở máy chủ. */
+/** Trình duyệt chưa có Ed25519 trong WebCrypto thì không kiểm được chữ ký: khi mất mạng chỉ mở bài học thử. */
 async function supportsEd25519(): Promise<boolean> {
   try {
     await crypto.subtle.generateKey({ name: "Ed25519" }, false, ["sign", "verify"]);
@@ -89,14 +96,14 @@ async function supportsEd25519(): Promise<boolean> {
   }
 }
 
-export type LicenseStatus = { state: LicenseState | "none"; claims: LicenseClaims | null; daysLeft: number | null };
+export type LicenseStatus = LicenseView;
 
 export async function licenseStatus(identity: Identity): Promise<LicenseStatus> {
   const db = await openOfflineDb(identity);
   const token = await dbGet<string>(db, "kv", "license");
   if (!token) return { state: "none", claims: null, daysLeft: null };
-  const keys = (await dbGet<LicensePublicKey[]>(db, "kv", "licenseKeys")) ?? [];
-  const claims = (await supportsEd25519()) ? await verifyLicense(token, keys) : decodeClaims(token);
+  if (!(await supportsEd25519())) return { state: "unverifiable", claims: null, daysLeft: null };
+  const claims = await verifyLicense(token, TRUSTED_KEYS);
   if (!claims || claims.sub !== identity.userId || claims.did !== identity.deviceId) return { state: "none", claims: null, daysLeft: null };
   const maxSeen = (await dbGet<number>(db, "kv", "maxSeen")) ?? 0;
   const result = licenseState({ exp: claims.exp, grace: claims.grace, deviceNow: Math.floor(Date.now() / 1000), maxSeen });
@@ -121,18 +128,21 @@ export async function syncNow(identity: Identity): Promise<SyncOutcome> {
   const db = await openOfflineDb(identity);
   const queue = await dbGetAll<QueuedEvent>(db, "queue");
   const knownCourseIds = (await dbGet<string[]>(db, "kv", "knownCourseIds")) ?? [];
-  const licenseKeys = await refreshLicenseKeys(db);
   let res: Response;
   try {
     res = await postJson("/api/learn/sync", {
       events: nextBatch(queue),
       knownCourseIds,
-      ...(licenseKeys.length ? { trustedKids: licenseKeys.map((k) => k.kid) } : {}),
+      // Máy chủ chỉ ký bằng khóa mà bản app này tin.
+      trustedKids: TRUSTED_KEYS.map((k) => k.kid),
     });
   } catch {
     return { ok: false, reason: "offline" };
   }
-  if (res.status === 401) return { ok: false, reason: "unauthorized" };
+  if (res.status === 401) {
+    await clearLocal(identity);
+    return { ok: false, reason: "unauthorized" };
+  }
   if (!res.ok) return { ok: false, reason: "server" };
   const body = (await res.json()) as { results: EventResult[]; license: string; courses: { id: string; slug: string }[]; revokedCourseIds: string[] };
 
@@ -145,20 +155,6 @@ export async function syncNow(identity: Identity): Promise<SyncOutcome> {
   await dbPut(db, "kv", "knownCourseIds", body.courses.map((c) => c.id));
   for (const courseId of body.revokedCourseIds) await removeCourseData(db, courseId);
   return { ok: true, revokedCourseIds: body.revokedCourseIds, remaining: keep.length };
-}
-
-async function refreshLicenseKeys(db: IDBDatabase): Promise<LicensePublicKey[]> {
-  try {
-    const res = await fetch("/api/public/license-keys");
-    if (res.ok) {
-      const { keys } = (await res.json()) as { keys: LicensePublicKey[] };
-      await dbPut(db, "kv", "licenseKeys", keys);
-      return keys;
-    }
-  } catch {
-    // Mất mạng: dùng khóa đã lưu.
-  }
-  return (await dbGet<LicensePublicKey[]>(db, "kv", "licenseKeys")) ?? [];
 }
 
 async function removeCourseData(db: IDBDatabase, courseId: string): Promise<void> {
@@ -251,7 +247,7 @@ export async function downloadCourse(
       onProgress(++done, total);
     }
     for (const asset of plan.assets) {
-      const res = await fetch(`/api/learn/files/${asset.assetId}`);
+      const res = await fetch(asset.url);
       if (!res.ok) return "failed";
       const bytes = await res.arrayBuffer();
       if ((await verifyAsset(bytes, asset.sha256)) !== "ok") return "hash_mismatch";
@@ -280,5 +276,5 @@ export async function loadLesson(identity: Identity, lesson: ManifestLesson): Pr
 /** Đường dẫn phát tệp: tệp đã tải thì tạo URL từ dữ liệu trên máy, chưa tải thì tải trực tiếp từ máy chủ. */
 export async function assetUrl(identity: Identity, asset: ManifestAsset): Promise<string> {
   const stored = await dbGet<StoredFile>(await openOfflineDb(identity), "files", asset.assetId);
-  return stored ? URL.createObjectURL(new Blob([stored.bytes], { type: stored.mime })) : `/api/learn/files/${asset.assetId}`;
+  return stored ? URL.createObjectURL(new Blob([stored.bytes], { type: stored.mime })) : asset.url;
 }

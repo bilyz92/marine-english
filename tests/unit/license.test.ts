@@ -51,3 +51,28 @@ describe("giấy phép offline", () => {
     }
   });
 });
+
+describe("kiểm cấu trúc claims (Codex P3 #2)", () => {
+  it("chữ ký đúng nhưng claims thiếu trường hoặc sai kiểu → null", async () => {
+    const { createPrivateKey, sign } = await import("node:crypto");
+    const seed = Buffer.from(process.env.LICENSE_SIGNING_KEYS!.split(",")[1]!.split(":")[1]!, "base64");
+    const key = createPrivateKey({ key: Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), seed]), format: "der", type: "pkcs8" });
+    const enc = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    const forge = (claimsObj: unknown) => {
+      const input = `${enc({ alg: "EdDSA", kid: "l2", typ: "JWT" })}.${enc(claimsObj)}`;
+      return `${input}.${sign(null, Buffer.from(input), key).toString("base64url")}`;
+    };
+    const keys = publicLicenseKeys();
+    expect(await verifyLicense(forge({ v: 1, sub: "u", did: "d", courses: "tất cả", iat: 1, exp: 2, grace: 1 }), keys)).toBeNull();
+    expect(await verifyLicense(forge({ v: 1, sub: "u", did: "d", courses: [], iat: 1, exp: "mãi", grace: 1 }), keys)).toBeNull();
+    expect(await verifyLicense(forge({ v: 2, sub: "u", did: "d", courses: [], iat: 1, exp: 2, grace: 1 }), keys)).toBeNull();
+    expect(await verifyLicense(forge({ v: 1, sub: "u", did: "d", courses: [{ id: "c", versionId: "v" }], iat: 1, exp: 2, grace: 1 }), keys)).not.toBeNull();
+  });
+
+  it("chuỗi khóa công khai nhúng lúc build", async () => {
+    const { parsePublicKeyring } = await import("@/lib/offline/license-verify");
+    expect(parsePublicKeyring("l1:abc,l2:def")).toEqual([{ kid: "l1", x: "abc" }, { kid: "l2", x: "def" }]);
+    expect(parsePublicKeyring("")).toEqual([]);
+    expect(parsePublicKeyring(undefined)).toEqual([]);
+  });
+});
