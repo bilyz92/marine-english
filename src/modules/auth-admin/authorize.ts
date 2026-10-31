@@ -57,6 +57,14 @@ function denial(ctx: AdminCtx, rule: Rule, resource?: ResourceCtx): Denial | nul
 }
 
 /** Từ chối thì ghi nhật ký 'denied' rồi ném HttpError(403, lý do). */
+/** Các quyền của vai trò (chưa xét xác thực gần đây, sẽ kiểm khi làm thao tác); quyền có điều kiện chỉ tính khi vai trò được miễn điều kiện. */
+export function permissionsFor(ctx: AdminCtx): Permission[] {
+  return PERMISSIONS.filter((perm) => {
+    const reason = denial(ctx, POLICY[perm]);
+    return reason === null || reason === "reauth_required";
+  });
+}
+
 export async function authorize(ctx: AdminCtx, perm: Permission, input: { action: string; resource?: ResourceCtx }): Promise<void> {
   const reason = denial(ctx, POLICY[perm], input.resource);
   if (!reason) return;
