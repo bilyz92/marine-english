@@ -6,8 +6,8 @@ import type { AdminCtx } from "@/modules/sessions/guards";
 import { revokeAllForSubject } from "@/modules/sessions/sessions";
 import { mergeGroupIds } from "./access";
 
-// Gộp tài khoản (DG §4): chuyển định danh sang tài khoản đích, khóa tài khoản nguồn và trỏ về đích, thu hồi phiên/thiết bị.
-// Không sửa lịch sử (đơn, quyền học, hoàn tiền vẫn gắn tài khoản gốc); quyền học đọc theo nhóm gộp. Tiến độ học: P3.
+// Gộp tài khoản (DG §4): chuyển định danh sang tài khoản đích, khóa tài khoản nguồn và trỏ về đích, chép tiến độ, thu hồi phiên/thiết bị.
+// Không sửa lịch sử (đơn, quyền học, hoàn tiền vẫn gắn tài khoản gốc); quyền học đọc theo nhóm gộp.
 
 export type MergePreview = { identities: { kind: string; value: string }[]; activeEnrollments: number; orders: number };
 
@@ -40,6 +40,16 @@ export async function mergeAccounts(
 
     await tx.$executeRaw`UPDATE user_identities SET user_id = ${target}::uuid WHERE user_id = ${source}::uuid`;
     await tx.$executeRaw`UPDATE users SET status = 'merged', merged_into_id = ${target}::uuid WHERE id = ${source}::uuid`;
+    // Tiến độ của đích lấy giá trị cao nhất từng bài; dòng của tài khoản nguồn giữ nguyên làm lịch sử.
+    await tx.$executeRaw`
+      INSERT INTO learning_progress (user_id, lesson_id, status, completed_activities, best_score_pct)
+      SELECT ${target}::uuid, lesson_id, status, completed_activities, best_score_pct
+      FROM learning_progress WHERE user_id = ${source}::uuid
+      ON CONFLICT (user_id, lesson_id) DO UPDATE SET
+        status = CASE WHEN learning_progress.status = 'completed' OR EXCLUDED.status = 'completed' THEN 'completed' ELSE 'in_progress' END,
+        completed_activities = ARRAY(SELECT DISTINCT unnest(learning_progress.completed_activities || EXCLUDED.completed_activities) ORDER BY 1),
+        best_score_pct = GREATEST(learning_progress.best_score_pct, EXCLUDED.best_score_pct),
+        updated_at = now()`;
     await revokeAllForSubject(tx, "learner", source);
     await tx.$executeRaw`UPDATE devices SET revoked_at = now() WHERE user_id = ${source}::uuid AND revoked_at IS NULL`;
     await audit(tx, {
