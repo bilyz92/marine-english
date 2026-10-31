@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { GET, POST } from "@/app/api/quan-tri/jobs/route";
 import { JOBS } from "@/modules/jobs/definitions";
+import { acquireLease } from "@/modules/jobs/lease";
 import { runJob, type JobDef } from "@/modules/jobs/runner";
 import { createScheduler, dueJobs, lastRuns } from "@/modules/jobs/scheduler";
 import { auditRows } from "../helpers/admin";
@@ -117,6 +118,61 @@ describe("worker tick", () => {
     expect(request.pickedAt).not.toBeNull();
     expect(request.runId).not.toBeNull();
     expect(await prisma().jobRun.count({ where: { jobName: def.name } })).toBe(2);
+  });
+
+  it("hai tick chồng nhau → job chỉ chạy một lần, không ghi skipped", async () => {
+    const b = blocking("me.overlap");
+    const s = createScheduler([b.def], "w1");
+    await Promise.all([s.tick(), s.tick()]);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(b.runs()).toBe(1);
+    b.release();
+    await s.drain();
+    expect(await prisma().jobRun.count({ where: { jobName: "me.overlap" } })).toBe(1);
+  });
+
+  it("yêu cầu chỉ được đánh dấu khi job thật sự chạy: worker khác giữ lease → giữ lại, lần sau chạy", async () => {
+    const owner = await adminSess("owner");
+    const def = { name: "me.orders.expire", timeoutMs: 5000, schedule: { everyMs: 3_600_000 }, run: async () => ({ ok: 1 }) };
+    await callAdmin(POST, owner, "POST", PATH, { job: def.name });
+    await acquireLease(def.name, "worker-khac");
+    const s = createScheduler([def], "w1");
+    await s.tick();
+    await s.drain();
+    expect(await prisma().jobRequest.findFirstOrThrow()).toMatchObject({ pickedAt: null, runId: null });
+    await sqlAsMigrator(`UPDATE job_leases SET expires_at = now() - interval '1 second'`);
+    await s.tick();
+    await s.drain();
+    const request = await prisma().jobRequest.findFirstOrThrow();
+    expect(request.pickedAt).not.toBeNull();
+    const run = await prisma().jobRun.findUniqueOrThrow({ where: { id: request.runId! } });
+    expect(run.status).toBe("success");
+  });
+
+  it("job đang chạy mà worker chết: yêu cầu chưa bị tiêu, khởi động lại sẽ chạy", async () => {
+    const owner = await adminSess("owner");
+    const b = blocking("me.orders.expire");
+    await callAdmin(POST, owner, "POST", PATH, { job: b.def.name });
+    const s = createScheduler([b.def], "w1");
+    await s.tick();
+    await new Promise((r) => setTimeout(r, 100));
+    expect((await prisma().jobRequest.findFirstOrThrow()).pickedAt).toBeNull();
+    b.release();
+    await s.drain();
+    expect((await prisma().jobRequest.findFirstOrThrow()).pickedAt).not.toBeNull();
+  });
+
+  it("tắt worker giữa chừng: yêu cầu giữ lại để chạy lại", async () => {
+    const owner = await adminSess("owner");
+    const controller = new AbortController();
+    const def = { name: "me.orders.expire", timeoutMs: 60_000, schedule: { everyMs: 3_600_000 }, run: ({ signal }: { signal: AbortSignal }) => new Promise<object>((resolve) => signal.addEventListener("abort", () => resolve({}))) };
+    await callAdmin(POST, owner, "POST", PATH, { job: def.name });
+    const s = createScheduler([def as never], "w1", { signal: controller.signal });
+    await s.tick();
+    await new Promise((r) => setTimeout(r, 100));
+    controller.abort();
+    await s.drain();
+    expect((await prisma().jobRequest.findFirstOrThrow()).pickedAt).toBeNull();
   });
 
   it("yêu cầu cho job đã bỏ khỏi danh sách → đánh dấu đã nhận, không kẹt", async () => {

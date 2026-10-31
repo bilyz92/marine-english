@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { withFence, type Lease } from "@/modules/jobs/lease";
-import { ingest, type IngestOutcome } from "./ingest";
+import { ingestInTx, type IngestOutcome } from "./ingest";
 import { toBankReport } from "./sepay";
 
 const PROVIDER = "sepay";
@@ -39,7 +39,8 @@ export async function reconcile(api: SepayApi, lease: Lease, signal: AbortSignal
       signal.throwIfAborted();
       const report = toBankReport(item, "sepay_api");
       if (!report) throw new Error("sepay_item_malformed");
-      const outcome = await ingest(report);
+      // Mỗi giao dịch có thể chốt đơn và mở quyền học nên chạy dưới fence: worker mất lease không ghi được gì.
+      const outcome = await withFence(lease, (tx) => ingestInTx(tx, report));
       result.outcomes[outcome] = (result.outcomes[outcome] ?? 0) + 1;
       result.ingested++;
     }

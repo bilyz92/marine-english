@@ -93,6 +93,7 @@ describe("đối soát SePay", () => {
     await acquireLease("me.sepay.reconcile", "moi");
     await expect(reconcile(fakeApi([[item()]]).api, stale, signal())).rejects.toBeInstanceOf(LeaseLostError);
     expect(await cursor()).toBeNull();
+    expect(await counts()).toMatchObject({ ledger: 0, allocations: 0, enrollments: 0, outbox: 0, observations: 0 });
   });
 
   it("bị hủy giữa chừng → dừng, không cập nhật con trỏ", async () => {
