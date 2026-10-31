@@ -98,17 +98,21 @@ async function supportsEd25519(): Promise<boolean> {
 
 export type LicenseStatus = LicenseView;
 
+export const nowSeconds = () => Math.floor(Date.now() / 1000);
+
 export async function licenseStatus(identity: Identity): Promise<LicenseStatus> {
   const db = await openOfflineDb(identity);
   const token = await dbGet<string>(db, "kv", "license");
-  if (!token) return { state: "none", claims: null, daysLeft: null };
-  if (!(await supportsEd25519())) return { state: "unverifiable", claims: null, daysLeft: null };
+  const storedMax = (await dbGet<number>(db, "kv", "maxSeen")) ?? 0;
+  if (!token) return { state: "none", claims: null, daysLeft: null, maxSeen: storedMax };
+  if (!(await supportsEd25519())) return { state: "unverifiable", claims: null, daysLeft: null, maxSeen: storedMax };
   const claims = await verifyLicense(token, TRUSTED_KEYS);
-  if (!claims || claims.sub !== identity.userId || claims.did !== identity.deviceId) return { state: "none", claims: null, daysLeft: null };
-  const maxSeen = (await dbGet<number>(db, "kv", "maxSeen")) ?? 0;
-  const result = licenseState({ exp: claims.exp, grace: claims.grace, deviceNow: Math.floor(Date.now() / 1000), maxSeen });
+  if (!claims || claims.sub !== identity.userId || claims.did !== identity.deviceId) {
+    return { state: "none", claims: null, daysLeft: null, maxSeen: storedMax };
+  }
+  const result = licenseState({ exp: claims.exp, grace: claims.grace, deviceNow: nowSeconds(), maxSeen: storedMax });
   await dbPut(db, "kv", "maxSeen", result.maxSeen);
-  return { state: result.state, claims, daysLeft: Math.ceil((claims.exp - result.maxSeen) / 86_400) };
+  return { state: result.state, claims, daysLeft: Math.ceil((claims.exp - result.maxSeen) / 86_400), maxSeen: result.maxSeen };
 }
 
 // ===== Đồng bộ =====

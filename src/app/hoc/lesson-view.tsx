@@ -6,6 +6,7 @@ import {
   type Identity, type LicenseStatus, type Manifest, type ManifestLesson,
 } from "@/lib/offline/engine";
 import { canOpenLesson } from "@/lib/offline/access";
+import { nowSeconds } from "@/lib/offline/engine";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
 
@@ -81,7 +82,7 @@ export function LessonView({ identity, slug, position, license, onEvent, onFinis
   if (loaded === "missing") return <div className={styles.card}><p className={styles.muted}>Không tìm thấy bài này trên máy. Kết nối mạng để tải.</p></div>;
 
   const { manifest, lesson, content } = loaded;
-  if (!canOpenLesson({ isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, license, identity })) {
+  if (!canOpenLesson({ isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, license, identity, now: nowSeconds() })) {
     const why = license?.state === "unverifiable"
       ? "Trình duyệt này chưa kiểm được giấy phép học offline. Cập nhật trình duyệt hoặc học khi có mạng."
       : "Bài này chưa mở được trên máy: kết nối mạng để đồng bộ giấy phép học rồi học tiếp.";

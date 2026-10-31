@@ -58,6 +58,20 @@ export function LearnApp() {
     });
   }, [refresh]);
 
+  // Tính lại hạn giấy phép khi app được mở lại và mỗi phút, để màn hình không giữ trạng thái cũ quá hạn.
+  useEffect(() => {
+    if (load.kind !== "ready") return;
+    const identity = load.identity;
+    const recheck = () => void licenseStatus(identity).then(setLicense);
+    const onVisible = () => document.visibilityState === "visible" && recheck();
+    document.addEventListener("visibilitychange", onVisible);
+    const timer = setInterval(recheck, 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(timer);
+    };
+  }, [load]);
+
   // Có mạng trở lại thì đồng bộ ngay.
   useEffect(() => {
     if (load.kind !== "ready") return;
