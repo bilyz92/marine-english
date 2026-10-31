@@ -36,7 +36,9 @@ export function ChooseDevice() {
     });
     setBusy(false);
     sessionStorage.removeItem(DEVICES_KEY);
-    if (data.next === "done") return router.push("/");
+    // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    if (data.next === "done") return window.location.assign("/hoc");
     setError("Phiên chọn máy đã hết hạn. Đăng nhập lại để thử tiếp.");
   }
 

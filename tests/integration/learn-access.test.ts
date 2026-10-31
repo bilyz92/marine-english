@@ -74,6 +74,7 @@ describe("quyền học", () => {
     expect(res.status).toBe(200);
     const m = (await res.json()) as { slug: string; versionId: string; lessons: { externalId: string; isFreeTrial: boolean; contentHash: string }[]; assets: unknown[]; totalBytes: number };
     expect(m.lessons.map((x) => x.externalId)).toEqual(["A001", "A002", "A003-1", "T001"]);
+    expect((m as unknown as { titleVi: string }).titleVi).toBe("Thực tập sinh máy tàu dầu và hóa chất");
     expect(m.lessons.every((x) => x.contentHash.length === 64)).toBe(true);
     expect((await lesson(l, paidLesson)).status).toBe(200);
 

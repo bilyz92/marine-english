@@ -167,6 +167,19 @@ describe("route đồng bộ", () => {
   });
 });
 
+describe("manifest có tiến độ", () => {
+  it("bài đã học hiện trạng thái và hoạt động đã xong", async () => {
+    const { GET } = await import("@/app/api/learn/courses/[slug]/manifest/route");
+    const s = await setup();
+    await syncEvents(s.l, { events: [ev(1, s.ids.T001!.lv, "activity_completed", { activityId: "a1" }), ev(2, s.ids.A001!.lv, "lesson_completed")] });
+    const res = await GET(learnerRequest("/api/learn/courses/engine_cadet_tanker/manifest", s.l), { params: Promise.resolve({ slug: "engine_cadet_tanker" }) });
+    const m = (await res.json()) as { lessons: { externalId: string; status: string | null; completedActivities: string[] }[] };
+    expect(m.lessons.find((l) => l.externalId === "T001")).toMatchObject({ status: "in_progress", completedActivities: ["a1"] });
+    expect(m.lessons.find((l) => l.externalId === "A001")).toMatchObject({ status: "completed" });
+    expect(m.lessons.find((l) => l.externalId === "A002")).toMatchObject({ status: null, completedActivities: [] });
+  });
+});
+
 describe("nhiều thiết bị đồng bộ cùng lúc", () => {
   it("15 học viên đồng bộ song song không treo vì cạn kết nối", async () => {
     const s = await setup();

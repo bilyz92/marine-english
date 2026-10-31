@@ -38,6 +38,12 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
     setStep("code");
   }
 
+  function openLearning() {
+    // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign("/hoc");
+  }
+
   async function google() {
     setBusy(true);
     const { status, data } = await postJson<{ redirectUrl?: string }>("/api/auth/learner/google/start", {
@@ -69,7 +75,7 @@ export function LoginForm({ zaloEnabled, googleFailed }: { zaloEnabled: boolean;
       <div>
         <h2 className={styles.title}>{mode === "signup" ? "Đã tạo tài khoản" : "Đã đăng nhập"}</h2>
         <p className={styles.lead}>Quyền lợi đã mở trong tài khoản.</p>
-        <button className={styles.primary} onClick={() => router.push("/")}>Để sau, vào khóa học của tôi</button>
+        <button className={styles.primary} onClick={openLearning}>Vào khóa học của tôi</button>
       </div>
     );
   }

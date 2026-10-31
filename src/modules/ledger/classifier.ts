@@ -1,7 +1,8 @@
 // Bộ phân loại giao dịch (thuần, có phiên bản). Mọi nguồn tiền vào dùng chung; thời điểm quyết định là bank_time.
 // Chỉ tự xác nhận khi: đúng một mã đơn, đúng số tiền, created_at <= bank_time < expires_at, đơn pending hoặc expired.
 
-export const CLASSIFIER_VERSION = "v1";
+// v2: chấp nhận bank_time sớm hơn created_at tối đa 60 giây (giờ ngân hàng tròn giây, đồng hồ ngân hàng có thể chậm).
+export const CLASSIFIER_VERSION = "v2";
 
 export type OrderStatus = "pending" | "paid" | "expired" | "refunded";
 export type QueueReason =
@@ -11,6 +12,7 @@ export type Classification = { result: "auto_confirm" } | { result: "queue"; rea
 
 const CODE_PATTERN = /(?<![A-Z0-9])ME[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}(?![A-Z0-9])/g;
 const FUTURE_TOLERANCE_MS = 5 * 60_000;
+const EARLY_TOLERANCE_MS = 60_000;
 
 /** Chuẩn hóa nội dung (bỏ dấu, chữ hoa, ký tự khác chữ/số thành khoảng trắng) rồi lấy các mã đơn đứng riêng, không trùng. */
 export function extractOrderCodes(content: string): string[] {
@@ -38,7 +40,7 @@ export function classify(input: {
   if (!order) return queue("unknown_code");
   if (order.status === "paid") return queue("order_paid");
   if (order.status === "refunded") return queue("order_refunded");
-  if (bankTime < order.createdAt) return queue("early");
+  if (bankTime.getTime() < order.createdAt.getTime() - EARLY_TOLERANCE_MS) return queue("early");
   if (bankTime >= order.expiresAt) return queue("late");
   if (amountVnd < order.amountDueVnd) return queue("amount_short");
   if (amountVnd > order.amountDueVnd) return queue("amount_over");

@@ -7,27 +7,32 @@ import type { LearnerCtx } from "@/modules/sessions/guards";
 export type Manifest = {
   courseId: string;
   slug: string;
+  titleVi: string;
   versionId: string;
-  lessons: { position: number; lessonVersionId: string; externalId: string; title: string; contentHash: string; isFreeTrial: boolean }[];
+  lessons: { position: number; lessonVersionId: string; externalId: string; title: string; contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[] }[];
   assets: { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string }[];
   totalBytes: number;
 };
 
 export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Manifest | "forbidden" | "not_found"> {
   const db = prisma();
-  const [course] = await db.$queryRaw<{ id: string; current_version_id: string | null }[]>`
-    SELECT id, current_version_id FROM courses WHERE slug = ${slug}`;
+  const [course] = await db.$queryRaw<{ id: string; title_vi: string; current_version_id: string | null }[]>`
+    SELECT id, title_vi, current_version_id FROM courses WHERE slug = ${slug}`;
   if (!course?.current_version_id) return "not_found";
   if (!(await hasActiveEnrollment(db, await mergeGroupIds(db, ctx.userId), course.id))) return "forbidden";
 
   const lessons = await db.$queryRaw<
-    { position: number; lesson_version_id: string; external_id: string; title: string | null; content_hash: string; is_free_trial: boolean }[]
+    {
+      position: number; lesson_version_id: string; external_id: string; title: string | null; content_hash: string; is_free_trial: boolean;
+      status: "in_progress" | "completed" | null; completed_activities: string[] | null;
+    }[]
   >`
-    SELECT cvl.position, cvl.lesson_version_id, l.external_id, cvl.is_free_trial, lv.content_hash,
+    SELECT cvl.position, cvl.lesson_version_id, l.external_id, cvl.is_free_trial, lv.content_hash, lp.status, lp.completed_activities,
            coalesce(lv.content #>> '{question,text,vi}', lv.content #>> '{question,text,en}') AS title
     FROM course_version_lessons cvl
     JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id
     JOIN lessons l ON l.id = lv.lesson_id
+    LEFT JOIN learning_progress lp ON lp.lesson_id = l.id AND lp.user_id = ${ctx.userId}::uuid
     WHERE cvl.course_version_id = ${course.current_version_id}::uuid
     ORDER BY cvl.position`;
   const assets = await db.$queryRaw<{ id: string; lesson_version_id: string; role: string; mime: string; bytes: number; sha256: string }[]>`
@@ -42,10 +47,12 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
   return {
     courseId: course.id,
     slug,
+    titleVi: course.title_vi,
     versionId: course.current_version_id,
     lessons: lessons.map((l) => ({
       position: l.position, lessonVersionId: l.lesson_version_id, externalId: l.external_id,
       title: l.title ?? l.external_id, contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
+      status: l.status, completedActivities: l.completed_activities ?? [],
     })),
     assets: assets.map((a) => ({ assetId: a.id, lessonVersionId: a.lesson_version_id, role: a.role, mime: a.mime, bytes: a.bytes, sha256: a.sha256 })),
     totalBytes: [...bytesById.values()].reduce((sum, b) => sum + b, 0),

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { classify, extractOrderCodes } from "@/modules/ledger/classifier";
+import { classify, CLASSIFIER_VERSION, extractOrderCodes } from "@/modules/ledger/classifier";
+
+it("phiên bản bộ phân loại", () => expect(CLASSIFIER_VERSION).toBe("v2"));
 
 const C = "ME7K3QX9AB";
 const D = "MEHJKMNP23";
@@ -36,7 +38,9 @@ describe("classify", () => {
     ["đơn đã expired nhưng bankTime trong hạn", { order: { ...order, status: "expired" as const } }, { result: "auto_confirm" }],
     ["bankTime = createdAt", { bankTime: createdAt }, { result: "auto_confirm" }],
     ["bankTime = expiresAt", { bankTime: expiresAt }, { result: "queue", reason: "late" }],
-    ["bankTime trước createdAt", { bankTime: at("2026-10-30T02:59:59Z") }, { result: "queue", reason: "early" }],
+    ["bankTime tròn giây, sớm hơn createdAt vài phần nghìn giây", { bankTime: at("2026-10-30T02:59:59Z"), order: { ...order, createdAt: at("2026-10-30T02:59:59.110Z") } }, { result: "auto_confirm" }],
+    ["đồng hồ ngân hàng chậm 60 giây", { bankTime: at("2026-10-30T02:59:00Z") }, { result: "auto_confirm" }],
+    ["sớm hơn createdAt quá 60 giây", { bankTime: at("2026-10-30T02:58:59Z") }, { result: "queue", reason: "early" }],
     ["tương lai quá 5 phút", { bankTime: at("2026-10-30T03:25:01Z") }, { result: "queue", reason: "bad_time" }],
     ["tương lai đúng 5 phút", { bankTime: at("2026-10-30T03:25:00Z"), now: at("2026-10-30T03:20:00Z"), order: { ...order, expiresAt: at("2026-10-30T04:00:00Z") } }, { result: "auto_confirm" }],
     ["thiếu 1 đồng", { amountVnd: 198_999 }, { result: "queue", reason: "amount_short" }],
