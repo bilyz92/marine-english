@@ -29,7 +29,7 @@ export default function ContactPage() {
         <section className={ui.card} style={{ marginTop: 20 }}>
           <h2 className={ui.h3}>Tự xử lý nhanh</h2>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <li>Chuyển khoản rồi mà chưa mở khóa: xem lại trang thanh toán của đơn trong <Link href="/hoc">Khóa học của tôi</Link>.</li>
+            <li>Chuyển khoản rồi mà chưa mở khóa: đừng chuyển lại. Bấm “Mua khóa” lần nữa, trang sẽ hiện đơn trước để xem trạng thái.</li>
             <li>Muốn hoàn tiền: xem <Link href="/chinh-sach?tab=hoan-tien">chính sách hoàn tiền</Link>.</li>
             <li>Đổi cách đăng nhập, gỡ thiết bị: vào <Link href="/tai-khoan">Tài khoản của tôi</Link>.</li>
           </ul>

@@ -19,6 +19,7 @@ const MESSAGE: Record<Exclude<Problem, null>, string> = {
 
 export function BuyForm({ slug, titleVi, priceVnd }: { slug: string; titleVi: string; priceVnd: number }) {
   const [name, setName] = useState<string | null>(null);
+  const [recent, setRecent] = useState<{ enrolled: boolean; unresolved: { code: string }[] } | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
   const [busy, setBusy] = useState(false);
@@ -30,7 +31,10 @@ export function BuyForm({ slug, titleVi, priceVnd }: { slug: string; titleVi: st
       if (res.status === 401) return router.replace(toLogin);
       if (res.ok) setName(((await res.json()) as { displayName: string }).displayName);
     });
-  }, [router, toLogin]);
+    void fetch(`/api/me/orders?course=${encodeURIComponent(slug)}`, { cache: "no-store" }).then(async (res) => {
+      if (res.ok) setRecent((await res.json()) as { enrolled: boolean; unresolved: { code: string }[] });
+    });
+  }, [router, toLogin, slug]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -52,8 +56,23 @@ export function BuyForm({ slug, titleVi, priceVnd }: { slug: string; titleVi: st
     setProblem("failed");
   }
 
+  if (recent?.enrolled) {
+    return (
+      <div className={ui.card}>
+        <p className={ui.lead}>Bạn đã có khóa {titleVi}.</p>
+        <Link className={ui.primary} href={`/hoc?khoa=${slug}`}>Vào học</Link>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={submit} className={ui.card}>
+      {recent && recent.unresolved.length > 0 && (
+        <div className={ui.notice} role="status">
+          <p>Đã chuyển tiền cho đơn trước rồi? Đừng chuyển lại. Xem trạng thái đơn:</p>
+          {recent.unresolved.map((o) => <p key={o.code}><Link href={`/thanh-toan/${o.code}`}>{o.code}</Link></p>)}
+        </div>
+      )}
       {name && <p className={ui.lead}>Tài khoản: <strong>{name}</strong></p>}
       <h2 className={ui.h3}>{titleVi}</h2>
       <span className={ui.price}>{formatVnd(priceVnd)}</span>

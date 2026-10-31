@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { authorize } from "@/modules/auth-admin/authorize";
+import { authorize, permissionsFor } from "@/modules/auth-admin/authorize";
 import { listQueue } from "@/modules/ledger/queue";
 import type { AdminCtx } from "@/modules/sessions/guards";
 
@@ -30,6 +30,7 @@ export async function overview(ctx: AdminCtx, days: number) {
       (SELECT count(*)::int FROM users WHERE created_at >= ${from} AND created_at < ${now}) AS learners,
       (SELECT count(*)::int FROM refunds WHERE status IN ('requested', 'approved', 'sent')) AS refunds_open`;
   const queue = await listQueue({ raw: false });
+  const canSeeJobErrors = permissionsFor(ctx).includes("jobs.run");
   const recentOrders = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; title_vi: string; display_name: string }[]>`
     SELECT o.code, o.status, o.amount_due_vnd, o.created_at, c.title_vi, u.display_name
     FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id JOIN users u ON u.id = o.user_id
@@ -48,6 +49,7 @@ export async function overview(ctx: AdminCtx, days: number) {
     recentOrders: recentOrders.map((o) => ({
       code: o.code, status: o.status, amountVnd: o.amount_due_vnd, createdAt: o.created_at, course: o.title_vi, learner: o.display_name,
     })),
-    jobs: jobs.map((j) => ({ name: j.job_name, status: j.status, startedAt: j.started_at, error: j.error })),
+    // Nội dung lỗi có thể chứa chi tiết nhà cung cấp: chỉ người có quyền quản lý job xem.
+    jobs: jobs.map((j) => ({ name: j.job_name, status: j.status, startedAt: j.started_at, error: canSeeJobErrors ? j.error : null })),
   };
 }

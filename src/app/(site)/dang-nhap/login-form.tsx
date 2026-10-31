@@ -81,7 +81,11 @@ export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: bo
       contact, code, deviceKey: await getDeviceKey(), deviceLabel: deviceLabel(), ...profile,
     });
     setBusy(false);
-    if (data.next === "done") return setStep("done");
+    // Đăng nhập bằng mã xong thì về `next` của trang này; bỏ giá trị cũ để /hoc không nhảy sang trang cũ sau này.
+    if (data.next === "done") {
+      sessionStorage.removeItem(NEXT_KEY);
+      return setStep("done");
+    }
     if (data.next === "choose_device") {
       sessionStorage.setItem(DEVICES_KEY, JSON.stringify(data.devices ?? []));
       sessionStorage.setItem(NEXT_KEY, next);

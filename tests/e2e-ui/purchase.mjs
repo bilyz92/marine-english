@@ -85,13 +85,11 @@ try {
   check("có nút vào học", await click("Vào học ngay"));
   check("vào đúng khóa", await waitFor(async () => (await b.evaluate("location.pathname + location.search")) === `/hoc?khoa=${SLUG}`));
 
-  // 6. Mua lại khóa đã có.
+  // 6. Mua lại khóa đã có: báo ngay khi mở trang, không cần tích điều khoản.
   await b.go(`${BASE}/mua/${SLUG}`);
-  await waitFor(async () => (await text()).includes("Sang thanh toán"));
-  await hydrated();
-  await b.evaluate(`document.querySelector("input[type=checkbox]").click()`);
-  await click("Sang thanh toán");
-  check("đã có khóa → báo, có nút vào học", await waitFor(async () => (await text()).includes("Bạn đã có khóa này")));
+  check("đã có khóa → báo ngay, có nút vào học", await waitFor(async () => (await text()).includes("Bạn đã có khóa")));
+  check("không hiện ô điều khoản", await b.evaluate(`document.querySelector("input[type=checkbox]") === null`));
+
   const errors = b.events.errors.filter((e) => !String(e).includes("401"));
   check("không lỗi trang", errors.length === 0, JSON.stringify(errors.slice(0, 3)));
 } finally {

@@ -80,6 +80,18 @@ describe("/api/quan-tri/overview", () => {
   });
 });
 
+describe("lỗi job chỉ chủ thấy", () => {
+  it("hỗ trợ thấy trạng thái job nhưng không thấy nội dung lỗi", async () => {
+    await sqlAsMigrator(`INSERT INTO job_runs (job_name, status, error) VALUES ('me.x', 'failed', 'bi mat nha cung cap')`);
+    const support = await callAdmin(overviewRoute, await adminSess("support"), "GET", "/api/quan-tri/overview?days=1");
+    const text = await support.text();
+    expect(text).toContain("me.x");
+    expect(text).not.toContain("bi mat nha cung cap");
+    const owner = await callAdmin(overviewRoute, await adminSess("owner"), "GET", "/api/quan-tri/overview?days=1");
+    expect(await owner.text()).toContain("bi mat nha cung cap");
+  });
+});
+
 describe("/api/quan-tri/orders", () => {
   it("phân trang theo con trỏ không trùng không sót; lọc trạng thái; tìm theo mã", async () => {
     await setup();

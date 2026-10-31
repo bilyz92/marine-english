@@ -1,11 +1,18 @@
 import { z } from "zod";
-import { json, readJson, route } from "@/lib/http";
-import { createOrder } from "@/modules/orders/orders";
+import { HttpError, json, readJson, route } from "@/lib/http";
+import { createOrder, recentOrdersForCourse } from "@/modules/orders/orders";
 import { paymentInfo } from "@/modules/orders/payment-info";
 import { requireLearner } from "@/modules/sessions/guards";
 
 // Client chỉ gửi khóa học; số tiền luôn do máy chủ tính.
 const Body = z.object({ courseSlug: z.string().min(1).max(100), acceptTerms: z.literal(true) });
+
+export const GET = route(async (req: Request) => {
+  const ctx = await requireLearner(req);
+  const course = new URL(req.url).searchParams.get("course") ?? "";
+  if (!course || course.length > 100) throw new HttpError(400, "Thiếu khóa học");
+  return json(await recentOrdersForCourse(ctx, course), { headers: { "cache-control": "private, no-store" } });
+});
 
 export const POST = route(async (req: Request) => {
   const ctx = await requireLearner(req);

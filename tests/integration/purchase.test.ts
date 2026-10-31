@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { POST as postOrder } from "@/app/api/me/orders/route";
+import { GET as listMine, POST as postOrder } from "@/app/api/me/orders/route";
 import { GET as getOrder } from "@/app/api/me/orders/[code]/route";
 import { ingest } from "@/modules/ledger/ingest";
 import { setDisposition } from "@/modules/ledger/match";
@@ -154,6 +154,31 @@ describe("trạng thái đơn", () => {
     const bt = await prisma().bankTransaction.findFirstOrThrow();
     await setDisposition(await adminCtx("owner"), bt.id, { kind: "ignored", reason: "thử" });
     expect((await read(l, code)).body.needsManual).toBe(false);
+  });
+});
+
+describe("đơn gần đây của khóa", () => {
+  const recent = async (l: TestLearner) => {
+    const res = await listMine(learnerRequest(`/api/me/orders?course=${SLUG}`, l));
+    return (await res.json()) as { enrolled: boolean; unresolved: { code: string; status: string }[] };
+  };
+
+  it("đơn vừa hết hạn trong 48 giờ hiện lại để không chuyển tiền lần nữa", async () => {
+    const l = await setup();
+    const code = await bought(l);
+    expect(await recent(l)).toEqual({ enrolled: false, unresolved: [] });
+    await sqlAsMigrator(`ALTER TABLE orders DISABLE TRIGGER USER`);
+    await sqlAsMigrator(`UPDATE orders SET created_at = created_at - interval '20 minutes', expires_at = expires_at - interval '20 minutes', status = 'expired', expired_at = now()`);
+    await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
+    expect((await recent(l)).unresolved).toEqual([expect.objectContaining({ code, status: "expired" })]);
+    expect((await recent(await testLearner("Khac"))).unresolved).toEqual([]);
+  });
+
+  it("đã có khóa → enrolled ngay khi mở trang mua", async () => {
+    const l = await setup();
+    const code = await bought(l);
+    await ingest(report({ content: code, bankTime: new Date((await orderOf(code)).createdAt.getTime() + 60_000) }));
+    expect(await recent(l)).toEqual({ enrolled: true, unresolved: [] });
   });
 });
 

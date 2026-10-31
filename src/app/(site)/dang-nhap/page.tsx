@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { env } from "@/lib/env";
+import { safeNext } from "@/lib/client/safe-next";
 import styles from "./login.module.css";
 import { LoginForm } from "./login-form";
 
@@ -7,8 +9,7 @@ import { LoginForm } from "./login-form";
 async function RuntimeLoginForm({ searchParams }: { searchParams: Promise<{ loi?: string; next?: string }> }) {
   await connection();
   const { loi, next } = await searchParams;
-  // Chỉ nhận đường dẫn trong site, không cho chuyển hướng ra ngoài.
-  const target = next && /^\/(?![/\\])/.test(next) ? next : "/hoc";
+  const target = safeNext(next, env().APP_ORIGIN);
   return <LoginForm zaloEnabled={process.env.ZALO_LOGIN_ENABLED === "true"} googleFailed={loi === "google"} next={target} />;
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../login.module.css";
+import { safeNext } from "@/lib/client/safe-next";
 import { DEVICES_KEY, postJson, type Device, NEXT_KEY } from "../api";
 import { getDeviceKey } from "../device-key";
 
@@ -37,7 +38,11 @@ export function ChooseDevice() {
     setBusy(false);
     sessionStorage.removeItem(DEVICES_KEY);
     // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
-    if (data.next === "done") return window.location.assign(sessionStorage.getItem(NEXT_KEY) ?? "/hoc");
+    if (data.next === "done") {
+      const next = safeNext(sessionStorage.getItem(NEXT_KEY), window.location.origin);
+      sessionStorage.removeItem(NEXT_KEY);
+      return window.location.assign(next);
+    }
     setError("Phiên chọn máy đã hết hạn. Đăng nhập lại để thử tiếp.");
   }
 

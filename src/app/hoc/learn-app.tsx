@@ -6,6 +6,7 @@ import {
   loadIdentity, licenseStatus, pendingCount, syncNow,
   type Identity, type LicenseStatus,
 } from "@/lib/offline/engine";
+import { safeNext } from "@/lib/client/safe-next";
 import { NEXT_KEY } from "../(site)/dang-nhap/api";
 import { CourseList } from "./course-list";
 import { CourseView } from "./course-view";
@@ -51,9 +52,10 @@ export function LearnApp() {
 
   useEffect(() => {
     // Đăng nhập Google và bước chọn máy luôn về đây: quay lại trang đang mua nếu có.
-    const next = sessionStorage.getItem(NEXT_KEY);
-    if (next) {
+    const stored = sessionStorage.getItem(NEXT_KEY);
+    if (stored) {
       sessionStorage.removeItem(NEXT_KEY);
+      const next = safeNext(stored, window.location.origin);
       if (next !== "/hoc") return window.location.replace(next);
     }
     registerServiceWorker();

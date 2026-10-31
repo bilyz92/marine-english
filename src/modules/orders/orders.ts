@@ -117,6 +117,26 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
   };
 }
 
+/**
+ * Trước khi mua: đã có khóa chưa, và đơn gần đây chưa xong (hết hạn trong 48 giờ hoặc đang chờ đối chiếu tay) của khóa này,
+ * để người đã chuyển tiền không bị dẫn tới chuyển lần nữa.
+ */
+export async function recentOrdersForCourse(ctx: LearnerCtx, courseSlug: string) {
+  const group = await mergeGroupIds(null, ctx.userId);
+  const [course] = await prisma().$queryRaw<{ id: string }[]>`SELECT id FROM courses WHERE slug = ${courseSlug}`;
+  if (!course) return { enrolled: false, unresolved: [] };
+  const rows = await prisma().$queryRaw<ViewRow[]>`
+    SELECT o.id, c.id AS course_id, o.code, o.status, o.amount_due_vnd, o.expires_at, c.slug, c.title_vi
+    FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
+    WHERE o.user_id = ANY(${group}::uuid[]) AND i.course_id = ${course.id}::uuid
+      AND o.status IN ('pending', 'expired') AND o.expires_at <= now() AND o.expires_at > now() - interval '48 hours'
+    ORDER BY o.created_at DESC`;
+  return {
+    enrolled: await hasActiveEnrollment(prisma(), group, course.id),
+    unresolved: rows.map((r) => ({ code: r.code, status: r.status, expiresAt: r.expires_at })),
+  };
+}
+
 /** pending → expired khi đã quá hạn. P4 gọi mỗi phút. */
 export async function expireOrders(): Promise<number> {
   return prisma().$executeRaw`
