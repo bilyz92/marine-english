@@ -41,18 +41,20 @@ export type TxOptions = {
   deadlineAt?: number;
   /** Thời lượng tối đa của cả transaction (mặc định của Prisma 5 giây); chỉ nới cho lô lớn như đồng bộ. */
   txTimeoutMs?: number;
+  /** Thời gian chờ lấy kết nối từ pool (mặc định của Prisma 2 giây); nới cho thao tác xếp hàng được khi nhiều máy gọi cùng lúc. */
+  maxWaitMs?: number;
 };
 
 /** Chạy fn trong một transaction có giới hạn khóa/câu lệnh; thử lại khi deadlock hoặc hết thời gian chờ khóa. */
 export async function withTx<T>(fn: (tx: Tx) => Promise<T>, opts: TxOptions = {}): Promise<T> {
-  const { lockTimeoutMs = 3000, statementTimeoutMs = 10_000, retries = 3, deadlineAt, txTimeoutMs = 5000 } = opts;
+  const { lockTimeoutMs = 3000, statementTimeoutMs = 10_000, retries = 3, deadlineAt, txTimeoutMs = 5000, maxWaitMs = 2000 } = opts;
   for (let attempt = 0; ; attempt++) {
     try {
       return await prisma().$transaction(async (tx) => {
         await tx.$executeRawUnsafe(`SET LOCAL lock_timeout = ${Math.floor(lockTimeoutMs)}`);
         await tx.$executeRawUnsafe(`SET LOCAL statement_timeout = ${Math.floor(statementTimeoutMs)}`);
         return fn(tx);
-      }, { timeout: txTimeoutMs });
+      }, { timeout: txTimeoutMs, maxWait: maxWaitMs });
     } catch (error) {
       const code = pgCode(error);
       const outOfTime = deadlineAt !== undefined && Date.now() >= deadlineAt;

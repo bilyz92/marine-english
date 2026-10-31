@@ -12,6 +12,8 @@ import { bumpProgress, type ProgressChange } from "./progress";
 export const MAX_EVENTS = 200;
 // Lô lớn nhất nhiều câu lệnh hơn mức 5 giây mặc định của một transaction.
 export const SYNC_TX_TIMEOUT_MS = 30_000;
+// Tàu vừa có mạng thì nhiều máy đồng bộ cùng lúc: chờ tới lượt kết nối thay vì báo lỗi rồi gửi lại cả lô.
+const SYNC_CONNECTION_WAIT_MS = 15_000;
 
 /** Thao tác khóa học viên (gỡ máy, gộp tài khoản) phải chờ được hết một lô đồng bộ đang giữ khóa. */
 export const WAIT_FOR_SYNC_LOCKS = { lockTimeoutMs: SYNC_TX_TIMEOUT_MS + 5_000, statementTimeoutMs: SYNC_TX_TIMEOUT_MS + 10_000, txTimeoutMs: SYNC_TX_TIMEOUT_MS + 15_000 };
@@ -161,6 +163,6 @@ export async function syncEvents(
         revokedCourseIds: (input.knownCourseIds ?? []).filter((id) => !held.has(id)),
       };
     },
-    { txTimeoutMs: SYNC_TX_TIMEOUT_MS, statementTimeoutMs: 10_000 },
+    { txTimeoutMs: SYNC_TX_TIMEOUT_MS, statementTimeoutMs: 10_000, maxWaitMs: SYNC_CONNECTION_WAIT_MS },
   );
 }

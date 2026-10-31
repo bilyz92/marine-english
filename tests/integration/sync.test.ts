@@ -196,6 +196,19 @@ describe("nhiều thiết bị đồng bộ cùng lúc", () => {
   }, 60_000);
 });
 
+describe("hết kết nối tạm thời", () => {
+  it("cả pool bận 3 giây → đồng bộ xếp hàng chờ rồi thành công, không báo lỗi", async () => {
+    const l = await testLearner("Xep hang");
+    const busy = Array.from({ length: 10 }, () =>
+      prisma().$transaction(() => new Promise((r) => setTimeout(r, 3000)), { timeout: 10_000, maxWait: 10_000 }),
+    );
+    await new Promise((r) => setTimeout(r, 200));
+    const result = await syncEvents(l, { events: [] });
+    expect(result.results).toEqual([]);
+    await Promise.all(busy);
+  }, 30_000);
+});
+
 describe("đồng bộ kiểm lại người, máy, phiên (Codex P3 #4)", () => {
   it("tài khoản đã gộp, thiết bị đã gỡ hoặc phiên đã thu hồi → 401, không lưu sự kiện", async () => {
     const s = await setup();
