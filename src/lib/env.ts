@@ -39,6 +39,9 @@ const schema = z
     OTP_PEPPERS: keyring,
     OTP_PEPPER_CURRENT: z.string().min(1),
     OIDC_STATE_KEY: key32,
+    // Khóa ký giấy phép học offline (Ed25519, 32 byte, "kid:base64,…"); giữ khóa cũ trong lúc đổi khóa theo giai đoạn.
+    LICENSE_SIGNING_KEYS: keyring,
+    LICENSE_SIGNING_KID_CURRENT: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     GOOGLE_ISSUER: z.url().default("https://accounts.google.com"),
@@ -66,6 +69,10 @@ const schema = z
   .refine((e) => e.SESSION_ENC_KEYS.has(e.SESSION_ENC_KEY_CURRENT), {
     path: ["SESSION_ENC_KEY_CURRENT"],
     message: "không có trong SESSION_ENC_KEYS",
+  })
+  .refine((e) => e.LICENSE_SIGNING_KEYS.has(e.LICENSE_SIGNING_KID_CURRENT), {
+    path: ["LICENSE_SIGNING_KID_CURRENT"],
+    message: "không có trong LICENSE_SIGNING_KEYS",
   })
   .refine((e) => e.OTP_PEPPERS.has(e.OTP_PEPPER_CURRENT), {
     path: ["OTP_PEPPER_CURRENT"],

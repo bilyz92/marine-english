@@ -27,6 +27,8 @@ export function applyTestEnv(): void {
     ZALO_LOGIN_ENABLED: "false",
     ZNS_DAILY_BUDGET: "500",
     MAX_DEVICES: "2",
+    LICENSE_SIGNING_KEYS: `l1:${key()},l2:${key()}`,
+    LICENSE_SIGNING_KID_CURRENT: "l2",
     SEPAY_BANK_CODE: "VCB",
     SEPAY_ACCOUNT_NO: "0123456789",
     SEPAY_WEBHOOK_SECRETS: "s2:bi-mat-moi-dung-trong-test,s1:bi-mat-cu-dung-trong-test",
