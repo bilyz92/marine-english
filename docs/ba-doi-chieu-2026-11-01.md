@@ -1,51 +1,76 @@
-# Đối chiếu tab “Tài liệu BA” với mã nguồn (cổng G1) — 01/11/2026
+# Đối chiếu tab “Tài liệu BA” với mã nguồn (cổng G1) — 01/11/2026, bản rà lại
 
-Nguồn: tab “Tài liệu BA” trong https://claude.ai/artifact/ENwhHxGCF4bSKAUXrbSrLD (mục 6–9), so với nhánh `phase1` sau P1–P5.
-Tài liệu BA là nguồn yêu cầu chuẩn, nên **không sửa tài liệu BA ở đây**: báo cáo này chỉ liệt kê chỗ lệch để anh quyết sửa BA hay sửa mã.
+Nguồn: tab “Tài liệu BA” trong https://claude.ai/artifact/ENwhHxGCF4bSKAUXrbSrLD (đủ 13 mục: phạm vi, use case, đặc tả UC-03/09/10, user story và tiêu chí nghiệm thu, FR, BR, NFR, trạng thái đơn, rủi ro, kiểm thử), so với nhánh `phase1` sau P1–P5 và bản cập nhật 01/11.
+Bản đầu chỉ đọc mục 6–9; bản này đã được một người rà soát độc lập đọc toàn bộ tài liệu BA và đối chiếu lại từng dòng với mã (có số dòng). Tài liệu BA là nguồn chuẩn nên **không sửa ở đây**: anh quyết sửa BA hay sửa mã.
 
-Ký hiệu: **Có** = mã đã làm đúng · **Khác** = mã làm khác BA theo một quyết định đã ghi (BA nên cập nhật) · **Chờ** = chưa làm vì cổng hay nội dung của anh · **Chưa** = chưa làm, không có quyết định nào hoãn.
+Ký hiệu: **Có** = mã đã làm đúng · **Khác** = mã làm khác BA theo một quyết định đã ghi · **Chờ** = chờ cổng hay nội dung của anh · **Chưa** = chưa làm, không có quyết định nào hoãn.
 
-## Cần anh quyết (BA và mã đang nói khác nhau)
+## A. Mã làm khác BA theo quyết định đã có (đề xuất: sửa BA)
 
-| Mục BA | BA ghi | Mã đang làm | Căn cứ | Đề xuất |
-| --- | --- | --- | --- | --- |
-| FR-06 | Tạo VietQR qua payOS/SePay | Ảnh QR có sẵn của tài khoản; khách nhập số tiền và nội dung là mã đơn | Quyết định thanh toán 29/10 | Sửa BA |
-| FR-36, FR-01 | SMS OTP (Could); đăng nhập email/Google | Email + Google; số điện thoại nhận mã qua Zalo (tắt tới G6); không SMS | Quyết định đăng nhập 30/10 | Sửa BA |
-| FR-18, BR-17 | Cấp khóa thủ công cho đơn cần xử lý tay | Tách hai thao tác: “ghép với đơn” bắt buộc chọn giao dịch có trong sổ; “cấp không thu tiền” có lý do, chỉ chủ, không đổi đơn | Quyết định 29/10, CLAUDE.md | Sửa BA |
-| BR-02 | Chỉ webhook có chữ ký mới đổi đơn sang đã thanh toán | Webhook có chữ ký, **hoặc** đối soát API SePay, **hoặc** dòng sao kê nhập tay đã được chủ xác minh rồi ghép | CLAUDE.md (bất biến thanh toán) | Sửa BA |
-| BR-03 | Mở khóa tự động khi đúng số tiền và đơn còn hạn | Như BA, nhưng “còn hạn” tính theo giờ ngân hàng (cho lệch sớm 60 giây); tiền chuyển trong hạn báo về muộn vẫn mở khóa | Quyết định 29/10 | Sửa BA (thêm chi tiết) |
-| Mục 9, BR-09 | 5 trạng thái đơn; hoàn tiền **xóa** bản ghi enrollments | 4 trạng thái tài chính; “cần xử lý tay” là cờ suy ra từ hàng chờ; hoàn tiền **thu hồi** (giữ bản ghi, giữ tiến độ học) | DG §2.3, CLAUDE.md | Sửa BA |
-| BR-05 | Mỗi học viên tối đa một bản ghi enrollments cho mỗi khóa | Có thể có nhiều bản ghi (một từ đơn, một từ cấp không thu tiền; tài khoản đã gộp); quyền học đọc theo nhóm gộp, có ít nhất một bản ghi còn hiệu lực là học được | Thiết kế gộp tài khoản 30/10 | Sửa BA, hoặc báo nếu anh muốn chặn trùng |
-| NFR-09 | Audio, ảnh tải qua link có hạn | Tải qua API kiểm quyền theo phiên mỗi lần, không có link chia sẻ được; tệp công khai chỉ là marketing và 3 bài học thử | Quyết định media 30/10 | Sửa BA |
-| FR-13 | Bài học: hội thoại có audio, phụ đề, thẻ từ vựng, bài kiểm tra | Nội dung Engine Cadet là bài phỏng vấn ba mức (câu hỏi, ý bắt buộc, từ vựng, đáp án mẫu, thẻ ôn); chưa có audio | Spec mục 8 điểm 5 | Bổ sung FR cho dạng bài này |
-| FR-26 | Xin và lưu đồng ý: điều khoản, dữ liệu cá nhân, ghi âm | Có: đồng ý điều khoản mỗi đơn (bảng chỉ thêm, theo phiên bản). Chưa: đồng ý nhận tin quảng cáo (ô không tích sẵn trên màn đăng ký chưa làm), đồng ý ghi âm (chưa có ghi âm) | G12a chưa chốt | Anh chốt G12a; mã làm phần còn lại |
+| Mục BA | BA ghi | Mã đang làm | Căn cứ |
+| --- | --- | --- | --- |
+| FR-06; US-03 tiêu chí 1; mục 10 (biện pháp “QR có sẵn số tiền, tài khoản ảo theo đơn”) | Tạo VietQR có sẵn số tiền và mã đơn qua payOS/SePay | Ảnh QR có sẵn của tài khoản; khách tự nhập số tiền và nội dung là mã đơn, có nút chép | Quyết định thanh toán 29/10 |
+| FR-01, FR-36; mục 13 (OTP = SMS) | Email/Google; SMS OTP | Email + Google; số điện thoại nhận mã qua Zalo (tắt tới G6); không SMS | Quyết định đăng nhập 30/10 |
+| FR-18, BR-17; US-09 (nguồn quyền học “thủ công”); UC-09 hậu điều kiện | Cấp khóa thủ công cho đơn lỗi | Hai thao tác tách biệt: “ghép với đơn” bắt buộc chọn giao dịch đã xác minh trong sổ (quyền học nguồn “mua”, phân bổ loại “tay”); “cấp không thu tiền” có lý do, chỉ chủ, không đổi đơn | Quyết định 29/10, DG §2.8 |
+| BR-02; mục 9 (“chỉ hai đường vào đã thanh toán”) | Chỉ webhook có chữ ký | Webhook có chữ ký, đối soát API SePay, hoặc dòng sao kê nhập tay đã được chủ xác minh rồi ghép | CLAUDE.md (bất biến thanh toán) |
+| UC-03 ngoại lệ E4; TC-05; BR-03 | Đơn đã hết hạn mà tiền về → cần xử lý tay | Tính theo giờ ngân hàng (cho lệch sớm 60 giây): tiền chuyển **trong hạn** mà báo về muộn vẫn tự mở khóa; chỉ tiền chuyển **sau hạn** mới vào xử lý tay | Quyết định 29/10 |
+| Mục 9; UC-10 bước 5 và hậu điều kiện | Hoàn tiền thì **xóa** quyền học; 5 trạng thái đơn | Hoàn tiền **thu hồi** quyền học (giữ bản ghi và tiến độ học, khớp chữ “thu hồi” của BR-09); 4 trạng thái tài chính, “cần xử lý tay” là cờ suy từ hàng chờ | DG §2.3, CLAUDE.md |
+| US-10 tiêu chí (một nút “Hoàn tiền và xác nhận đã chuyển trả”) | Một bước | Bốn bước: đề nghị → chủ duyệt → đã chuyển (mã giao dịch, bằng chứng) → xác nhận | DG §2.9, §5 |
+| BR-05 | Tối đa một bản ghi quyền học mỗi khóa | Có thể nhiều bản ghi (từ đơn, từ cấp không thu tiền, từ tài khoản đã gộp); quyền học đọc theo nhóm gộp | Thiết kế gộp tài khoản 30/10 |
+| NFR-09; mục 10 (“link audio, ảnh có hạn”) | Link có hạn | Tải qua API kiểm quyền theo phiên mỗi lần, không có link chia sẻ được; tệp công khai chỉ là marketing và 3 bài học thử | Quyết định media 30/10 |
+| FR-13; US-05 (bài kiểm tra, điểm) | Hội thoại có audio, phụ đề, thẻ từ vựng, bài kiểm tra | Nội dung Engine Cadet là bài phỏng vấn ba mức (câu hỏi, ý bắt buộc, từ vựng, đáp án mẫu, thẻ ôn); chưa audio; **chưa có bài kiểm tra và điểm** (đồng bộ đã nhận sự kiện bài kiểm tra nhưng giao diện chưa sinh ra) | Spec mục 8 điểm 5 (dạng bài khác) |
 
-## Đã có trong mã
+## B. Mã chưa khớp BA mà không có quyết định nào giải thích (đề xuất: sửa mã, trừ khi anh muốn sửa BA)
 
-FR-02 (tối đa 2 máy, chọn máy để thay), FR-04 / BR-11 (3 bài học thử), FR-05 / BR-01 / BR-06 / BR-07 (giá từ máy chủ, hạn 15 phút, một đơn chờ mỗi khóa), FR-07 / BR-04 / NFR-11 (webhook có chữ ký, mỗi giao dịch xử lý một lần, gửi lại không trùng), FR-08, FR-09 (trang thanh toán tự cập nhật), FR-11 / FR-32 (Telegram kinh doanh và nhóm lỗi, cần token), FR-12, FR-14 / NFR-03 (học offline, tự đồng bộ), FR-17 (danh sách đơn, lọc), FR-19 (hoàn tiền theo bước, thu hồi quyền học), FR-22 phần tổng kết ngày qua Telegram, FR-27 (hết hạn đơn, gửi lại thông báo; đối soát chờ G4), FR-31 (nhật ký quản trị), BR-10, BR-12 (thông báo sau khi mở khóa, lỗi gửi không hỏng mở khóa), BR-18 phần “không hoàn quá số đã nhận”, NFR-05 (PWA; chưa thử Safari iPhone thật), NFR-06 (mua trong 3 bước), NFR-07, NFR-08, NFR-10 (tin Telegram không chứa số điện thoại), NFR-12 (sao lưu hằng ngày, mã hóa, đã thử khôi phục), NFR-14 (lưu mọi báo cáo webhook và mọi thông báo), NFR-17 (360px), NFR-18 (cổng thanh toán tách một module).
+| Mục BA | BA ghi | Mã đang làm | Mức |
+| --- | --- | --- | --- |
+| UC-09 (khách chuyển thiếu → “hoàn lại số đã nhận”); UC-10 điều kiện (“đơn đã thanh toán **hoặc cần xử lý tay**”) | Hoàn được cả khoản chưa ghép vào đơn | **Không hoàn được** khoản đang nằm hàng chờ (thiếu tiền, sai mã, chuyển sau hạn, chuyển lần hai cho đơn đã trả): hoàn tiền bắt buộc gắn với đơn và chỉ lấy tiền đã ghép vào đơn đó; kết luận hàng chờ chỉ có “trùng” và “bỏ qua”. DG §2.1, §2.3, §2.8 lại nói khoản này phải hoàn được | **Quan trọng**: khách chuyển sai không có đường trả tiền trong hệ thống |
+| FR-26; UC-01 | Đồng ý điều khoản, **dữ liệu cá nhân**, ghi âm | Có: đồng ý điều khoản + chính sách hoàn tiền mỗi đơn (bảng chỉ thêm, theo phiên bản). Chưa: đồng ý dữ liệu cá nhân lúc đăng ký (ô ở bước mua chưa nêu chính sách bảo mật); ghi âm chưa có | Chờ G12a cho nội dung; mã nhỏ |
+| UC-10 bước 2 và ngoại lệ | Kiểm điều kiện BR-09, gắn cờ “ngoài chính sách” | Không kiểm, không gắn cờ; người duyệt tự xem | Mức hoàn chờ G13; cờ thì làm được ngay khi chốt |
+| UC-10 bước 3 | Từ chối thì email báo học viên | Hủy yêu cầu có lý do nhưng không báo học viên | Nhỏ; email chờ G7 |
+| US-08 tiêu chí | Tin Telegram đơn đã thanh toán có mã đơn, tên khách, khóa, số tiền, thời gian | Chỉ có mã đơn và số tiền | Nhỏ |
+| US-04 tiêu chí; FR-10 | Email xác nhận có tên khóa, số tiền, mã đơn, link vào app | Có mã đơn, số tiền; thiếu tên khóa và link vào app | Nhỏ; gửi thật chờ G7 |
+| UC-03 luồng phụ A3 | Đã có khóa thì trang khóa ẩn nút Mua, hiện Vào học | Trang chi tiết khóa vẫn hiện “Mua khóa học”; chỉ trang mua mới chuyển sang “Vào học” | Nhỏ |
+| UC-03 luồng phụ A1 | Đăng nhập xong quay lại trang khóa | Quay lại trang mua của khóa đó | Rất nhỏ (đi thẳng tới bước tiếp theo) |
+| FR-17 | Lọc đơn theo trạng thái (5 trạng thái) | Lọc theo 4 trạng thái tài chính; “cần xử lý tay” ở trang Sổ giao dịch | Theo quyết định ở mục A; chỉ cần ghi rõ |
+| FR-20; US-11 | Báo cáo theo ngày, theo khóa, có số hoàn | Có tiền nhận, tiền hoàn, theo khóa (01/11) trong hôm nay / 7 / 30 ngày; chưa chọn khoảng ngày tự do; số đơn hoàn chưa tách theo khóa | Nhỏ |
+| NFR-14 | Ghi log mọi webhook | Lưu mọi báo cáo **đã xác thực**; webhook sai chữ ký hay sai dạng chỉ ghi log máy chủ, không vào DB | Nhỏ; cảnh báo chữ ký sai tăng bất thường đã hoãn tới G4 |
 
-## Chờ anh (cổng hoặc nội dung)
+## C. Đã có trong mã
+
+FR-02 (tối đa 2 máy, chọn máy để thay), FR-04 / BR-11 (3 bài học thử), FR-05 / BR-01 / BR-06 / BR-07, FR-07 / BR-04 / NFR-11, FR-08, FR-09 (trang thanh toán tự cập nhật), FR-11 / FR-32 (Telegram kinh doanh và nhóm lỗi, cần token; nội dung xem mục B), FR-12, FR-14 / NFR-03 (học offline, tự đồng bộ), FR-19, FR-20 phần theo khóa, FR-22 phần tổng kết ngày, FR-27 (đối soát chờ G4), **FR-28 (học viên tự gửi yêu cầu hoàn tiền trên trang Tài khoản, 01/11)**, FR-31, BR-10, BR-12, **BR-18 (tài khoản nhận tiền hoàn bắt buộc trước khi duyệt, khóa sau khi duyệt; không hoàn quá số đã nhận, 01/11)**, NFR-06 (mua 3 bước), NFR-07, NFR-08, NFR-10 (tin Telegram không có số điện thoại hay danh tính khách), NFR-18.
+
+Cần ghi chú thêm:
+- **NFR-05:** có PWA; chưa thử Safari trên iPhone thật.
+- **NFR-12:** sao lưu hằng ngày mã hóa, đã thử khôi phục **trên máy phát triển**; chưa có nơi lưu ngoài, chưa thử trên máy khác (G8).
+- **NFR-17:** trang bán hàng, thanh toán, quản trị kiểm ở 360px; app học `/hoc` chưa kiểm tự động ở 360px.
+
+## D. Chờ anh
 
 | Mục | Chờ |
 | --- | --- |
-| FR-03 video giới thiệu | Video (khối đang ẩn) |
+| FR-03 video giới thiệu | Video. Trang khóa hiện **chưa có khối video** (không phải đang ẩn) |
 | FR-10 email xác nhận | Nhà cung cấp email (G7); mã đã xếp email vào hàng gửi |
-| FR-21 Zalo cho học viên | G6, G15 |
+| FR-21 Zalo cho học viên | G6 và mẫu tin ZNS riêng |
 | FR-24, FR-25, BR-08, BR-15 mã giảm giá, combo | G14 |
 | FR-29 trang chính sách | Văn bản pháp lý (trang có, nội dung “Đang cập nhật”) |
-| BR-09 mức hoàn tiền | G13 |
+| BR-09 mức hoàn | G13 |
 | FR-15, FR-34, FR-35, BR-13, BR-16 chấm phát âm, nhân vật, ghi âm | Để sau giai đoạn 1 (DG §10) |
+| NFR-01 mở khóa trong 10 giây | Mã xử lý webhook đồng bộ (giới hạn 8 giây); đo thật khi có SePay (G4) |
 | NFR-13 chi phí, NFR-15 sẵn sàng 99% | Chọn VPS (G8) |
+| BR-14 không dùng tên tàu, tên công ty thật | Quy tắc nội dung: cần duyệt nội dung Engine Cadet (chưa duyệt) |
+| Mục 12: TC-01 (cần email), TC-08 (cần mã giảm giá), “đã gắn theo dõi truy cập” (FR-33) | G7, G14, FR-33 |
 
-## Chưa làm (không có quyết định hoãn)
+## E. Hoãn sau giai đoạn 1 (anh chốt 01/11)
 
-| Mục | Ghi chú |
-| --- | --- |
-| FR-16 kiểm tra cuối khóa, chứng nhận; FR-30 tra cứu chứng nhận | Không nằm trong phạm vi DG §10; anh xác nhận để sau hay làm |
-| FR-20 báo cáo doanh thu theo khóa | Có tiền nhận và tiền hoàn theo khoảng ngày; chưa tách theo khóa |
-| FR-22 nhắc học, chuỗi ngày học | Chưa làm |
-| FR-28 học viên gửi yêu cầu hoàn tiền trên web | Hiện qua trang Liên hệ, người hỗ trợ tạo yêu cầu |
-| FR-33 analytics | Chưa làm |
-| BR-18 hoàn về đúng tài khoản học viên khai | Yêu cầu hoàn chưa có ô tài khoản nhận tiền của học viên; chỉ ghi mã giao dịch chuyển trả |
-| NFR-02, NFR-04 | Chưa đo tốc độ tải trang trên 4G; chưa chốt dung lượng tối đa mỗi bài |
-| NFR-16 giữ log 12 tháng | Đơn, sổ giao dịch, nhật ký quản trị giữ vô hạn; nhật ký job giữ 30 ngày; bản sao lưu giữ 30 ngày. Cần hỏi kế toán về thời hạn theo luật |
+FR-16 kiểm tra cuối khóa và chứng nhận, FR-30 tra cứu chứng nhận, FR-22 nhắc học và chuỗi ngày học, FR-33 analytics. FR-23 ngoài phạm vi theo BA. NFR-02 (đo tốc độ 4G) và NFR-04 (dung lượng tối đa mỗi bài) chưa đo, chưa chốt. NFR-16: đơn, sổ giao dịch, nhật ký quản trị, báo cáo webhook, outbox giữ vô hạn; nhật ký job 30 ngày; bản sao lưu 30 ngày; thời hạn theo luật cần hỏi kế toán.
+
+## Những gì bản đầu ghi sai (đã sửa ở bản này)
+
+- FR-26: bản đầu nói thiếu đồng ý “nhận tin quảng cáo”; BA không đòi việc đó, cái thiếu thật là đồng ý **dữ liệu cá nhân**.
+- Mục 9 / BR-09: chữ “xóa quyền học” nằm ở mục 9 và UC-10, còn BR-09 ghi “thu hồi” đúng như mã.
+- BR-03: chỗ lệch thật là UC-03 E4 và TC-05, không phải BR-03.
+- FR-03: không có khối video bị ẩn; trang chưa có khối video.
+- FR-21: liên quan G6 và mẫu ZNS, không liên quan G15.
+- NFR-12, NFR-14, FR-11, FR-13 được ghi chính xác hơn; bỏ sót NFR-01, BR-14, FR-23 nay đã thêm.
+- Bỏ sót quan trọng nhất: **khoản chuyển nằm hàng chờ không hoàn được** (mục B dòng đầu).
