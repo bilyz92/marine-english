@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { claimBatch, deliverBatch, markSent, type Senders } from "@/modules/outbox/deliver";
 import { EmailNotConfiguredError } from "@/modules/mail/email-sender";
@@ -35,8 +35,6 @@ async function learner(email?: string) {
   if (email) await sqlAsMigrator(`INSERT INTO user_identities (user_id, kind, value_canonical, verified_at) VALUES ($1, 'email', $2, now())`, [u.id, email]);
   return u.id as string;
 }
-
-beforeEach(() => sqlAsMigrator(`DELETE FROM outbox_events`));
 
 describe("deliverBatch", () => {
   it("gửi được → sent, có sent_at, xóa claim", async () => {
