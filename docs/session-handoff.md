@@ -245,3 +245,12 @@ lệnh `pnpm cli media:add`, “Tài khoản của tôi” (thiết bị, cách 
 Đã chạy thử thật bằng Chrome không giao diện trên bản production: tắt máy chủ giữa chừng vẫn học được bài đã tải, bật lại thì tự đồng bộ.
 Lần chạy thử phát hiện giờ ngân hàng tròn giây làm thanh toán đúng hạn bị coi là “sớm” → bộ phân loại v2 cho lệch sớm 60 giây.
 Codex `/codex-impl-review` toàn nhánh tới hết P3 Task 2: APPROVE vòng 3.
+
+**P4 đã cài đặt xong (31/10/2026)**, plan `docs/superpowers/plans/2026-10-31-p4-worker-outbox-jobs.md` (9 task). Có: tiến trình nền `pnpm worker`
+(không mở cổng), khóa job có hạn kèm chặn ghi khi mất khóa, nhật ký từng lần chạy (giữ 30 ngày), gửi thông báo từ outbox qua Telegram và email (thử lại
+giãn cách, 8 lần hỏng thì dừng và báo nhóm lỗi), các job: hết hạn đơn, gửi thông báo, dọn phiên, hết hạn lời mời quản trị, tổng kết 21:00, giải phóng
+thiết bị quá 37 ngày (03:30), đối soát SePay, dọn nhật ký; API quản trị `/api/quan-tri/jobs` (xem trạng thái, “chạy ngay”; chỉ chủ). Đã chạy thử worker thật
+trên DB dev: ghi nhật ký đúng, SIGTERM thoát sạch. Chưa có Telegram thật: thiếu biến `TELEGRAM_*` thì tin nằm chờ, không mất. Email thật chờ G7. API đối soát
+SePay chờ G4 (job ghi `skipped`). Chưa có màn hình quản trị cho job, mới có API. Cần anh quyết: tổng kết 21:00 đang đếm theo ngày lịch nên tiền vào
+21:00–24:00 không nằm trong tổng kết nào (từng đơn vẫn có tin riêng); đổi sang “21:00 hôm trước tới 21:00 hôm nay” nếu anh muốn tổng khớp sổ.
+Quyết định khi chạy: dòng `Ruling:` trong `.superpowers/sdd/2026-10-31-p4-worker-outbox-jobs/progress.md`.
