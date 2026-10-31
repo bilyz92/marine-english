@@ -1,10 +1,13 @@
 // Tiến trình nền chạy cạnh app (cùng Docker Compose): pnpm worker. Không mở cổng HTTP; “chạy ngay” đi qua bảng job_requests.
+import { writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { disconnectDb } from "@/lib/db";
 import { JOBS } from "@/modules/jobs/definitions";
 import { createScheduler } from "@/modules/jobs/scheduler";
 
 const TICK_MS = 5_000;
+// Healthcheck của container đọc thời điểm sửa tệp này.
+const HEARTBEAT_FILE = "/tmp/worker-heartbeat";
 const SHUTDOWN_GRACE_MS = 25_000;
 const AFTER_ABORT_MS = 3_000;
 
@@ -16,7 +19,7 @@ const scheduler = createScheduler(JOBS, `${hostname()}:${process.pid}`, { signal
 
 let stopping = false;
 const timer = setInterval(() => {
-  scheduler.tick().catch((error: unknown) => {
+  scheduler.tick().then(() => writeFileSync(HEARTBEAT_FILE, String(Date.now())), (error: unknown) => {
     log({ error: error instanceof Error ? error.message : String(error) });
   });
 }, TICK_MS);

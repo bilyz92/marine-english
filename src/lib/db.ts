@@ -11,7 +11,9 @@ export function prisma(): PrismaClient {
     const url = env().DATABASE_URL;
     // Prisma ghi rõ tên schema vào truy vấn; lấy từ tham số ?schema= của URL (mặc định public).
     const schema = new URL(url).searchParams.get("schema") ?? undefined;
-    client = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }, { schema }) });
+    // Kích thước pool theo ngân sách kết nối (app 10, worker 7, Postgres tối đa 50).
+    const max = Number(process.env.DB_POOL_MAX) || 10;
+    client = new PrismaClient({ adapter: new PrismaPg({ connectionString: url, max }, { schema }) });
   }
   return client;
 }

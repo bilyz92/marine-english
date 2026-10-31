@@ -1,0 +1,130 @@
+# Toàn bộ hệ thống trên một máy: docker compose -f docker-compose.prod.yml --env-file deploy/prod.env up -d --build
+# Chỉ Caddy mở cổng ra ngoài. Giới hạn tài nguyên là mẫu, chốt theo cấu hình VPS ở G8.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app-env: &app-env
+  NODE_ENV: production
+  APP_ORIGIN: ${APP_ORIGIN:?}
+  DATABASE_URL: postgresql://me_app:${ME_APP_PASSWORD:?}@postgres:5432/${ME_DB_NAME:?}
+  MEDIA_ROOT: /data/media
+  SESSION_KEY_LEARNER: ${SESSION_KEY_LEARNER:?}
+  SESSION_KEY_ADMIN: ${SESSION_KEY_ADMIN:?}
+  CSRF_KEY_LEARNER: ${CSRF_KEY_LEARNER:?}
+  CSRF_KEY_ADMIN: ${CSRF_KEY_ADMIN:?}
+  OIDC_STATE_KEY: ${OIDC_STATE_KEY:?}
+  SESSION_ENC_KEYS: ${SESSION_ENC_KEYS:?}
+  SESSION_ENC_KEY_CURRENT: ${SESSION_ENC_KEY_CURRENT:?}
+  OTP_PEPPERS: ${OTP_PEPPERS:?}
+  OTP_PEPPER_CURRENT: ${OTP_PEPPER_CURRENT:?}
+  LICENSE_SIGNING_KEYS: ${LICENSE_SIGNING_KEYS:?}
+  LICENSE_SIGNING_KID_CURRENT: ${LICENSE_SIGNING_KID_CURRENT:?}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?}
+  ZALO_LOGIN_ENABLED: ${ZALO_LOGIN_ENABLED:-false}
+  SEPAY_BANK_CODE: ${SEPAY_BANK_CODE:-}
+  SEPAY_ACCOUNT_NO: ${SEPAY_ACCOUNT_NO:-}
+  SEPAY_WEBHOOK_SECRETS: ${SEPAY_WEBHOOK_SECRETS:-}
+  CHECKOUT_BANK_NAME: ${CHECKOUT_BANK_NAME:-}
+  CHECKOUT_ACCOUNT_NAME: ${CHECKOUT_ACCOUNT_NAME:-}
+  CHECKOUT_QR_IMAGE: ${CHECKOUT_QR_IMAGE:-}
+  CHECKOUT_TERMS_VERSION: ${CHECKOUT_TERMS_VERSION:-}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  TELEGRAM_BUSINESS_CHAT_ID: ${TELEGRAM_BUSINESS_CHAT_ID:-}
+  TELEGRAM_ERROR_CHAT_ID: ${TELEGRAM_ERROR_CHAT_ID:-}
+
+services:
+  postgres:
+    image: postgres:16
+    command: ["postgres", "-c", "max_connections=50"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      ME_DB_NAME: ${ME_DB_NAME:?}
+      ME_MIGRATOR_PASSWORD: ${ME_MIGRATOR_PASSWORD:?}
+      ME_APP_PASSWORD: ${ME_APP_PASSWORD:?}
+      ME_BACKUP_PASSWORD: ${ME_BACKUP_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres-init.sh:/docker-entrypoint-initdb.d/01-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${ME_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
+    logging: *logging
+
+  migrate:
+    build: { context: ., target: worker, args: { NEXT_PUBLIC_LICENSE_PUBLIC_KEYS: "${NEXT_PUBLIC_LICENSE_PUBLIC_KEYS:-}" } }
+    image: marine-english-worker:${IMAGE_TAG:-local}
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+    environment:
+      MIGRATOR_DATABASE_URL: postgresql://me_migrator:${ME_MIGRATOR_PASSWORD:?}@postgres:5432/${ME_DB_NAME:?}
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+    logging: *logging
+
+  app:
+    build: { context: ., target: app, args: { NEXT_PUBLIC_LICENSE_PUBLIC_KEYS: "${NEXT_PUBLIC_LICENSE_PUBLIC_KEYS:-}" } }
+    image: marine-english-app:${IMAGE_TAG:-local}
+    environment:
+      <<: *app-env
+      DB_POOL_MAX: "10"
+    volumes:
+      - media:/data/media
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
+    logging: *logging
+
+  worker:
+    image: marine-english-worker:${IMAGE_TAG:-local}
+    environment:
+      <<: *app-env
+      DB_POOL_MAX: "7"
+    volumes:
+      - media:/data/media
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+    stop_grace_period: 60s
+    mem_limit: 512m
+    cpus: 0.5
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    mem_limit: 256m
+    logging: *logging
+
+volumes:
+  pgdata:
+  media:
+  caddy_data:
+  caddy_config:

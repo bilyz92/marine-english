@@ -95,7 +95,8 @@ let cached: Env | undefined;
 /** Đọc và kiểm biến môi trường một lần; thiếu hoặc sai thì ném lỗi nêu rõ biến nào. */
 export function env(): Env {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  // Biến để trống coi như chưa đặt: Compose và tệp mẫu truyền chuỗi rỗng cho mục chưa điền.
+  const parsed = schema.safeParse(Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== "")));
   if (!parsed.success) {
     const detail = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Cấu hình môi trường không hợp lệ — ${detail}`);

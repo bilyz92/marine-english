@@ -1,12 +1,13 @@
 import { Client } from "pg";
 import { withSearchPath } from "./db";
 
-type Role = "migrator" | "app" | "other";
+type Role = "migrator" | "app" | "other" | "backup";
 
 const URL_BY_ROLE: Record<Role, () => string | undefined> = {
   migrator: () => process.env.MIGRATOR_DATABASE_URL,
   app: () => process.env.DATABASE_URL,
   other: () => process.env.ME_OTHER_DATABASE_URL,
+  backup: () => process.env.BACKUP_DATABASE_URL,
 };
 
 /** Kết nối pg thô bằng một vai trò, search_path trỏ về schema của tệp test. */

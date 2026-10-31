@@ -11,6 +11,7 @@ export function applyTestEnv(): void {
     MIGRATOR_DATABASE_URL: `postgresql://me_migrator:me_migrator_dev@${PG}/me_test`,
     SHADOW_DATABASE_URL: `postgresql://me_migrator:me_migrator_dev@${PG}/me_shadow`,
     ME_OTHER_DATABASE_URL: `postgresql://me_other:me_other_dev@${PG}/me_test`,
+    BACKUP_DATABASE_URL: `postgresql://me_backup:me_backup_dev@${PG}/me_test`,
     APP_ORIGIN: "http://localhost:3000",
     SESSION_KEY_LEARNER: key(),
     SESSION_KEY_ADMIN: key(),

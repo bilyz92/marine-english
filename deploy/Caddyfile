@@ -1,0 +1,19 @@
+# HTTPS (Let's Encrypt; với APP_DOMAIN=localhost thì dùng CA nội bộ của Caddy) và proxy tới app. Caddy không đọc thư mục media:
+# mọi tệp đi qua app, tệp trả phí chỉ qua API có kiểm quyền.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 5MB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+	reverse_proxy app:3000 {
+		# Ghi đè, không nối thêm: giá trị người dùng tự gửi không bao giờ tới app (giới hạn OTP theo IP dựa vào đây).
+		header_up X-Forwarded-For {remote_host}
+	}
+}

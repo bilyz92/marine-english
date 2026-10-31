@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.superpowers
+.codex-review
+media
+docs
+tests
+*.log
+.env*
+deploy/*.env
+src/generated
+tsconfig.tsbuildinfo
