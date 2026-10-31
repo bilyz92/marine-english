@@ -65,6 +65,11 @@ const schema = z
           .map((part) => part.slice(part.indexOf(":") + 1))
           .filter((secret) => secret.length > 0),
       ),
+    // Thông tin nhận tiền hiện ở trang thanh toán và phiên bản điều khoản đã duyệt; thiếu mục nào thì chưa bán được.
+    CHECKOUT_BANK_NAME: z.string().optional(),
+    CHECKOUT_ACCOUNT_NAME: z.string().optional(),
+    CHECKOUT_QR_IMAGE: z.string().regex(/^(\/(?![/\\]).*)?$/, "phải là đường dẫn trong site").optional(),
+    CHECKOUT_TERMS_VERSION: z.string().optional(),
     // Telegram cho kinh doanh và nhóm lỗi; thiếu thì tin nằm chờ trong outbox, không mất.
     TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
     TELEGRAM_BUSINESS_CHAT_ID: z.string().min(1).optional(),

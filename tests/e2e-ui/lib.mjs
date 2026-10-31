@@ -30,7 +30,7 @@ export async function openBrowser({ port = 9444 } = {}) {
   await send("Page.enable"); await send("Runtime.enable"); await send("Network.enable");
   const evaluate = async (expression) => {
     const r = await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-    if (r.result?.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails).slice(0, 400));
+    if (r.result?.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description ?? JSON.stringify(r.result.exceptionDetails).slice(0, 400));
     return r.result?.result?.value;
   };
   return {

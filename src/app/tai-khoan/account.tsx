@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { clearLocal, licenseStatus, loadIdentity, signOut, type Identity, type LicenseStatus } from "@/lib/offline/engine";
+import { learnerCsrfHeader } from "@/lib/client/api";
 import { forgetDeviceKey } from "../(site)/dang-nhap/device-key";
 import styles from "../hoc/learn.module.css";
 
@@ -9,11 +10,6 @@ type Device = { id: string; label: string; lastSeenAt: string | null; current: b
 type IdentityRow = { id: string; kind: string; valueCanonical: string };
 
 const KIND_LABEL: Record<string, string> = { email: "Email", google: "Google", phone: "Số điện thoại" };
-
-function csrfHeader(): HeadersInit {
-  const token = document.cookie.split("; ").find((c) => c.startsWith("__Host-me_csrf_learner="))?.split("=")[1] ?? "";
-  return { "x-csrf-token": token };
-}
 
 export function Account() {
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -42,7 +38,7 @@ export function Account() {
   }, []);
 
   async function removeDevice(device: Device) {
-    const res = await fetch(`/api/me/devices?id=${device.id}`, { method: "DELETE", headers: csrfHeader() });
+    const res = await fetch(`/api/me/devices?id=${device.id}`, { method: "DELETE", headers: learnerCsrfHeader() });
     if (res.status === 403) return setMessage("Vì an toàn, cần đăng nhập lại trong 10 phút gần đây mới gỡ được thiết bị.");
     if (!res.ok) return setMessage("Không gỡ được thiết bị, thử lại sau.");
     if (device.current) {

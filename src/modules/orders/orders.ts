@@ -1,8 +1,10 @@
 import { prisma, withTx, type Tx } from "@/lib/db";
 import { lockActiveUser } from "@/modules/auth-learner/devices";
 import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access";
+import { orderNeedsManual } from "@/modules/ledger/queue";
 import type { LearnerCtx } from "@/modules/sessions/guards";
 import { newOrderCode } from "./codes";
+import { paymentInfo } from "./payment-info";
 
 // Đơn: giá luôn lấy từ courses trên máy chủ, ghi ảnh chụp bất biến; mã đơn ngẫu nhiên, duy nhất nhờ ràng buộc DB.
 
@@ -21,7 +23,7 @@ export type CreateOrderResult =
   | { kind: "created" | "existing"; order: OrderView }
   | { kind: "not_for_sale" | "already_enrolled" };
 
-type ViewRow = { code: string; status: OrderStatus; amount_due_vnd: number; expires_at: Date; slug: string; title_vi: string };
+type ViewRow = { id: string; course_id: string; code: string; status: OrderStatus; amount_due_vnd: number; expires_at: Date; slug: string; title_vi: string };
 
 const toView = (r: ViewRow): OrderView => ({
   code: r.code, status: r.status, amountDueVnd: r.amount_due_vnd, expiresAt: r.expires_at, courseSlug: r.slug, courseTitleVi: r.title_vi,
@@ -29,7 +31,7 @@ const toView = (r: ViewRow): OrderView => ({
 
 async function orderViews(db: Tx | ReturnType<typeof prisma>, where: { code?: string; userIds: string[]; courseId?: string; pendingOnly?: boolean }) {
   return db.$queryRaw<ViewRow[]>`
-    SELECT o.code, o.status, o.amount_due_vnd, o.expires_at, c.slug, c.title_vi
+    SELECT o.id, c.id AS course_id, o.code, o.status, o.amount_due_vnd, o.expires_at, c.slug, c.title_vi
     FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
     WHERE o.user_id = ANY(${where.userIds}::uuid[])
       AND (${where.code ?? null}::text IS NULL OR o.code = ${where.code ?? null})
@@ -41,9 +43,16 @@ async function orderViews(db: Tx | ReturnType<typeof prisma>, where: { code?: st
 export async function createOrder(
   ctx: LearnerCtx,
   courseSlug: string,
-  opts: { codeSource?: () => string } = {},
+  opts: { codeSource?: () => string; termsVersion?: string } = {},
 ): Promise<CreateOrderResult> {
   const codeSource = opts.codeSource ?? newOrderCode;
+  const recordTerms = async (tx: Tx, orderId: string) => {
+    if (!opts.termsVersion) return;
+    await tx.$executeRaw`
+      INSERT INTO order_terms_acceptances (order_id, user_id, terms_version)
+      VALUES (${orderId}::uuid, ${ctx.userId}::uuid, ${opts.termsVersion})
+      ON CONFLICT (order_id) DO NOTHING`;
+  };
   return withTx(async (tx) => {
     // Khóa học viên để hai lần bấm “mua” cùng lúc chỉ tạo một đơn.
     await lockActiveUser(tx, ctx.userId);
@@ -53,7 +62,10 @@ export async function createOrder(
     const group = await mergeGroupIds(tx, ctx.userId);
     if (await hasActiveEnrollment(tx, group, course.id)) return { kind: "already_enrolled" };
     const [pending] = await orderViews(tx, { userIds: group, courseId: course.id, pendingOnly: true });
-    if (pending) return { kind: "existing", order: toView(pending) };
+    if (pending) {
+      await recordTerms(tx, pending.id);
+      return { kind: "existing", order: toView(pending) };
+    }
 
     for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
       const [order] = await tx.$queryRaw<{ id: string; code: string }[]>`
@@ -65,6 +77,7 @@ export async function createOrder(
       await tx.$executeRaw`
         INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
         VALUES (${order.id}::uuid, ${course.id}::uuid, ${course.current_version_id}::uuid, ${course.price_vnd}, ${course.price_vnd})`;
+      await recordTerms(tx, order.id);
       const [view] = await orderViews(tx, { userIds: [ctx.userId], code: order.code });
       return { kind: "created", order: toView(view!) };
     }
@@ -76,6 +89,32 @@ export async function createOrder(
 export async function getOrderForLearner(ctx: LearnerCtx, code: string): Promise<OrderView | null> {
   const [row] = await orderViews(prisma(), { userIds: await mergeGroupIds(null, ctx.userId), code });
   return row ? toView(row) : null;
+}
+
+export type CheckoutView = OrderView & {
+  /** Thông tin chuyển khoản: chỉ có khi đơn còn trong hạn và đã đủ cấu hình. */
+  payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string } | null;
+  enrolled: boolean;
+  needsManual: boolean;
+  /** Giờ máy chủ: máy trên tàu có thể lệch giờ, đếm ngược không dựa vào đồng hồ máy. */
+  serverNow: Date;
+};
+
+/** Trạng thái đơn cho trang thanh toán; chỉ đọc, không mở khóa gì. */
+export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Promise<CheckoutView | null> {
+  const group = await mergeGroupIds(null, ctx.userId);
+  const [row] = await orderViews(prisma(), { userIds: group, code });
+  if (!row) return null;
+  const serverNow = new Date();
+  const open = row.status === "pending" && row.expires_at > serverNow;
+  const info = open ? paymentInfo() : null;
+  return {
+    ...toView(row),
+    payment: info && { bankName: info.bankName, accountNo: info.accountNo, accountName: info.accountName, qrImageUrl: info.qrImageUrl },
+    enrolled: await hasActiveEnrollment(prisma(), group, row.course_id),
+    needsManual: await orderNeedsManual(row.id),
+    serverNow,
+  };
 }
 
 /** pending → expired khi đã quá hạn. P4 gọi mỗi phút. */

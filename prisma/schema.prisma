@@ -12,6 +12,7 @@ datasource db {
 
 model User {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  termsAcceptances OrderTermsAcceptance[]
   displayName      String             @map("display_name")
   rank             String?
   status           String             @default("active")
@@ -341,6 +342,7 @@ model CourseVersionLesson {
 
 model Order {
   id                  String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  termsAcceptance     OrderTermsAcceptance?
   code                String                          @unique(map: "orders_code_key")
   userId              String                          @map("user_id") @db.Uuid
   status              String                          @default("pending")
@@ -710,4 +712,15 @@ model ReconciliationCursor {
 
   @@id([provider, bankCode, accountNo])
   @@map("reconciliation_cursors")
+}
+
+model OrderTermsAcceptance {
+  orderId      String   @id @map("order_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  termsVersion String   @map("terms_version")
+  acceptedAt   DateTime @default(now()) @map("accepted_at") @db.Timestamptz(6)
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@map("order_terms_acceptances")
 }

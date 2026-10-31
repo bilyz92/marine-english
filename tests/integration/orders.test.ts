@@ -19,7 +19,7 @@ async function setup(price = 199_000) {
 describe("tạo đơn", () => {
   it("giá lấy từ máy chủ, bỏ qua số tiền client gửi; đơn cũ giữ giá khi khóa đổi giá", async () => {
     const l = await setup();
-    const res = await postOrder(learnerRequest("/api/me/orders", l, { method: "POST", body: { courseSlug: SLUG, amountVnd: 1 } }));
+    const res = await postOrder(learnerRequest("/api/me/orders", l, { method: "POST", body: { courseSlug: SLUG, amountVnd: 1, acceptTerms: true } }));
     expect(res.status).toBe(201);
     const body = (await res.json()) as { code: string; amountDueVnd: number; status: string; courseSlug: string };
     expect(body).toMatchObject({ amountDueVnd: 199_000, status: "pending", courseSlug: SLUG });
@@ -35,7 +35,7 @@ describe("tạo đơn", () => {
     await seedContent();
     const l = await testLearner();
     for (const courseSlug of [SLUG, "khong-co"]) {
-      const res = await postOrder(learnerRequest("/api/me/orders", l, { method: "POST", body: { courseSlug } }));
+      const res = await postOrder(learnerRequest("/api/me/orders", l, { method: "POST", body: { courseSlug, acceptTerms: true } }));
       expect([res.status, await res.json()]).toEqual([409, { error: "not_for_sale" }]);
     }
   });

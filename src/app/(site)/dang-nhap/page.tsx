@@ -18,7 +18,7 @@ export default function LoginPage({ searchParams }: PageProps<"/dang-nhap">) {
       <div className={styles.card}>
         <h1 className={styles.title}>Đăng ký và đăng nhập</h1>
         <p className={styles.lead}>Chỉ cần tên, một cách liên hệ và chức danh. Hồ sơ đầy đủ có thể bổ sung sau, lúc nào tiện.</p>
-        <Suspense>
+        <Suspense fallback={<p className={styles.note}>Đang tải…</p>}>
           <RuntimeLoginForm searchParams={searchParams as Promise<{ loi?: string; next?: string }>} />
         </Suspense>
       </div>

@@ -32,6 +32,10 @@ export function applyTestEnv(): void {
     SEPAY_BANK_CODE: "VCB",
     SEPAY_ACCOUNT_NO: "0123456789",
     SEPAY_WEBHOOK_SECRETS: "s2:bi-mat-moi-dung-trong-test,s1:bi-mat-cu-dung-trong-test",
+    CHECKOUT_BANK_NAME: "Ngan hang thu",
+    CHECKOUT_ACCOUNT_NAME: "TEN THU NGHIEM",
+    CHECKOUT_QR_IMAGE: "/media/qr-thu.png",
+    CHECKOUT_TERMS_VERSION: "thu-nghiem-1",
   };
   for (const [name, value] of Object.entries(defaults)) {
     if (process.env[name] === undefined) process.env[name] = value;
