@@ -44,6 +44,7 @@ COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/package.json /app/prisma.config.ts /app/tsconfig.json ./
 COPY --from=build --chown=node:node /app/prisma ./prisma
 COPY --from=build --chown=node:node /app/src ./src
+COPY --from=build --chown=node:node /app/deploy/restore.mjs ./deploy/restore.mjs
 RUN mkdir -p /data/media /data/backups && chown node:node /data/media /data/backups
 USER node
 # Worker ghi tệp nhịp tim sau mỗi lượt; quá 2 phút không có thì hiện unhealthy (chỉ để quan sát, Docker không tự khởi động lại vì việc này).
