@@ -30,13 +30,21 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 CMD ["node", "server.js"]
 
 FROM node:24-bookworm-slim AS worker
+# Công cụ sao lưu: pg_dump cùng phiên bản với máy chủ (16, từ kho của PostgreSQL), gpg để mã hóa, rclone để đẩy ra ngoài.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl gnupg rclone \
+  && install -d /usr/share/postgresql-common/pgdg \
+  && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+  && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+  && apt-get update && apt-get install -y --no-install-recommends postgresql-client-16 \
+  && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/package.json /app/prisma.config.ts /app/tsconfig.json ./
 COPY --from=build --chown=node:node /app/prisma ./prisma
 COPY --from=build --chown=node:node /app/src ./src
-RUN mkdir -p /data/media && chown node:node /data/media
+RUN mkdir -p /data/media /data/backups && chown node:node /data/media /data/backups
 USER node
 # Worker ghi tệp nhịp tim sau mỗi lượt; quá 2 phút không có thì hiện unhealthy (chỉ để quan sát, Docker không tự khởi động lại vì việc này).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \

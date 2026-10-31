@@ -56,3 +56,8 @@ src/generated/
 
 # Tệp media lưu cục bộ (dev)
 /media/
+
+# Khóa sao lưu và cấu hình rclone trên máy chủ: không bao giờ commit.
+deploy/backup-keys/
+deploy/rclone/
+deploy/prod.env

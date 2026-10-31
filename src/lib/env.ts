@@ -65,6 +65,12 @@ const schema = z
           .map((part) => part.slice(part.indexOf(":") + 1))
           .filter((secret) => secret.length > 0),
       ),
+    // Sao lưu [G8]: vai trò chỉ đọc me_backup, thư mục sao lưu, thư mục khóa (mỗi khóa một tệp, quyền 600), khóa hiện tại, nơi lưu ngoài (rclone).
+    BACKUP_DATABASE_URL: z.url().optional(),
+    BACKUP_DIR: z.string().optional(),
+    BACKUP_KEYS_DIR: z.string().optional(),
+    BACKUP_KEY_ID: z.string().regex(/^[a-z0-9_-]{1,32}$/).optional(),
+    BACKUP_RCLONE_REMOTE: z.string().optional(),
     // Thông tin nhận tiền hiện ở trang thanh toán và phiên bản điều khoản đã duyệt; thiếu mục nào thì chưa bán được.
     CHECKOUT_BANK_NAME: z.string().optional(),
     CHECKOUT_ACCOUNT_NAME: z.string().optional(),

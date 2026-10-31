@@ -91,8 +91,18 @@ services:
     environment:
       <<: *app-env
       DB_POOL_MAX: "7"
+      BACKUP_DATABASE_URL: postgresql://me_backup:${ME_BACKUP_PASSWORD:?}@postgres:5432/${ME_DB_NAME:?}
+      BACKUP_DIR: /data/backups
+      BACKUP_KEYS_DIR: /data/backup-keys
+      BACKUP_KEY_ID: ${BACKUP_KEY_ID:-}
+      BACKUP_RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
     volumes:
       - media:/data/media
+      - backups:/data/backups
+      # Tệp khóa sao lưu trên máy chủ (mỗi khóa một tệp, chủ sở hữu uid 1000, quyền 600). Lưu riêng ngoài VPS: xem runbook.
+      - ${BACKUP_KEYS_HOST_DIR:-./deploy/backup-keys}:/data/backup-keys:ro
+      # Cấu hình rclone cho nơi lưu ngoài (tùy chọn).
+      - ${RCLONE_CONFIG_HOST_DIR:-./deploy/rclone}:/home/node/.config/rclone:ro
     depends_on:
       migrate: { condition: service_completed_successfully }
     restart: unless-stopped
@@ -126,5 +136,6 @@ services:
 volumes:
   pgdata:
   media:
+  backups:
   caddy_data:
   caddy_config:

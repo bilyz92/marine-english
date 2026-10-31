@@ -74,3 +74,34 @@ describe("runJob", () => {
     expect(await runJob(lost, "w1", { heartbeatMs: 100 })).toMatchObject({ status: "failed", error: "lease_lost" });
   });
 });
+
+describe("chờ job dọn dẹp sau khi hủy", () => {
+  it("quá giờ → lease vẫn giữ trong lúc job dọn; dọn xong mới ghi kết quả và nhả", async () => {
+    let cleaned = false;
+    let otherDuringCleanup: unknown = "chưa thử";
+    const job: JobDef = {
+      name: "me.cleanup", timeoutMs: 100,
+      run: ({ signal }) => new Promise((resolve) => {
+        signal.addEventListener("abort", () => {
+          void (async () => {
+            otherDuringCleanup = await acquireLease("me.cleanup", "worker-khac");
+            await new Promise((r) => setTimeout(r, 300));
+            cleaned = true;
+            resolve({});
+          })();
+        });
+      }),
+    };
+    expect(await runJob(job, "w1", { cleanupMs: 2_000 })).toMatchObject({ status: "timeout" });
+    expect(cleaned).toBe(true);
+    expect(otherDuringCleanup).toBeNull();
+    expect(await acquireLease("me.cleanup", "w2")).not.toBeNull();
+  });
+
+  it("job không chịu dừng → chỉ chờ tới hạn rồi kết thúc", async () => {
+    const job: JobDef = { name: "me.stuck", timeoutMs: 100, run: () => new Promise(() => {}) };
+    const started = Date.now();
+    expect(await runJob(job, "w1", { cleanupMs: 300 })).toMatchObject({ status: "timeout" });
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+});

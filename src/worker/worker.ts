@@ -9,7 +9,8 @@ const TICK_MS = 5_000;
 // Healthcheck của container đọc thời điểm sửa tệp này.
 const HEARTBEAT_FILE = "/tmp/worker-heartbeat";
 const SHUTDOWN_GRACE_MS = 25_000;
-const AFTER_ABORT_MS = 3_000;
+// Sau khi hủy, runner chờ job dọn dẹp tối đa 30 giây; 25 + 30 vẫn dưới stop_grace_period 60 giây.
+const AFTER_ABORT_MS = 30_000;
 
 const log = (fields: Record<string, unknown>) => console.log(JSON.stringify({ at: "worker", ...fields }));
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms).unref());

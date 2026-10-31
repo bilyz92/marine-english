@@ -3,6 +3,8 @@ import { deliverBatch, defaultSenders } from "@/modules/outbox/deliver";
 import { reconcile, sepayApi } from "@/modules/ledger/reconcile";
 import { expireOrders } from "@/modules/orders/orders";
 import { cleanupSessionArtifacts } from "@/modules/sessions/sessions";
+import { backup, backupAlerts, backupConfig } from "@/modules/ops/backup";
+import { runTool } from "@/modules/ops/run-tool";
 import { enqueueDailySummary } from "./daily-summary";
 import { releaseStaleDevices } from "./devices-release";
 import { withFence } from "./lease";
@@ -81,6 +83,22 @@ export const JOBS: ScheduledJob[] = [
     run: async ({ lease, signal }) => {
       const api = sepayApi();
       return api ? reconcile(api, lease, signal) : { skippedReason: "not_configured" };
+    },
+  },
+  {
+    name: "me.backup.daily",
+    schedule: { dailyAt: "02:30" },
+    timeoutMs: 2 * HOUR,
+    run: async ({ lease, signal }) => {
+      const config = backupConfig();
+      if (!config) {
+        // Không sao lưu là lỗi vận hành ở production, nên vẫn báo dù job chỉ ghi skipped.
+        if (process.env.NODE_ENV === "production") await backupAlerts({ notConfigured: true });
+        return { skippedReason: "not_configured" };
+      }
+      const stats = await backup({ config, run: runTool, lease, signal, now: new Date() });
+      if (!stats.offsite) await backupAlerts({ offsite: false });
+      return stats;
     },
   },
   {

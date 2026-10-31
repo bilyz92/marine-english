@@ -11,3 +11,5 @@ tests
 deploy/*.env
 src/generated
 tsconfig.tsbuildinfo
+deploy/backup-keys
+deploy/rclone

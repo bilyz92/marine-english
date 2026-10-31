@@ -18,6 +18,12 @@ const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: strin
   }),
   job_failed: (p) => ({ chat: "errors", text: `Job ${p.job} ${p.status === "timeout" ? "quá giờ" : "lỗi"}: ${p.error}` }),
   outbox_dead: (p) => ({ chat: "errors", text: `Không gửi được thông báo ${p.eventKind} qua ${p.channel}, đã dừng thử lại: ${p.error}` }),
+  backup_alert: (p) => ({
+    chat: "errors",
+    text: p.reason === "no_offsite"
+      ? `Sao lưu ${p.day} chỉ nằm trên máy chủ: chưa cấu hình nơi lưu ngoài (BACKUP_RCLONE_REMOTE).`
+      : `Sao lưu ${p.day} không chạy: chưa cấu hình (BACKUP_*).`,
+  }),
   daily_summary: (p) => ({
     chat: "business",
     text: `Tổng kết ${p.day}: ${p.paidOrders} đơn đã thanh toán, doanh thu ${vnd(p.revenueVnd)}, ${p.refunds} lần hoàn tiền, ${p.queueOpen} khoản chờ xử lý tay, ${p.outboxDead} thông báo gửi hỏng.`,

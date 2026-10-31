@@ -16,12 +16,13 @@ export type RunResult =
 type StopReason = "timeout" | "lease_lost" | "shutdown";
 
 const HEARTBEAT_MS = 30_000;
+const CLEANUP_MS = 30_000;
 
 /**
  * Chạy một job dưới lease: ghi job_runs, gia hạn lease định kỳ, hủy job khi mất lease hoặc quá giờ.
  * Lỗi/quá giờ gửi một cảnh báo Telegram cho nhóm lỗi (mỗi job tối đa một cảnh báo mỗi giờ).
  */
-export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: number; signal?: AbortSignal } = {}): Promise<RunResult> {
+export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: number; signal?: AbortSignal; cleanupMs?: number } = {}): Promise<RunResult> {
   const lease = await acquireLease(def.name, holder);
   if (!lease) {
     const run = await prisma().jobRun.create({ data: { jobName: def.name, status: "skipped", finishedAt: new Date() } });
@@ -52,6 +53,12 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
     const raced = await Promise.race([work.then((stats) => ({ stats })), stopped.then((reason) => ({ reason }))]);
     // Job trả về sau khi đã bị hủy thì vẫn tính theo lý do hủy, không phải xong.
     const outcome = controller.signal.aborted ? { reason: controller.signal.reason as StopReason } : raced;
+    // Đã hủy: chờ job dọn dẹp (tiến trình con, tệp tạm) trong lúc vẫn gia hạn lease, để lần chạy sau không chồng lên.
+    if (controller.signal.aborted) {
+      let waited: NodeJS.Timeout | undefined;
+      await Promise.race([work.then(() => undefined, () => undefined), new Promise<void>((r) => { waited = setTimeout(r, opts.cleanupMs ?? CLEANUP_MS); })]);
+      clearTimeout(waited);
+    }
     // Job tự báo chưa làm gì được (vd chưa cấu hình) qua skippedReason: không phải lỗi, không cảnh báo.
     if ("stats" in outcome) result = { status: outcome.stats.skippedReason ? "skipped" : "success", runId: run.id, stats: outcome.stats };
     else if (outcome.reason === "timeout") result = { status: "timeout", runId: run.id, error: "timeout" };
