@@ -237,3 +237,11 @@ Quyết định khi chạy: dòng `Ruling:` trong `.superpowers/sdd/2026-10-30-p
 “Spec giao diện v1 (chốt 29/10)” (quyết định 29–30/10 theo mã màn, sửa 11 điểm ở màn hiện có, 8 màn mới, việc đã làm trong mã). Không sửa
 các mục 1–9 anh viết. Còn lại của G1/G2: đối chiếu tab “Tài liệu BA” (FR/NFR, quy tắc nghiệp vụ) với các quyết định trong repo; sửa bảng
 thiết kế theo mục 10 rồi tải lại.
+
+**P3 đã cài đặt xong (31/10/2026)**, plan `docs/superpowers/plans/2026-10-30-p3-learning-app-offline.md` (8 task). Có: app học PWA tại `/hoc`
+(một trang vỏ, chọn khóa/bài bằng `?khoa=&bai=`), service worker tự viết, kho IndexedDB theo người + máy, tải khóa (kiểm sha256), giấy phép
+offline EdDSA 30 + 7 ngày (chống chỉnh lùi đồng hồ), đồng bộ sự kiện idempotent (tiến độ chỉ tăng), API tải tệp có kiểm quyền và Range,
+lệnh `pnpm cli media:add`, “Tài khoản của tôi” (thiết bị, cách đăng nhập, đăng xuất / đổi tài khoản), chép tiến độ khi gộp tài khoản.
+Đã chạy thử thật bằng Chrome không giao diện trên bản production: tắt máy chủ giữa chừng vẫn học được bài đã tải, bật lại thì tự đồng bộ.
+Lần chạy thử phát hiện giờ ngân hàng tròn giây làm thanh toán đúng hạn bị coi là “sớm” → bộ phân loại v2 cho lệch sớm 60 giây.
+Codex `/codex-impl-review` toàn nhánh tới hết P3 Task 2: APPROVE vòng 3.
