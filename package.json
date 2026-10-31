@@ -34,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "fake-indexeddb": "6.0.1",
     "oauth2-mock-server": "9.3.0",
     "prisma": "7.10.1",
     "typescript": "5.9.3",

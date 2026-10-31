@@ -1,5 +1,5 @@
 // Điều phối app học trên máy: nhận diện người dùng, đồng bộ, giấy phép, tải bài. Các quyết định nằm ở hàm thuần (sync-queue, downloads, license-state).
-import { deleteOfflineDb, dbDelete, dbGet, dbGetAll, dbPut, enqueueWithSeq, openOfflineDb, type Identity } from "./db";
+import { advanceMaxSeen, deleteOfflineDb, dbDelete, dbGet, dbGetAll, dbPut, enqueueWithSeq, openOfflineDb, type Identity } from "./db";
 import { planDownloads, verifyAsset, type ManifestAsset } from "./downloads";
 import type { LicenseView } from "./access";
 import { licenseState } from "./license-state";
@@ -103,16 +103,16 @@ export const nowSeconds = () => Math.floor(Date.now() / 1000);
 export async function licenseStatus(identity: Identity): Promise<LicenseStatus> {
   const db = await openOfflineDb(identity);
   const token = await dbGet<string>(db, "kv", "license");
-  const storedMax = (await dbGet<number>(db, "kv", "maxSeen")) ?? 0;
-  if (!token) return { state: "none", claims: null, daysLeft: null, maxSeen: storedMax };
-  if (!(await supportsEd25519())) return { state: "unverifiable", claims: null, daysLeft: null, maxSeen: storedMax };
+  // Mốc thời gian được nâng trước khi xét quyền, và chỉ tăng.
+  const maxSeen = await advanceMaxSeen(identity, nowSeconds());
+  if (!token) return { state: "none", claims: null, daysLeft: null, maxSeen };
+  if (!(await supportsEd25519())) return { state: "unverifiable", claims: null, daysLeft: null, maxSeen };
   const claims = await verifyLicense(token, TRUSTED_KEYS);
   if (!claims || claims.sub !== identity.userId || claims.did !== identity.deviceId) {
-    return { state: "none", claims: null, daysLeft: null, maxSeen: storedMax };
+    return { state: "none", claims: null, daysLeft: null, maxSeen };
   }
-  const result = licenseState({ exp: claims.exp, grace: claims.grace, deviceNow: nowSeconds(), maxSeen: storedMax });
-  await dbPut(db, "kv", "maxSeen", result.maxSeen);
-  return { state: result.state, claims, daysLeft: Math.ceil((claims.exp - result.maxSeen) / 86_400), maxSeen: result.maxSeen };
+  const { state } = licenseState({ exp: claims.exp, grace: claims.grace, deviceNow: nowSeconds(), maxSeen });
+  return { state, claims, daysLeft: Math.ceil((claims.exp - maxSeen) / 86_400), maxSeen };
 }
 
 // ===== Đồng bộ =====

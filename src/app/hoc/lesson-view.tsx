@@ -6,7 +6,7 @@ import {
   type Identity, type LicenseStatus, type Manifest, type ManifestLesson,
 } from "@/lib/offline/engine";
 import { canOpenLesson } from "@/lib/offline/access";
-import { nowSeconds } from "@/lib/offline/engine";
+import { licenseStatus, nowSeconds } from "@/lib/offline/engine";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
 
@@ -44,13 +44,14 @@ type Props = {
   identity: Identity;
   slug: string;
   position: number;
-  license: LicenseStatus | null;
   onEvent: () => void;
   onFinish: () => void;
 };
 
-export function LessonView({ identity, slug, position, license, onEvent, onFinish }: Props) {
-  const [loaded, setLoaded] = useState<{ manifest: Manifest; lesson: ManifestLesson; content: LessonContent | null } | "missing" | null>(null);
+export function LessonView({ identity, slug, position, onEvent, onFinish }: Props) {
+  const [loaded, setLoaded] = useState<
+    { manifest: Manifest; lesson: ManifestLesson; content: LessonContent | null; license: LicenseStatus } | "missing" | null
+  >(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [shownCards, setShownCards] = useState<Set<string>>(new Set());
   const [doneActivities, setDoneActivities] = useState<Set<string>>(new Set());
@@ -63,12 +64,17 @@ export function LessonView({ identity, slug, position, license, onEvent, onFinis
       const manifest = await loadManifest(identity, slug);
       const lesson = manifest?.lessons.find((l) => l.position === position);
       if (!manifest || !lesson) return setLoaded("missing");
-      const content = (await loadLesson(identity, lesson)) as LessonContent | null;
-      setLoaded({ manifest, lesson, content });
+      // Xét quyền với giấy phép đọc mới ngay lúc mở bài (mốc thời gian được nâng trước).
+      const license = await licenseStatus(identity);
+      const allowed = canOpenLesson({
+        isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, versionId: manifest.versionId, license, identity, now: nowSeconds(),
+      });
+      const content = allowed ? ((await loadLesson(identity, lesson)) as LessonContent | null) : null;
+      setLoaded({ manifest, lesson, content, license });
       setDoneActivities(new Set(lesson.completedActivities));
       setCompleted(lesson.status === "completed");
       setAudio(await Promise.all(manifest.assets.filter((a) => a.lessonVersionId === lesson.lessonVersionId && a.role === "audio").map((a) => assetUrl(identity, a))));
-      if (content && opened.current !== lesson.lessonVersionId) {
+      if (allowed && content && opened.current !== lesson.lessonVersionId) {
         opened.current = lesson.lessonVersionId;
         await recordEvent(identity, "lesson_opened", lesson.lessonVersionId);
         onEvent();
@@ -81,8 +87,10 @@ export function LessonView({ identity, slug, position, license, onEvent, onFinis
   if (!loaded) return <p className={styles.muted}>Đang mở bài…</p>;
   if (loaded === "missing") return <div className={styles.card}><p className={styles.muted}>Không tìm thấy bài này trên máy. Kết nối mạng để tải.</p></div>;
 
-  const { manifest, lesson, content } = loaded;
-  if (!canOpenLesson({ isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, license, identity, now: nowSeconds() })) {
+  const { manifest, lesson, content, license } = loaded;
+  if (!canOpenLesson({
+    isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, versionId: manifest.versionId, license, identity, now: nowSeconds(),
+  })) {
     const why = license?.state === "unverifiable"
       ? "Trình duyệt này chưa kiểm được giấy phép học offline. Cập nhật trình duyệt hoặc học khi có mạng."
       : "Bài này chưa mở được trên máy: kết nối mạng để đồng bộ giấy phép học rồi học tiếp.";

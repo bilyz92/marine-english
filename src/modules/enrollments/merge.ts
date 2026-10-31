@@ -4,6 +4,7 @@ import { audit } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
 import { revokeAllForSubject } from "@/modules/sessions/sessions";
+import { WAIT_FOR_SYNC_LOCKS } from "@/modules/learn/sync";
 import { mergeGroupIds } from "./access";
 
 // Gộp tài khoản (DG §4): chuyển định danh sang tài khoản đích, khóa tài khoản nguồn và trỏ về đích, chép tiến độ, thu hồi phiên/thiết bị.
@@ -57,5 +58,5 @@ export async function mergeAccounts(
       before: { sourceUserId: source }, after: { ...preview, mergedInto: target }, result: "ok", reason, ip: ctx.ip,
     });
     return "merged";
-  });
+  }, WAIT_FOR_SYNC_LOCKS);
 }

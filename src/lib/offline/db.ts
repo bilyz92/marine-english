@@ -78,6 +78,23 @@ export const dbPut = (db: IDBDatabase, store: StoreName, key: string, value: unk
 export const dbDelete = (db: IDBDatabase, store: StoreName, key: string): Promise<undefined> =>
   promised(db.transaction(store, "readwrite").objectStore(store).delete(key));
 
+/** Nâng mốc thời gian lớn nhất từng thấy (giây) trong một transaction; không bao giờ ghi giá trị nhỏ hơn. */
+export async function advanceMaxSeen(who: { userId: string; deviceId: string }, now: number): Promise<number> {
+  const db = await openOfflineDb(who);
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("kv", "readwrite");
+    const kv = tx.objectStore("kv");
+    const get = kv.get("maxSeen");
+    let value = now;
+    get.onsuccess = () => {
+      value = Math.max((get.result as number | undefined) ?? 0, now);
+      kv.put(value, "maxSeen");
+    };
+    tx.oncomplete = () => resolve(value);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 /** Cấp số thứ tự và ghi sự kiện trong một transaction, để hai thao tác liền nhau không trùng seq. */
 export function enqueueWithSeq<T extends { eventId: string }>(db: IDBDatabase, build: (lastSeq: number) => T & { seq: number }): Promise<T> {
   return new Promise((resolve, reject) => {

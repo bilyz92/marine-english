@@ -11,7 +11,10 @@ import { bumpProgress, type ProgressChange } from "./progress";
 
 export const MAX_EVENTS = 200;
 // Lô lớn nhất nhiều câu lệnh hơn mức 5 giây mặc định của một transaction.
-const SYNC_TX_TIMEOUT_MS = 30_000;
+export const SYNC_TX_TIMEOUT_MS = 30_000;
+
+/** Thao tác khóa học viên (gỡ máy, gộp tài khoản) phải chờ được hết một lô đồng bộ đang giữ khóa. */
+export const WAIT_FOR_SYNC_LOCKS = { lockTimeoutMs: SYNC_TX_TIMEOUT_MS + 5_000, statementTimeoutMs: SYNC_TX_TIMEOUT_MS + 10_000, txTimeoutMs: SYNC_TX_TIMEOUT_MS + 15_000 };
 
 const Base = {
   eventId: z.uuid(),
@@ -121,8 +124,8 @@ export async function syncEvents(
   input: { events: unknown[]; trustedKids?: string[]; knownCourseIds?: string[] },
 ): Promise<SyncResult> {
   if (input.events.length > MAX_EVENTS) throw new HttpError(400, `Tối đa ${MAX_EVENTS} sự kiện mỗi lần`);
-  const results = await withTx(
-    async (tx) => {
+  return withTx(
+    async (tx): Promise<SyncResult> => {
       // Thứ tự khóa chung với gộp tài khoản và gỡ thiết bị: học viên → thiết bị. Kiểm lại sau khi khóa:
       // tài khoản bị gộp/khóa, máy bị gỡ hay phiên bị thu hồi trong lúc chờ thì không nhận lô này.
       const [user] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM users WHERE id = ${ctx.userId}::uuid FOR UPDATE`;
@@ -142,20 +145,20 @@ export async function syncEvents(
             VALUES (${ctx.userId}::uuid, ${ctx.deviceId}::uuid, ${result.eventId}::uuid, ${result.reason!}, ${JSON.stringify(raw ?? null)}::jsonb)`;
         }
       }
-      return out;
+      // Giấy phép cấp ngay trong transaction đang giữ khóa học viên + thiết bị: gỡ máy, gộp hay hoàn tiền chạy song song
+      // phải chờ, nên không có giấy phép nào được cấp cho máy đã bị gỡ. Trả về sau khi commit.
+      const courses = await entitledCourses(ctx.userId, tx);
+      const held = new Set(courses.map((c) => c.courseId));
+      return {
+        results: out,
+        license: issueLicense({
+          userId: ctx.userId, deviceId: ctx.deviceId, trustedKids: input.trustedKids,
+          courses: courses.map((c) => ({ id: c.courseId, versionId: c.versionId })),
+        }),
+        courses: courses.map((c) => ({ id: c.courseId, slug: c.slug, versionId: c.versionId })),
+        revokedCourseIds: (input.knownCourseIds ?? []).filter((id) => !held.has(id)),
+      };
     },
     { txTimeoutMs: SYNC_TX_TIMEOUT_MS, statementTimeoutMs: 10_000 },
   );
-  // Commit rồi mới cấp giấy phép, theo quyền học tại thời điểm này.
-  const courses = await entitledCourses(ctx.userId);
-  const held = new Set(courses.map((c) => c.courseId));
-  return {
-    results,
-    license: issueLicense({
-      userId: ctx.userId, deviceId: ctx.deviceId, trustedKids: input.trustedKids,
-      courses: courses.map((c) => ({ id: c.courseId, versionId: c.versionId })),
-    }),
-    courses: courses.map((c) => ({ id: c.courseId, slug: c.slug, versionId: c.versionId })),
-    revokedCourseIds: (input.knownCourseIds ?? []).filter((id) => !held.has(id)),
-  };
 }

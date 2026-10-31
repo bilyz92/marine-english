@@ -8,11 +8,11 @@ const NOW = 10;
 
 describe("quyền mở bài khi offline (Codex P3 #1)", () => {
   it("bài học thử luôn mở", () => {
-    expect(canOpenLesson({ isFreeTrial: true, courseId: "c1", license: null, identity: who, now: NOW })).toBe(true);
+    expect(canOpenLesson({ isFreeTrial: true, courseId: "c1", versionId: "v1", license: null, identity: who, now: NOW })).toBe(true);
   });
   it("bài trả phí: chỉ khi giấy phép ok/grace, đúng người, đúng máy, có khóa", () => {
-    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license: ok, identity: who, now: NOW })).toBe(true);
-    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license: ok, identity: who, now: 120 })).toBe(true);
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license: ok, identity: who, now: NOW })).toBe(true);
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license: ok, identity: who, now: 120 })).toBe(true);
   });
   it.each([
     ["đang tải", null],
@@ -23,16 +23,23 @@ describe("quyền mở bài khi offline (Codex P3 #1)", () => {
     ["máy khác", { ...ok, claims: { ...claims, did: "d2" } }],
     ["không kiểm được chữ ký", { state: "unverifiable" as const, claims: null, daysLeft: null, maxSeen: 0 }],
   ])("bài trả phí bị chặn: %s", (_name, license) => {
-    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license, identity: who, now: NOW })).toBe(false);
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license, identity: who, now: NOW })).toBe(false);
   });
 });
 
 
 describe("hạn giấy phép tính lại lúc mở bài (Codex P3 vòng 2)", () => {
   it("trạng thái đã tính là ok nhưng giờ hiện tại quá exp + grace → chặn", () => {
-    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license: ok, identity: who, now: 150 })).toBe(false);
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license: ok, identity: who, now: 150 })).toBe(false);
   });
   it("giờ máy bị chỉnh lùi: dùng mốc lớn nhất đã thấy", () => {
-    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", license: { ...ok, maxSeen: 160 }, identity: who, now: 5 })).toBe(false);
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license: { ...ok, maxSeen: 160 }, identity: who, now: 5 })).toBe(false);
+  });
+});
+
+
+describe("phiên bản nội dung (Codex P3 vòng 3)", () => {
+  it("manifest đang lưu là phiên bản cũ, giấy phép cấp cho phiên bản mới → chặn tới khi tải manifest mới", () => {
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v0", license: ok, identity: who, now: NOW })).toBe(false);
   });
 });

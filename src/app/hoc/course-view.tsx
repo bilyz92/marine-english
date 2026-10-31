@@ -80,7 +80,9 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
       </div>
       <ul className={styles.list}>
         {manifest.lessons.map((l) => {
-          const blocked = !canOpenLesson({ isFreeTrial: l.isFreeTrial, courseId: manifest.courseId, license, identity, now: nowSeconds() });
+          const blocked = !canOpenLesson({
+            isFreeTrial: l.isFreeTrial, courseId: manifest.courseId, versionId: manifest.versionId, license, identity, now: nowSeconds(),
+          });
           return (
             <li key={l.lessonVersionId}>
               <button className={styles.row} disabled={blocked} onClick={() => go({ khoa: slug, bai: l.position })}>

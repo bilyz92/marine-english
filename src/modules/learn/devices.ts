@@ -5,6 +5,7 @@ import { lockActiveUser, revokeDevice } from "@/modules/auth-learner/devices";
 import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx, LearnerCtx } from "@/modules/sessions/guards";
 import { isRecentAuth } from "@/modules/sessions/sessions";
+import { WAIT_FOR_SYNC_LOCKS } from "./sync";
 
 // Thiết bị: học viên tự xem và gỡ (cần xác thực gần đây); hỗ trợ gỡ hộ có nhật ký — DG §6.
 
@@ -28,7 +29,7 @@ export async function removeMyDevice(ctx: LearnerCtx, deviceId: string): Promise
     if (!device) return "not_found";
     await revokeDevice(tx, deviceId);
     return "removed";
-  });
+  }, WAIT_FOR_SYNC_LOCKS);
 }
 
 export async function listUserDevices(ctx: AdminCtx, userId: string) {
@@ -58,7 +59,7 @@ export async function adminRemoveDevice(ctx: AdminCtx, deviceId: string, reason:
       after: { userId: device.user_id }, result: "ok", reason: why, ip: ctx.ip,
     });
     return "removed" as const;
-  });
+  }, WAIT_FOR_SYNC_LOCKS);
   if (result === "not_found") {
     await auditDenied({ adminId: ctx.adminId, action: "device_remove", targetType: "device", targetId: deviceId, reason: "not_found", ip: ctx.ip });
   }

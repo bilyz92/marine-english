@@ -211,3 +211,26 @@ describe("đồng bộ kiểm lại người, máy, phiên (Codex P3 #4)", () =>
     expect(await prisma().learningEvent.count()).toBe(0);
   });
 });
+
+
+describe("giấy phép cấp trong lúc còn giữ khóa (Codex P3 vòng 3)", () => {
+  it("gỡ máy chạy song song với đồng bộ lô lớn: nếu đồng bộ nhận giấy phép thì lệnh gỡ phải xong sau đó", async () => {
+    const s = await setup();
+    const { adminRemoveDevice } = await import("@/modules/learn/devices");
+    const events = Array.from({ length: 150 }, (_, i) => ev(i + 1, s.ids.T001!.lv, "activity_completed", { activityId: `a${i}` }));
+    let syncDoneAt = 0;
+    let removedAt = 0;
+    const sync = syncEvents(s.l, { events }).then(
+      (r) => { syncDoneAt = performance.now(); return r; },
+      (e: unknown) => { syncDoneAt = performance.now(); return e; },
+    );
+    await new Promise((r) => setTimeout(r, 150));
+    await adminRemoveDevice(await adminCtx("support"), s.l.deviceId, "mất máy").then(() => { removedAt = performance.now(); });
+    const result = await sync;
+    if (result && typeof result === "object" && "license" in result) {
+      expect(removedAt).toBeGreaterThanOrEqual(syncDoneAt);
+    } else {
+      expect(result).toMatchObject({ status: 401 });
+    }
+  }, 60_000);
+});
