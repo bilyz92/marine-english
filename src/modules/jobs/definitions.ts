@@ -5,6 +5,7 @@ import { expireOrders } from "@/modules/orders/orders";
 import { cleanupSessionArtifacts } from "@/modules/sessions/sessions";
 import { backup, backupAlerts, backupConfig } from "@/modules/ops/backup";
 import { runTool } from "@/modules/ops/run-tool";
+import { abandonStaleRuns, defaultWatchDeps, enqueueAlerts, watch } from "@/modules/ops/watch";
 import { enqueueDailySummary } from "./daily-summary";
 import { releaseStaleDevices } from "./devices-release";
 import { withFence } from "./lease";
@@ -99,6 +100,16 @@ export const JOBS: ScheduledJob[] = [
       const stats = await backup({ config, run: runTool, lease, signal, now: new Date() });
       if (!stats.offsite) await backupAlerts({ offsite: false });
       return stats;
+    },
+  },
+  {
+    name: "me.ops.watch",
+    schedule: { everyMs: 5 * MINUTE },
+    timeoutMs: 2 * MINUTE,
+    run: async () => {
+      const abandoned = await abandonStaleRuns();
+      const now = new Date();
+      return { abandoned, alerts: await enqueueAlerts(await watch(now, defaultWatchDeps()), now) };
     },
   },
   {

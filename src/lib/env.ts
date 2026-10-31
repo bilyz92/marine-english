@@ -65,6 +65,8 @@ const schema = z
           .map((part) => part.slice(part.indexOf(":") + 1))
           .filter((secret) => secret.length > 0),
       ),
+    // Job giám sát gọi địa chỉ này để biết app còn sống (trong Compose: http://app:3000/api/health).
+    APP_HEALTH_URL: z.url().optional(),
     // Sao lưu [G8]: vai trò chỉ đọc me_backup, thư mục sao lưu, thư mục khóa (mỗi khóa một tệp, quyền 600), khóa hiện tại, nơi lưu ngoài (rclone).
     BACKUP_DATABASE_URL: z.url().optional(),
     BACKUP_DIR: z.string().optional(),

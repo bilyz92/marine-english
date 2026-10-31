@@ -12,7 +12,7 @@ export function classifyPath(pathname: string): PathClass {
   if (under(pathname, "/api/auth/learner") || under(pathname, "/api/auth/admin")) return "auth";
   if (["/hoc", "/tai-khoan", "/mua", "/thanh-toan", "/api/learn", "/api/me"].some((p) => under(pathname, p))) return "learner";
   if (under(pathname, "/quan-tri") || under(pathname, "/api/quan-tri")) return "admin";
-  if (under(pathname, "/api/public") || pathname === "/api/health") return "public";
+  if (under(pathname, "/api/public") || under(pathname, "/api/health")) return "public";
   if (under(pathname, "/api")) return "denied";
   return "public";
 }

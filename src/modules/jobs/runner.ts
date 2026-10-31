@@ -73,8 +73,9 @@ export async function runJob(def: JobDef, holder: string, opts: { heartbeatMs?: 
 
   const failure = result.status === "failed" || result.status === "timeout" ? result : null;
   await withTx(async (tx) => {
-    await tx.jobRun.update({
-      where: { id: run.id },
+    // Chỉ ghi khi dòng còn running: job giám sát có thể đã ghi abandoned, kết quả ghi trước được giữ.
+    await tx.jobRun.updateMany({
+      where: { id: run.id, status: "running" },
       data: {
         status: result.status,
         finishedAt: new Date(),

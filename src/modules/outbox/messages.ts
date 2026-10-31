@@ -4,6 +4,19 @@ type Payload = Record<string, unknown>;
 
 const vnd = (value: unknown) => `${Number(value).toLocaleString("vi-VN")}đ`;
 
+function opsAlertText(p: Payload): string {
+  const type = String(p.type);
+  if (type === "disk_70" || type === "disk_85") return `Ổ đĩa máy chủ đã dùng ${p.percent}%.`;
+  if (type === "app_down") return "Trang web không trả lời kiểm tra sức khỏe.";
+  if (type === "cert_expiring") return `Chứng chỉ HTTPS còn ${p.days} ngày.`;
+  if (type === "backup_stale") return "Quá 26 giờ không có bản sao lưu thành công.";
+  if (type === "outbox_stuck") return `${p.count} thông báo chờ gửi quá 30 phút.`;
+  if (type === "outbox_dead") return `${p.count} thông báo đã ngừng thử gửi.`;
+  if (type.startsWith("job_stuck:")) return `Job ${p.job} không hoàn thành trong 3 chu kỳ liên tiếp.`;
+  if (type.startsWith("job_missed:")) return `Job ${p.job} lỡ lịch quá 1 giờ.`;
+  return `Cảnh báo vận hành: ${type}`;
+}
+
 // Chỉ dùng các trường liệt kê ở đây: không đưa nội dung chuyển khoản, số tài khoản, mã OTP hay token vào tin.
 const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: string }> = {
   order_paid: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã thanh toán: ${vnd(p.amountVnd)}.` }),
@@ -24,6 +37,7 @@ const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: strin
       ? `Sao lưu ${p.day} chỉ nằm trên máy chủ: chưa cấu hình nơi lưu ngoài (BACKUP_RCLONE_REMOTE).`
       : `Sao lưu ${p.day} không chạy: chưa cấu hình (BACKUP_*).`,
   }),
+  ops_alert: (p) => ({ chat: "errors", text: opsAlertText(p) }),
   daily_summary: (p) => ({
     chat: "business",
     text: `Tổng kết ${p.day}: ${p.paidOrders} đơn đã thanh toán, doanh thu ${vnd(p.revenueVnd)}, ${p.refunds} lần hoàn tiền, ${p.queueOpen} khoản chờ xử lý tay, ${p.outboxDead} thông báo gửi hỏng.`,

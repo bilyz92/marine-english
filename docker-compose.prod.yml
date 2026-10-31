@@ -91,6 +91,7 @@ services:
     environment:
       <<: *app-env
       DB_POOL_MAX: "7"
+      APP_HEALTH_URL: http://app:3000/api/health
       BACKUP_DATABASE_URL: postgresql://me_backup:${ME_BACKUP_PASSWORD:?}@postgres:5432/${ME_DB_NAME:?}
       BACKUP_DIR: /data/backups
       BACKUP_KEYS_DIR: /data/backup-keys

@@ -4,6 +4,7 @@ import { hostname } from "node:os";
 import { disconnectDb } from "@/lib/db";
 import { JOBS } from "@/modules/jobs/definitions";
 import { createScheduler } from "@/modules/jobs/scheduler";
+import { tickStuck } from "./watchdog";
 
 const TICK_MS = 5_000;
 // Healthcheck của container đọc thời điểm sửa tệp này.
@@ -19,11 +20,24 @@ const abort = new AbortController();
 const scheduler = createScheduler(JOBS, `${hostname()}:${process.pid}`, { signal: abort.signal });
 
 let stopping = false;
+let tickStartedAt: number | null = null;
 const timer = setInterval(() => {
-  scheduler.tick().then(() => writeFileSync(HEARTBEAT_FILE, String(Date.now())), (error: unknown) => {
+  if (tickStartedAt === null) tickStartedAt = Date.now();
+  scheduler.tick().then(() => {
+    tickStartedAt = null;
+    writeFileSync(HEARTBEAT_FILE, String(Date.now()));
+  }, (error: unknown) => {
+    tickStartedAt = null;
     log({ error: error instanceof Error ? error.message : String(error) });
   });
 }, TICK_MS);
+// Treo mà event loop còn chạy (ví dụ một truy vấn không bao giờ trả lời): thoát để Docker khởi động lại.
+setInterval(() => {
+  if (!stopping && tickStuck(tickStartedAt, Date.now())) {
+    log({ error: "tick_stuck", exiting: true });
+    process.exit(1);
+  }
+}, 30_000).unref();
 
 async function shutdown(signal: string) {
   if (stopping) return;
