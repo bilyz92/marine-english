@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
+import type { HttpError } from "@/lib/http";
 import { POST as syncRoute } from "@/app/api/learn/sync/route";
 import { verifyLicense } from "@/lib/offline/license-verify";
 import { ingest } from "@/modules/ledger/ingest";
@@ -9,8 +10,9 @@ import { syncEvents } from "@/modules/learn/sync";
 import { advanceRefund, requestFullRefund } from "@/modules/refunds/refunds";
 import { adminCtx } from "../helpers/admin-ctx";
 import { paidCourseSetup, report } from "../helpers/ledger";
-import { learnerRequest } from "../helpers/learner-ctx";
+import { learnerRequest, testLearner } from "../helpers/learner-ctx";
 import { sqlAsMigrator } from "../helpers/otp";
+import { pgAs } from "../helpers/pg";
 
 async function setup() {
   const s = await paidCourseSetup();
@@ -234,3 +236,21 @@ describe("giấy phép cấp trong lúc còn giữ khóa (Codex P3 vòng 3)", ()
     }
   }, 60_000);
 });
+
+describe("đăng xuất chạy song song với đồng bộ", () => {
+  it("đăng xuất đang giữ khóa phiên → đồng bộ chờ rồi trả 401, không cấp giấy phép", async () => {
+    const l = await testLearner("Dang xuat");
+    const pg = await pgAs("app");
+    try {
+      await pg.query("BEGIN");
+      await pg.query(`UPDATE learner_sessions SET revoked_at = now() WHERE id = $1`, [l.sessionId]);
+      const sync = syncEvents(l, { events: [] }).then(() => "ok", (e: HttpError) => e.status);
+      await new Promise((r) => setTimeout(r, 300));
+      await pg.query("COMMIT");
+      expect(await sync).toBe(401);
+    } finally {
+      await pg.end();
+    }
+  });
+});
+

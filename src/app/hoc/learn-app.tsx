@@ -111,7 +111,7 @@ export function LearnApp() {
         {!slug && <CourseList identity={identity} />}
         {slug && !position && <CourseView identity={identity} slug={slug} license={license} />}
         {slug && position > 0 && (
-          <LessonView identity={identity} slug={slug} position={position} onEvent={onEvent} onFinish={syncAndCount} />
+          <LessonView identity={identity} slug={slug} position={position} license={license} onEvent={onEvent} onFinish={syncAndCount} />
         )}
       </div>
     </main>

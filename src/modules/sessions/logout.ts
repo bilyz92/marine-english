@@ -20,8 +20,9 @@ export function logoutHandler(realm: Realm) {
         const { sessionId, deviceId } = await requireLearner(req);
         const body = (await readBody(req)) as { switchAccount?: unknown } | undefined;
         await withTx(async (tx) => {
-          await revokeSession(tx, "learner", sessionId);
+          // Gỡ máy khóa thiết bị → phiên, cùng thứ tự với đồng bộ, và đã thu hồi cả phiên này.
           if (body?.switchAccount === true) await revokeDevice(tx, deviceId);
+          else await revokeSession(tx, "learner", sessionId);
         });
       }
     } catch (error) {

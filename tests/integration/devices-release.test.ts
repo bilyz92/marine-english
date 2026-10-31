@@ -4,6 +4,7 @@ import { JOBS } from "@/modules/jobs/definitions";
 import { acquireLease, LeaseLostError } from "@/modules/jobs/lease";
 import { runJob } from "@/modules/jobs/runner";
 import { releaseStaleDevices } from "@/modules/jobs/devices-release";
+import { syncEvents } from "@/modules/learn/sync";
 import { validateSession } from "@/modules/sessions/sessions";
 import { testLearner } from "../helpers/learner-ctx";
 import { sqlAsMigrator } from "../helpers/otp";
@@ -42,6 +43,22 @@ describe("giải phóng thiết bị quá hạn", () => {
     const before = (await device(l.deviceId)).revokedAt;
     expect(await runJob(job, "w1")).toMatchObject({ stats: { released: 0 } });
     expect((await device(l.deviceId)).revokedAt).toEqual(before);
+  });
+
+  it("máy đăng nhập đã lâu nhưng vẫn dùng đều → không bị thu hồi", async () => {
+    const l = await testLearner("Van dung");
+    await setLastSeen(l.deviceId, "40 days");
+    await sqlAsMigrator(`UPDATE learner_sessions SET last_seen_at = now() - interval '6 minutes' WHERE device_id = $1`, [l.deviceId]);
+    expect(await validateSession("learner", l.token)).not.toBeNull();
+    expect(await runJob(job, "w1")).toMatchObject({ stats: { released: 0 } });
+    expect((await device(l.deviceId)).revokedAt).toBeNull();
+  });
+
+  it("đồng bộ cũng tính là dùng máy", async () => {
+    const l = await testLearner("Dong bo");
+    await setLastSeen(l.deviceId, "40 days");
+    await syncEvents(l, { events: [] });
+    expect(await runJob(job, "w1")).toMatchObject({ stats: { released: 0 } });
   });
 
   it("mất lease → không thu hồi", async () => {

@@ -97,6 +97,15 @@ async function validateLearner(hash: string): Promise<SessionView | null> {
       prev_valid_until = CASE WHEN prev_valid_until <= now() THEN NULL ELSE prev_valid_until END,
       next_token_enc = CASE WHEN prev_valid_until <= now() THEN NULL ELSE next_token_enc END
     WHERE id = ${s.id}::uuid AND (last_seen_at <= now() - interval '5 minutes' OR prev_valid_until <= now())`;
+  // Hoạt động của phiên cũng là hoạt động của máy (job giải phóng máy và màn “Dùng lần cuối” đọc cột này).
+  // Máy đang bị đồng bộ khóa thì bỏ qua: đồng bộ tự ghi, và request thường không phải chờ.
+  await db.$executeRaw`
+    UPDATE devices SET last_seen_at = now()
+    WHERE id IN (
+      SELECT id FROM devices
+      WHERE id = ${s.device_id}::uuid AND (last_seen_at IS NULL OR last_seen_at <= now() - interval '5 minutes')
+      FOR UPDATE SKIP LOCKED
+    )`;
   return { sessionId: s.id, subjectId: s.user_id, deviceId: s.device_id, authAt: s.auth_at };
 }
 

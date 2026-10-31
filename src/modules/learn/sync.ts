@@ -126,14 +126,15 @@ export async function syncEvents(
   if (input.events.length > MAX_EVENTS) throw new HttpError(400, `Tối đa ${MAX_EVENTS} sự kiện mỗi lần`);
   return withTx(
     async (tx): Promise<SyncResult> => {
-      // Thứ tự khóa chung với gộp tài khoản và gỡ thiết bị: học viên → thiết bị. Kiểm lại sau khi khóa:
+      // Thứ tự khóa chung với gộp tài khoản, gỡ thiết bị và đăng xuất: học viên → thiết bị → phiên. Kiểm lại sau khi khóa:
       // tài khoản bị gộp/khóa, máy bị gỡ hay phiên bị thu hồi trong lúc chờ thì không nhận lô này.
       const [user] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM users WHERE id = ${ctx.userId}::uuid FOR UPDATE`;
       const [device] = await tx.$queryRaw<{ revoked: boolean }[]>`
         SELECT revoked_at IS NOT NULL AS revoked FROM devices WHERE id = ${ctx.deviceId}::uuid AND user_id = ${ctx.userId}::uuid FOR UPDATE`;
       const [session] = await tx.$queryRaw<{ live: boolean }[]>`
-        SELECT revoked_at IS NULL AS live FROM learner_sessions WHERE id = ${ctx.sessionId}::uuid AND device_id = ${ctx.deviceId}::uuid`;
+        SELECT revoked_at IS NULL AS live FROM learner_sessions WHERE id = ${ctx.sessionId}::uuid AND device_id = ${ctx.deviceId}::uuid FOR UPDATE`;
       if (user?.status !== "active" || !device || device.revoked || !session?.live) throw new HttpError(401, "Cần đăng nhập lại");
+      await tx.$executeRaw`UPDATE devices SET last_seen_at = now() WHERE id = ${ctx.deviceId}::uuid`;
       const enrolled = await entitledCourses(ctx.userId, tx);
       const out: EventResult[] = [];
       for (const raw of input.events) {
@@ -145,8 +146,9 @@ export async function syncEvents(
             VALUES (${ctx.userId}::uuid, ${ctx.deviceId}::uuid, ${result.eventId}::uuid, ${result.reason!}, ${JSON.stringify(raw ?? null)}::jsonb)`;
         }
       }
-      // Giấy phép cấp ngay trong transaction đang giữ khóa học viên + thiết bị: gỡ máy, gộp hay hoàn tiền chạy song song
-      // phải chờ, nên không có giấy phép nào được cấp cho máy đã bị gỡ. Trả về sau khi commit.
+      // Giấy phép cấp ngay trong transaction đang giữ khóa: gỡ máy, gộp hay đăng xuất chạy song song phải chờ, nên không có
+      // giấy phép nào được cấp cho máy đã gỡ hay phiên đã thu hồi. Hoàn tiền không khóa học viên: giấy phép cấp ngay trước lúc
+      // hoàn cũng như mọi giấy phép đã cấp, khóa học được gỡ ở lần đồng bộ sau (revokedCourseIds). Trả về sau khi commit.
       const courses = await entitledCourses(ctx.userId, tx);
       const held = new Set(courses.map((c) => c.courseId));
       return {

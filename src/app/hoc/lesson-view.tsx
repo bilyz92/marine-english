@@ -44,11 +44,13 @@ type Props = {
   identity: Identity;
   slug: string;
   position: number;
+  /** Trạng thái giấy phép hiện tại của app (tính lại mỗi phút, khi mở lại app và sau đồng bộ). */
+  license: LicenseStatus | null;
   onEvent: () => void;
   onFinish: () => void;
 };
 
-export function LessonView({ identity, slug, position, onEvent, onFinish }: Props) {
+export function LessonView({ identity, slug, position, license: liveLicense, onEvent, onFinish }: Props) {
   const [loaded, setLoaded] = useState<
     { manifest: Manifest; lesson: ManifestLesson; content: LessonContent | null; license: LicenseStatus } | "missing" | null
   >(null);
@@ -58,10 +60,14 @@ export function LessonView({ identity, slug, position, onEvent, onFinish }: Prop
   const [completed, setCompleted] = useState(false);
   const [audio, setAudio] = useState<string[]>([]);
   const opened = useRef<string | null>(null);
+  // Giấy phép đổi giữa chừng (hết hạn, đồng bộ xong có lại) thì đọc lại bài theo quyền mới; gia hạn thường không làm đổi khóa này.
+  const licenseKey = liveLicense ? `${liveLicense.state}:${liveLicense.claims?.courses.map((c) => `${c.id}/${c.versionId}`).join(",")}` : null;
 
   useEffect(() => {
+    let stale = false;
     void (async () => {
       const manifest = await loadManifest(identity, slug);
+      if (stale) return;
       const lesson = manifest?.lessons.find((l) => l.position === position);
       if (!manifest || !lesson) return setLoaded("missing");
       // Xét quyền với giấy phép đọc mới ngay lúc mở bài (mốc thời gian được nâng trước).
@@ -70,24 +76,32 @@ export function LessonView({ identity, slug, position, onEvent, onFinish }: Prop
         isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, versionId: manifest.versionId, license, identity, now: nowSeconds(),
       });
       const content = allowed ? ((await loadLesson(identity, lesson)) as LessonContent | null) : null;
+      if (stale) return;
       setLoaded({ manifest, lesson, content, license });
       setDoneActivities(new Set(lesson.completedActivities));
       setCompleted(lesson.status === "completed");
-      setAudio(await Promise.all(manifest.assets.filter((a) => a.lessonVersionId === lesson.lessonVersionId && a.role === "audio").map((a) => assetUrl(identity, a))));
+      const audioUrls = await Promise.all(manifest.assets.filter((a) => a.lessonVersionId === lesson.lessonVersionId && a.role === "audio").map((a) => assetUrl(identity, a)));
+      if (stale) return;
+      setAudio(audioUrls);
       if (allowed && content && opened.current !== lesson.lessonVersionId) {
         opened.current = lesson.lessonVersionId;
         await recordEvent(identity, "lesson_opened", lesson.lessonVersionId);
         onEvent();
       }
     })();
+    return () => {
+      stale = true;
+    };
     // onEvent chỉ cập nhật bộ đếm, không cần chạy lại khi nó đổi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [identity, slug, position]);
+  }, [identity, slug, position, licenseKey]);
 
   if (!loaded) return <p className={styles.muted}>Đang mở bài…</p>;
   if (loaded === "missing") return <div className={styles.card}><p className={styles.muted}>Không tìm thấy bài này trên máy. Kết nối mạng để tải.</p></div>;
 
-  const { manifest, lesson, content, license } = loaded;
+  const { manifest, lesson, content } = loaded;
+  // Xét lại mỗi lần vẽ theo giấy phép mới nhất, không theo bản đọc lúc mở bài.
+  const license = liveLicense ?? loaded.license;
   if (!canOpenLesson({
     isFreeTrial: lesson.isFreeTrial, courseId: manifest.courseId, versionId: manifest.versionId, license, identity, now: nowSeconds(),
   })) {
