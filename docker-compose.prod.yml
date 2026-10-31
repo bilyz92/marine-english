@@ -51,7 +51,8 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./deploy/postgres-init.sh:/docker-entrypoint-initdb.d/01-roles.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d $${ME_DB_NAME}"]
+      # Qua TCP: lúc initdb, server tạm chỉ nghe socket nên kiểm qua socket báo sẵn sàng trước khi tạo xong vai trò.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d $${ME_DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 10

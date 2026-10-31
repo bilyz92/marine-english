@@ -98,7 +98,7 @@ export const JOBS: ScheduledJob[] = [
         return { skippedReason: "not_configured" };
       }
       const stats = await backup({ config, run: runTool, lease, signal, now: new Date() });
-      await backupAlerts({ offsite: stats.offsite, missingKeys: stats.missingKeys });
+      await backupAlerts({ offsite: stats.offsite, offsiteError: stats.offsiteError, missingKeys: stats.missingKeys });
       return stats;
     },
   },

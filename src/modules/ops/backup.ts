@@ -20,7 +20,7 @@ export type Manifest = {
   counts: Record<string, number>;
   media: MediaEntry[];
 };
-export type BackupStats = { name: string; dbBytes: number; mediaNew: number; mediaTotal: number; pruned: number; offsite: boolean; missingKeys: string[] };
+export type BackupStats = { name: string; dbBytes: number; mediaNew: number; mediaTotal: number; pruned: number; offsite: boolean; offsiteError?: string; missingKeys: string[] };
 
 const RETENTION_MS = 30 * 86_400_000;
 const COUNTED = ["orders", "bank_transactions", "enrollments"] as const;
@@ -95,8 +95,17 @@ function prune(config: BackupConfig, now: Date): number {
   return expired.length;
 }
 
-/** Đẩy ra ngoài: media trước, rồi bản dump, kiểm, cuối cùng mới ghi COMPLETE; sau đó đồng bộ để dọn bản cũ ở ngoài. */
-async function pushOffsite(config: BackupConfig, name: string, run: RunTool, signal: AbortSignal) {
+/** "20261031-023000" (UTC) → thời điểm. */
+const nameTime = (name: string) => {
+  const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/.exec(name);
+  return m ? Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!, +m[4]!, +m[5]!, +m[6]!) : null;
+};
+
+/**
+ * Đẩy ra ngoài: media trước, rồi bản dump, kiểm, cuối cùng mới ghi COMPLETE. Nơi lưu ngoài dọn theo tuổi của chính nó, không sao y
+ * thư mục cục bộ: máy chủ mới với volume trống hay xóa nhầm ở máy chủ không được lan ra bản ở ngoài. Kho media ở ngoài chỉ thêm.
+ */
+async function pushOffsite(config: BackupConfig, name: string, now: Date, run: RunTool, signal: AbortSignal) {
   const remote = config.remote!;
   const local = join(config.dir, "db", name);
   const rclone = (...args: string[]): Step[] => [{ cmd: "rclone", args }];
@@ -106,8 +115,19 @@ async function pushOffsite(config: BackupConfig, name: string, run: RunTool, sig
   const complete = join(local, "COMPLETE");
   writeFileSync(complete, createHash("sha256").update(readFileSync(join(local, "manifest.json"))).digest("hex"));
   await run(rclone("copyto", complete, `${remote}/db/${name}/COMPLETE`), { signal });
-  await run(rclone("sync", join(config.dir, "db"), `${remote}/db`), { signal });
-  await run(rclone("sync", join(config.dir, "media-store"), `${remote}/media-store`), { signal });
+  // Bản vừa đẩy là bản COMPLETE mới nhất: chỉ sau khi có nó mới dọn, và không bao giờ dọn nó.
+  const listing = join(config.dir, ".tmp", `remote-${randomBytes(6).toString("hex")}`);
+  mkdirSync(join(config.dir, ".tmp"), { recursive: true, mode: 0o700 });
+  try {
+    await run(rclone("lsf", "--dirs-only", `${remote}/db`), { signal, stdoutFile: listing });
+    const remoteSets = readFileSync(listing, "utf8").split("\n").map((l) => l.trim().replace(/\/$/, "")).filter(Boolean);
+    for (const set of remoteSets) {
+      const at = nameTime(set);
+      if (set !== name && at !== null && now.getTime() - at > RETENTION_MS) await run(rclone("purge", `${remote}/db/${set}`), { signal });
+    }
+  } finally {
+    rmSync(listing, { force: true });
+  }
 }
 
 export async function backup(input: { config: BackupConfig; run: RunTool; lease: Lease; signal: AbortSignal; now: Date }): Promise<BackupStats> {
@@ -154,11 +174,20 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
       renameSync(tmp, join(config.dir, "db", name));
       return prune(config, now);
     });
-    if (config.remote) await pushOffsite(config, name, run, signal);
+    // Bản cục bộ đã an toàn: lỗi đẩy ra ngoài chỉ cảnh báo, không chạy lại cả bản dump mỗi 5 phút.
+    let offsiteError: string | undefined;
+    if (config.remote) {
+      try {
+        await pushOffsite(config, name, now, run, signal);
+      } catch (error) {
+        if (signal.aborted) throw error;
+        offsiteError = error instanceof Error ? error.message : String(error);
+      }
+    }
     // Khóa của mọi bản còn giữ phải còn: mất khóa là mất bản sao lưu đó.
     const kids = new Set(readManifests(join(config.dir, "db")).flatMap((m) => [m.kid, ...m.media.map((x) => x.kid)]));
     const missingKeys = [...kids].filter((kid) => !existsSync(join(config.keysDir, kid))).sort();
-    return { name, dbBytes: manifest.dump.bytes, mediaNew, mediaTotal: media.length, pruned, offsite: Boolean(config.remote), missingKeys };
+    return { name, dbBytes: manifest.dump.bytes, mediaNew, mediaTotal: media.length, pruned, offsite: Boolean(config.remote) && !offsiteError, offsiteError, missingKeys };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
     for (const file of existsSync(store) ? readdirSync(store) : []) if (file.startsWith(".tmp-")) rmSync(join(store, file), { force: true });
@@ -166,11 +195,12 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
 }
 
 /** Cảnh báo vận hành về sao lưu, mỗi lý do một tin mỗi ngày (giờ Việt Nam). */
-export async function backupAlerts(state: { offsite?: boolean; notConfigured?: boolean; missingKeys?: string[] }, now = new Date()) {
+export async function backupAlerts(state: { offsite?: boolean; offsiteError?: string; notConfigured?: boolean; missingKeys?: string[] }, now = new Date()) {
   const day = new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
-  const reasons: { reason: string; keys?: string[] }[] = [];
+  const reasons: { reason: string; keys?: string[]; error?: string }[] = [];
   if (state.notConfigured) reasons.push({ reason: "not_configured" });
-  if (state.offsite === false) reasons.push({ reason: "no_offsite" });
+  if (state.offsiteError) reasons.push({ reason: "offsite_failed", error: state.offsiteError });
+  else if (state.offsite === false) reasons.push({ reason: "no_offsite" });
   if (state.missingKeys?.length) reasons.push({ reason: "missing_key", keys: state.missingKeys });
   await withTx(async (tx) => {
     for (const r of reasons) {

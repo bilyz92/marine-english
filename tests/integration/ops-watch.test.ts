@@ -52,7 +52,7 @@ describe("điều kiện cảnh báo", () => {
   });
 
   it("job lặp không hoàn thành trong 3 chu kỳ; skipped vì chưa cấu hình tính là hoàn thành; chưa từng chạy thì không báo", async () => {
-    await runAt("me.orders.expire", "success", ago(4 * MIN));
+    await runAt("me.orders.expire", "success", ago(7 * MIN));
     await runAt("me.orders.expire", "failed", ago(30_000));
     expect(await types()).toEqual(["job_stuck:me.orders.expire"]);
     await runAt("me.sepay.reconcile", "skipped", ago(30 * MIN), { skippedReason: "not_configured" });
@@ -74,6 +74,20 @@ describe("điều kiện cảnh báo", () => {
     expect(await types()).toEqual(["outbox_stuck"]);
     await sqlAsMigrator(`INSERT INTO outbox_events (dedup_key, kind, channel, payload, status) VALUES ('c', 'order_paid', 'email', '{}', 'dead')`);
     expect(await types()).toEqual(["outbox_dead", "outbox_stuck"]);
+  });
+
+  it("tin cảnh báo chết không tự sinh cảnh báo mới (token Telegram bị thu hồi)", async () => {
+    await sqlAsMigrator(`INSERT INTO outbox_events (dedup_key, kind, channel, payload, status) VALUES ('d1', 'ops_alert', 'telegram', '{}', 'dead'), ('d2', 'outbox_dead', 'telegram', '{}', 'dead'), ('d3', 'backup_alert', 'telegram', '{}', 'dead')`);
+    expect(await types()).toEqual([]);
+  });
+
+  it("gửi thông báo chậm (một lượt tới 2 phút) không bị báo kẹt", async () => {
+    await runAt("me.outbox.deliver", "success", ago(2 * MIN));
+    expect(await types()).toEqual([]);
+    await runAt("me.outbox.deliver", "failed", ago(30_000));
+    await sqlAsMigrator(`DELETE FROM job_runs WHERE status = 'success'`);
+    await runAt("me.outbox.deliver", "success", ago(10 * MIN));
+    expect(await types()).toEqual(["job_stuck:me.outbox.deliver"]);
   });
 
   it("mỗi điều kiện một cảnh báo trong một giờ", async () => {

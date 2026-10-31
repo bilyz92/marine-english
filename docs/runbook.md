@@ -21,10 +21,15 @@ Dữ liệu nằm ở các volume `pgdata`, `media`, `backups`, `caddy_data`. Kh
 ## 2. Cài máy mới từ đầu
 
 1. Cài Docker và Docker Compose. Bật NTP. Tường lửa chỉ mở 80, 443 và SSH (đăng nhập bằng khóa, tắt mật khẩu).
-2. Lấy mã nguồn, chép `deploy/prod.env.example` thành `deploy/prod.env`, `chmod 600`, điền mọi mục. Khóa 32 byte: `openssl rand -base64 32`. `NEXT_PUBLIC_LICENSE_PUBLIC_KEYS`: chạy `pnpm cli license:public-keys` trên máy có mã nguồn với `LICENSE_SIGNING_KEYS` đã điền.
-3. Khóa sao lưu: tạo thư mục `BACKUP_KEYS_HOST_DIR`, mỗi khóa một tệp tên là mã khóa (ví dụ `b2026a`), nội dung `openssl rand -base64 48`, `chown 1000:1000`, `chmod 600`. Đặt `BACKUP_KEY_ID` là mã đó. Làm ngay bản lưu khóa ngoài máy (mục 6).
+2. Lấy mã nguồn, chép `deploy/prod.env.example` thành `deploy/prod.env`, `chmod 600`, điền mọi mục. Khóa 32 byte: `openssl rand -base64 32`. **Mật khẩu DB dùng `openssl rand -hex 24`** (ký tự `/ + @` của base64 làm hỏng địa chỉ kết nối). `NEXT_PUBLIC_LICENSE_PUBLIC_KEYS`: chạy `pnpm cli license:public-keys` trên máy có mã nguồn với `LICENSE_SIGNING_KEYS` đã điền.
+3. Khóa sao lưu: tạo thư mục `BACKUP_KEYS_HOST_DIR`, mỗi khóa một tệp tên là mã khóa (ví dụ `b2026a`), nội dung `openssl rand -base64 48`, `chown 1000:1000`, `chmod 600`. Đặt `BACKUP_KEY_ID` là mã đó. **Không bao giờ dùng lại một mã khóa cho nội dung khóa khác**: tệp đã mã hóa bằng mã cũ sẽ bị dùng lại và không mở được. Làm ngay bản lưu khóa ngoài máy (mục 6).
 4. `docker compose -f docker-compose.prod.yml --env-file $ENV up -d --build`. Đợi mọi dịch vụ `healthy`: `docker compose ... ps`.
-5. Tạo tài khoản chủ: `docker compose ... run --rm -e MIGRATOR_DATABASE_URL=postgresql://me_migrator:<mật khẩu>@postgres:5432/<DB> worker node src/worker/cli.ts admin:bootstrap <email chủ>`.
+5. Tạo tài khoản chủ (mật khẩu đọc từ tệp env, không gõ ra dòng lệnh):
+   ```
+   set -a; . deploy/prod.env; set +a
+   export MIGRATOR_DATABASE_URL="postgresql://me_migrator:${ME_MIGRATOR_PASSWORD}@postgres:5432/${ME_DB_NAME}"
+   docker compose -f docker-compose.prod.yml --env-file deploy/prod.env run --rm -e MIGRATOR_DATABASE_URL worker node src/worker/cli.ts admin:bootstrap <email chủ>
+   ```
 6. Kiểm: `https://<tên miền>/api/health` trả `{"ok":true}`, `/api/health/worker` trả `{"ok":true}` (nếu trả `alerts_not_configured` là chưa điền Telegram).
 
 ## 3. Deploy và quay lại bản trước
@@ -34,6 +39,8 @@ deploy/deploy.sh $ENV <tag mới>
 ```
 
 Script build, chạy migration, chạy thử app mới trong mạng nội bộ; app mới không khỏe thì **dừng, bản đang chạy giữ nguyên**. Khỏe thì thay app (trang gián đoạn khoảng 4–5 giây, đo ngày 31/10/2026 trên máy thử), rồi dừng worker cũ (tối đa 60 giây để làm xong việc dở) và chạy worker mới.
+
+Script ghi tag đang chạy vào `IMAGE_TAG` của tệp env. **Giữ image của ít nhất 3 tag gần nhất**; khi dọn đĩa không dùng `docker image prune -a` hay `docker system prune -a`. Thiếu image của tag cũ thì script từ chối quay lại.
 
 Quay lại bản trước (không đảo migration):
 
@@ -51,6 +58,8 @@ Job `me.backup.daily` chạy 02:30 giờ Việt Nam: bản dump DB (nối thẳn
 
 Chạy ngay: trang quản trị → Job → `me.backup.daily` → Chạy ngay.
 
+Nơi lưu ngoài chỉ dọn bản quá 30 ngày theo ngày của chính nó, không sao y máy chủ: máy chủ mất dữ liệu sao lưu không kéo theo bản ở ngoài. Kho media ở ngoài chỉ thêm, không tự dọn.
+
 ## 5. Khôi phục
 
 **Thử khôi phục** (không đụng hệ thống đang chạy, chạy trên máy bất kỳ có Docker và image worker):
@@ -66,7 +75,7 @@ Kết thúc bằng `KHÔI PHỤC ĐẠT` và mã thoát 0. Bản lấy từ nơi
 1. Dựng máy mới theo mục 2 bước 1–3, với tệp env và khóa lấy từ bản lưu ngoài máy (mục 6).
 2. Tải bản sao lưu từ nơi lưu ngoài về một thư mục (giữ cấu trúc `db/` và `media-store/`).
 3. `docker compose -f docker-compose.prod.yml --env-file $ENV up -d postgres` (chỉ Postgres; tạo vai trò và DB trống).
-4. `deploy/restore.sh $ENV <thư mục sao lưu> <thư mục khóa>`. Script từ chối nếu DB hoặc media đích không trống.
+4. `deploy/restore.sh $ENV <thư mục sao lưu> <thư mục khóa> --require-complete`. Script tự build image worker từ mã nguồn, chọn bản mới nhất có `COMPLETE`, và từ chối nếu DB hoặc media đích không trống.
 5. `docker compose ... up -d`. `migrate` sẽ báo không có gì để làm.
 6. Kiểm như mục 2 bước 6, mở thử một khóa học và trang quản trị.
 
@@ -76,7 +85,7 @@ Mục tiêu đề xuất (chờ G8): mất tối đa 24 giờ dữ liệu, dựn
 
 Người vận hành trên bờ làm, báo kết quả cho chủ dự án.
 
-1. Trên một máy **không phải** máy chủ: tải bản mới nhất từ nơi lưu ngoài.
+1. Trên một máy **không phải** máy chủ, có Docker và mã nguồn: `docker build --target worker -t marine-english-worker:local .`; tải các bản từ nơi lưu ngoài về một thư mục (giữ `db/` và `media-store/`); chép khóa vào một thư mục, `chown 1000` các tệp khóa.
 2. Mở bản lưu tệp env và khóa (mục 6) để chứng minh vẫn mở được.
 3. `deploy/restore-drill.sh <thư mục tải về> <thư mục khóa> --require-complete`.
 4. Ghi vào bảng dưới. Hỏng thì coi như **không có sao lưu**: sửa ngay, không để sang quý sau.
@@ -101,11 +110,12 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 
 | Tin | Nghĩa là | Làm gì |
 | --- | --- | --- |
-| Ổ đĩa đã dùng 70% / 85% | Sắp đầy đĩa | Xem `docker system df`; xóa image cũ không dùng; nâng gói đĩa nếu media lớn dần |
+| Ổ đĩa đã dùng 70% / 85% | Sắp đầy đĩa | Xem `docker system df`; xóa image cũ hơn 3 tag gần nhất (không dùng `prune -a`); `docker builder prune`; nâng gói đĩa nếu media lớn dần |
 | Trang web không trả lời | App chết hoặc treo | `docker compose ... ps`, `logs app --tail 100`; `restart app`; vẫn hỏng thì quay lại bản trước |
 | Chứng chỉ HTTPS còn N ngày | Caddy không gia hạn được | `logs caddy`; kiểm tên miền còn trỏ đúng máy chủ, cổng 80 mở |
 | Quá 26 giờ không có bản sao lưu | Sao lưu hỏng hoặc không chạy | Trang quản trị → Job xem lỗi `me.backup.daily`; chạy ngay; kiểm khóa, chỗ trống đĩa, nơi lưu ngoài |
 | Sao lưu chỉ nằm trên máy chủ | Chưa cấu hình nơi lưu ngoài | Cấu hình `BACKUP_RCLONE_REMOTE` (G8) |
+| Sao lưu có trên máy chủ nhưng đẩy ra ngoài lỗi | Nơi lưu ngoài hoặc mạng lỗi | Kiểm cấu hình rclone, dung lượng nơi lưu ngoài; chạy ngay lại sao lưu khi đã sửa |
 | Sao lưu không chạy: chưa cấu hình | Thiếu `BACKUP_*` | Điền theo mục 2 bước 3 |
 | Thiếu tệp khóa sao lưu … | Một bản còn giữ dùng khóa đã bị xóa khỏi máy chủ | Chép lại tệp khóa từ bản lưu ngoài máy (mục 6); không có thì các bản đó không mở được |
 | N thông báo chờ gửi quá 30 phút | Telegram hoặc email lỗi kéo dài | Kiểm token, mạng máy chủ; tin không mất, sẽ gửi khi hết lỗi |

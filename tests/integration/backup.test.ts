@@ -17,7 +17,7 @@ let calls: Step[][];
 let failOn: string | null;
 
 /** Công cụ giả: pg_dump | gpg ghi “bản dump” ra tệp -o; gpg mã hóa tệp đầu vào; rclone chép giữa thư mục cục bộ. */
-const fakeRun: RunTool = async (steps) => {
+const fakeRun: RunTool = async (steps, opts) => {
   calls.push(steps);
   const head = steps[0]!;
   const fail = failOn;
@@ -34,6 +34,10 @@ const fakeRun: RunTool = async (steps) => {
     } else if (op === "copyto") {
       mkdirSync(dirname(dst!), { recursive: true });
       cpSync(src!, dst!);
+    } else if (op === "lsf") {
+      writeFileSync(opts.stdoutFile!, existsSync(src!) ? readdirSync(src!).map((n) => `${n}/`).join("\n") : "");
+    } else if (op === "purge") {
+      rmSync(src!, { recursive: true, force: true });
     } else if (op === "check") {
       for (const f of readdirSync(src!)) if (!existsSync(join(dst!, f))) throw new Error("tool_failed:rclone:1");
     }
@@ -207,14 +211,40 @@ describe("sao lưu", () => {
     expect(ops.indexOf("check")).toBeLessThan(ops.indexOf("copyto"));
   });
 
-  it("rclone lỗi → job lỗi, không ghi COMPLETE, bản cục bộ vẫn còn", async () => {
+  it("rclone lỗi → bản cục bộ vẫn là thành công, báo offsite lỗi, không ghi COMPLETE ở ngoài", async () => {
     await media("anh", "public");
     const remote = join(root, "remote");
     failOn = "check";
-    await expect(run(new Date(), { ...config, remote })).rejects.toThrow("tool_failed");
+    const stats = await run(new Date(), { ...config, remote });
+    expect(stats).toMatchObject({ offsite: false });
+    expect(stats.offsiteError).toContain("tool_failed");
     const [name] = sets();
     expect(name).toBeDefined();
     expect(existsSync(join(remote, "db", name!, "COMPLETE"))).toBe(false);
+  });
+
+  it("mất dữ liệu cục bộ không lan ra nơi lưu ngoài; ngoài chỉ dọn theo tuổi, không bao giờ xóa bản COMPLETE mới nhất", async () => {
+    await media("anh", "public");
+    const remote = join(root, "remote");
+    const cfg = { ...config, remote };
+    await run(new Date("2026-09-20T02:30:00Z"), cfg);
+    await run(new Date("2026-10-15T02:30:00Z"), cfg);
+    const remoteSets = () => readdirSync(join(remote, "db")).sort();
+    expect(remoteSets()).toHaveLength(2);
+    // Máy chủ mới, volume sao lưu trống.
+    rmSync(join(root, "backups"), { recursive: true, force: true });
+    await run(new Date("2026-10-31T02:30:00Z"), cfg);
+    expect(remoteSets()).toEqual(["20261015-023000", "20261031-023000"]);
+    expect(readdirSync(join(remote, "media-store"))).toHaveLength(1);
+  });
+
+  it("ngoài chỉ còn một bản COMPLETE dù đã cũ → vẫn giữ", async () => {
+    await media("anh", "public");
+    const remote = join(root, "remote");
+    await run(new Date("2026-08-01T02:30:00Z"), { ...config, remote });
+    failOn = "check";
+    await run(new Date("2026-10-31T02:30:00Z"), { ...config, remote });
+    expect(readdirSync(join(remote, "db"))).toContain("20260801-023000");
   });
 });
 
@@ -232,8 +262,9 @@ describe("job sao lưu", () => {
     await backupAlerts({ offsite: false }, new Date("2026-10-31T20:30:00Z"));
     await backupAlerts({ notConfigured: true }, new Date("2026-10-31T20:30:00Z"));
     await backupAlerts({ missingKeys: ["k1"] }, new Date("2026-10-31T20:30:00Z"));
+    await backupAlerts({ offsite: false, offsiteError: "tool_failed:rclone:1" }, new Date("2026-10-31T20:30:00Z"));
     const alerts = await prisma().outboxEvent.findMany({ where: { kind: "backup_alert" }, orderBy: { dedupKey: "asc" } });
-    expect(alerts.map((a) => (a.payload as { reason: string }).reason)).toEqual(["missing_key", "no_offsite", "not_configured"]);
+    expect(alerts.map((a) => (a.payload as { reason: string }).reason)).toEqual(["missing_key", "no_offsite", "not_configured", "offsite_failed"]);
     expect(alerts.every((a) => a.channel === "telegram")).toBe(true);
   });
 });

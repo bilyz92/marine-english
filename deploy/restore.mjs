@@ -1,6 +1,6 @@
 // Phần lõi khôi phục, chạy trong image worker (có gpg, pg_restore 16, pg). Dùng chung cho restore.sh (khôi phục thật) và restore-drill.sh (thử).
-// node deploy/restore.mjs --set <thư mục bản sao lưu> --store <kho media> --keys <thư mục khóa> --media-root <đích media> --db <URL vai trò chủ DB>
-//   [--app-db <URL vai trò me_app>] [--require-complete]
+// node deploy/restore.mjs --set <thư mục bản sao lưu> --store <kho media> --keys <thư mục khóa> --media-root <đích media> [--require-complete]
+// URL DB qua biến môi trường (mật khẩu không nằm trong tham số): RESTORE_DB_URL (chủ DB, me_migrator), RESTORE_APP_DB_URL (me_app, tùy chọn).
 // Lỗi bất kỳ → mã thoát khác 0. DB hoặc thư mục media đích không trống → từ chối.
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -9,7 +9,10 @@ import { join } from "node:path";
 import pg from "pg";
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]?.startsWith("--") || all[i + 1] === undefined ? true : all[i + 1]]] : acc), []));
-for (const required of ["set", "store", "keys", "media-root", "db"]) if (!args[required]) fail(`thiếu --${required}`);
+for (const required of ["set", "store", "keys", "media-root"]) if (!args[required]) fail(`thiếu --${required}`);
+args.db = process.env.RESTORE_DB_URL;
+args["app-db"] = process.env.RESTORE_APP_DB_URL;
+if (!args.db) fail("thiếu biến RESTORE_DB_URL");
 
 function fail(message) {
   console.error(`KHÔI PHỤC HỎNG: ${message}`);

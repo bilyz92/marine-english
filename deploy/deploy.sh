@@ -24,7 +24,14 @@ wait_healthy() { # <container> <giây>
   return 1
 }
 
-if [ "$SKIP_BUILD" = 0 ]; then step "build $TAG"; "${COMPOSE[@]}" build migrate app; fi
+if [ "$SKIP_BUILD" = 0 ]; then
+  step "build $TAG"; "${COMPOSE[@]}" build migrate app
+else
+  # Không có image của tag thì Compose sẽ build mã nguồn HIỆN TẠI rồi gắn tag cũ: quay lại thành deploy nhầm.
+  for image in "marine-english-app:$TAG" "marine-english-worker:$TAG"; do
+    docker image inspect "$image" >/dev/null 2>&1 || { echo "Không có image $image trên máy. Dừng."; exit 1; }
+  done
+fi
 if [ "$SKIP_MIGRATE" = 0 ]; then step "migrate"; "${COMPOSE[@]}" run --rm --no-deps migrate; fi
 
 step "chạy thử app ứng viên"
@@ -48,4 +55,10 @@ fi
 step "thay worker"
 "${COMPOSE[@]}" stop -t 60 worker
 "${COMPOSE[@]}" up -d --no-deps worker
+if ! wait_healthy "$("${COMPOSE[@]}" ps -q worker)" 150; then
+  echo "Worker $TAG không khỏe. Xem: docker compose ... logs worker; quay lại: deploy/deploy.sh $ENV_FILE <tag trước> --skip-build --skip-migrate"
+  exit 1
+fi
+# Ghi tag đang chạy vào tệp env, để `docker compose ... up -d` chạy tay sau này dùng đúng bản.
+if grep -q '^IMAGE_TAG=' "$ENV_FILE"; then sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/" "$ENV_FILE"; else echo "IMAGE_TAG=$TAG" >> "$ENV_FILE"; fi
 step "xong: $TAG"

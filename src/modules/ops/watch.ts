@@ -2,6 +2,7 @@ import { statfs } from "node:fs/promises";
 import tls from "node:tls";
 import { prisma, withTx } from "@/lib/db";
 import { env } from "@/lib/env";
+import { ERROR_KINDS } from "@/modules/outbox/deliver";
 import { enqueueOutbox } from "@/modules/outbox/outbox";
 
 export type Alert = { type: string; detail: Record<string, unknown>; dedup?: string };
@@ -57,7 +58,9 @@ export async function watch(now: Date, deps: WatchDeps): Promise<Alert[]> {
     if (!run) continue;
     if ("everyMs" in job.schedule) {
       const last = run.last_completed?.getTime() ?? run.first_run.getTime();
-      if (now.getTime() - last > 3 * job.schedule.everyMs) alerts.push({ type: `job_stuck:${job.name}`, detail: { job: job.name } });
+      // Một lượt có thể chạy tới hết thời gian cho phép (gửi thông báo khi Telegram chậm): không báo kẹt sớm hơn mức đó.
+      const limit = Math.max(3 * job.schedule.everyMs, job.timeoutMs + 5 * MINUTE);
+      if (now.getTime() - last > limit) alerts.push({ type: `job_stuck:${job.name}`, detail: { job: job.name } });
     } else if (run.last_completed && isDue(job, run.last_completed, new Date(now.getTime() - HOUR))) {
       alerts.push({ type: `job_missed:${job.name}`, detail: { job: job.name } });
     }
@@ -67,7 +70,7 @@ export async function watch(now: Date, deps: WatchDeps): Promise<Alert[]> {
     SELECT
       (SELECT count(*)::int FROM outbox_events WHERE status = 'pending' AND next_attempt_at < ${new Date(now.getTime() - 30 * MINUTE)}
          AND coalesce(last_error, '') <> 'not_configured') AS stuck,
-      (SELECT count(*)::int FROM outbox_events WHERE status = 'dead') AS dead`;
+      (SELECT count(*)::int FROM outbox_events WHERE status = 'dead' AND kind <> ALL(${[...ERROR_KINDS]}::text[])) AS dead`;
   if (outbox!.stuck > 0) alerts.push({ type: "outbox_stuck", detail: { count: outbox!.stuck } });
   // Báo lại mỗi khi số tin chết tăng, không lặp mỗi giờ.
   if (outbox!.dead > 0) alerts.push({ type: "outbox_dead", detail: { count: outbox!.dead }, dedup: `outbox_dead:${outbox!.dead}` });

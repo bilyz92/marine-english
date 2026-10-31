@@ -23,7 +23,8 @@ const MAX_ATTEMPTS = 8;
 const NOT_CONFIGURED_RETRY_SECONDS = 300;
 // Ngắn hơn hạn claim (2 phút): gửi chậm khi mạng kém thì trả phần còn lại, tránh worker khác lấy lại rồi gửi trùng.
 const CLAIM_BUDGET_MS = 90_000;
-const ERROR_KINDS = new Set(["job_failed", "outbox_dead", "ledger_mismatch", "backup_alert", "ops_alert"]);
+/** Tin của nhóm lỗi: chết thì không sinh thêm cảnh báo (cùng kênh, cũng sẽ chết). */
+export const ERROR_KINDS = new Set(["job_failed", "outbox_dead", "ledger_mismatch", "backup_alert", "ops_alert"]);
 
 /** Nhận một lô tin đến hạn; tin đang gửi mà claim hết hạn (tiến trình gửi đã chết) được lấy lại. */
 export async function claimBatch(limit = 20): Promise<Claimed[]> {
