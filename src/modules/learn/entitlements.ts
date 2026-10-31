@@ -19,21 +19,21 @@ export async function entitledCourses(userId: string, db: Db = prisma()): Promis
 }
 
 /** Có đọc được phiên bản bài này không: thuộc khóa có quyền (mọi phiên bản của khóa), hoặc là bài học thử đang mở. */
-export async function canReadLessonVersion(userId: string, lessonVersionId: string): Promise<boolean> {
-  return canReadVersions(userId, [lessonVersionId]);
+export async function canReadLessonVersion(userId: string, lessonVersionId: string, db: Db = prisma()): Promise<boolean> {
+  return canReadVersions(db, userId, [lessonVersionId]);
 }
 
 /** Tệp đọc được khi có ít nhất một phiên bản bài chứa nó đọc được. */
 export async function canReadAsset(userId: string, assetId: string): Promise<boolean> {
   const rows = await prisma().$queryRaw<{ lesson_version_id: string }[]>`
     SELECT lesson_version_id FROM lesson_version_assets WHERE media_asset_id = ${assetId}::uuid`;
-  return canReadVersions(userId, rows.map((r) => r.lesson_version_id));
+  return canReadVersions(prisma(), userId, rows.map((r) => r.lesson_version_id));
 }
 
-async function canReadVersions(userId: string, versionIds: string[]): Promise<boolean> {
+async function canReadVersions(db: Db, userId: string, versionIds: string[]): Promise<boolean> {
   if (versionIds.length === 0) return false;
-  const group = await mergeGroupIds(null, userId);
-  const [row] = await prisma().$queryRaw<{ ok: boolean }[]>`
+  const group = await mergeGroupIds(db, userId);
+  const [row] = await db.$queryRaw<{ ok: boolean }[]>`
     SELECT EXISTS (
       SELECT 1 FROM course_version_lessons cvl JOIN course_versions cv ON cv.id = cvl.course_version_id
       WHERE cvl.lesson_version_id = ANY(${versionIds}::uuid[]) AND (
