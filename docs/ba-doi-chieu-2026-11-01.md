@@ -74,3 +74,19 @@ FR-16 kiểm tra cuối khóa và chứng nhận, FR-30 tra cứu chứng nhận
 - FR-21: liên quan G6 và mẫu ZNS, không liên quan G15.
 - NFR-12, NFR-14, FR-11, FR-13 được ghi chính xác hơn; bỏ sót NFR-01, BR-14, FR-23 nay đã thêm.
 - Bỏ sót quan trọng nhất: **khoản chuyển nằm hàng chờ không hoàn được** (mục B dòng đầu).
+
+## Sau khi anh duyệt (01/11): đã làm gì
+
+Anh chốt: nhóm A sửa BA, nhóm B sửa mã.
+
+- **Nhóm A:** chữ thay thế cho 10 chỗ nằm ở `docs/ba-sua-nhom-a-2026-11-01.md`. Doc BA chưa chia sẻ cho tài khoản Claude đang làm nên chưa dán thẳng vào được.
+- **Nhóm B, đã sửa mã:**
+
+| Mục | Commit |
+| --- | --- |
+| Hoàn khoản chuyển nằm hàng chờ (UC-09, UC-10) | `f5dea61` |
+| Tin Telegram đơn đã trả có khóa và giờ (US-08, không tên khách theo NFR-10); email có tên khóa và link vào app (US-04, FR-10); từ chối hoàn thì email báo học viên kèm lý do (UC-10 bước 3); trang khóa hiện “Vào học” khi đã có khóa (UC-03 A3) | `b02e7f9` |
+| Báo cáo theo khoảng ngày tự chọn, số hoàn theo khóa (FR-20, US-11) | `64e1571` |
+
+- **Nhóm B, ghi vào BA thay vì sửa mã:** FR-17 (lọc 4 trạng thái), UC-03 A1 (đăng nhập xong quay thẳng về trang mua). Xem file trên.
+- **Nhóm B, còn chờ:** FR-26 đồng ý dữ liệu cá nhân (chờ nội dung G12a), UC-10 cờ “ngoài chính sách” (chờ mức hoàn G13), NFR-14 lưu cả webhook sai chữ ký (hoãn tới G4).
