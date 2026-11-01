@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
+import { resetEnvForTest } from "@/lib/env";
 import { GET as workerHealth } from "@/app/api/health/worker/route";
 import { acquireLease } from "@/modules/jobs/lease";
 import { runJob, type JobDef } from "@/modules/jobs/runner";
@@ -153,13 +154,21 @@ describe("/api/health/worker", () => {
     expect(await call()).toMatchObject({ status: 200, body: { ok: true } });
   });
 
-  it("production thiếu kênh cảnh báo Telegram → 503 alerts_not_configured", async () => {
+  it("production thiếu kênh cảnh báo Telegram → 503 alerts_not_configured; thiếu riêng nhóm kinh doanh cũng vậy", async () => {
     await sqlAsMigrator(`INSERT INTO job_runs (job_name, status) VALUES ('me.outbox.deliver', 'success')`);
     vi.stubEnv("NODE_ENV", "production");
     try {
       expect(await call()).toMatchObject({ status: 503, body: { reason: "alerts_not_configured" } });
+      vi.stubEnv("TELEGRAM_BOT_TOKEN", "t");
+      vi.stubEnv("TELEGRAM_ERROR_CHAT_ID", "-2");
+      resetEnvForTest();
+      expect(await call()).toMatchObject({ status: 503, body: { reason: "alerts_not_configured" } });
+      vi.stubEnv("TELEGRAM_BUSINESS_CHAT_ID", "-1");
+      resetEnvForTest();
+      expect(await call()).toMatchObject({ status: 200 });
     } finally {
       vi.unstubAllEnvs();
+      resetEnvForTest();
     }
   });
 });

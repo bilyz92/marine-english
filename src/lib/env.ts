@@ -112,3 +112,8 @@ export function env(): Env {
   cached = parsed.data;
   return cached;
 }
+
+/** Chỉ dùng trong test: đọc lại biến môi trường ở lần gọi env() tiếp theo. */
+export function resetEnvForTest(): void {
+  cached = undefined;
+}

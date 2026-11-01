@@ -170,6 +170,41 @@ describe("sao lưu", () => {
     expect(blobs()).toEqual([`${keep}.k1.gpg`]);
   });
 
+  it("manifest bị sửa tên (thoát thư mục) không làm dọn nhầm: chỉ xóa đúng thư mục bản sao lưu hợp lệ", async () => {
+    await run(new Date("2026-08-01T02:30:00Z"));
+    const victim = join(root, "quan-trong");
+    mkdirSync(victim);
+    writeFileSync(join(victim, "tep"), "x");
+    const [name] = sets();
+    const evil = join(root, "backups/db", "zz-gia-mao");
+    mkdirSync(evil);
+    writeFileSync(join(evil, "manifest.json"), JSON.stringify({ ...manifest(name!), name: "../../quan-trong", createdAt: "2026-01-01T00:00:00.000Z" }));
+    await run(new Date("2026-10-31T02:30:00Z"));
+    expect(existsSync(join(victim, "tep"))).toBe(true);
+    expect(existsSync(evil)).toBe(true);
+  });
+
+  it("một bản có manifest hỏng → ngừng dọn hẳn (giữ cả tệp media khóa cũ của nó), báo trong kết quả", async () => {
+    const hash = await media("anh", "public");
+    await run(new Date("2026-08-01T02:30:00Z"));
+    const [old] = sets();
+    writeFileSync(join(root, "backups/db", old!, "manifest.json"), "{ hỏng");
+    const stats = await run(new Date("2026-10-31T02:30:00Z"), { ...config, keyId: "k2" });
+    expect(stats).toMatchObject({ pruned: 0, pruneSkipped: true });
+    expect(blobs()).toContain(`${hash}.k1.gpg`);
+    expect(sets()).toContain(old);
+  });
+
+  it("manifest còn đọc được nhưng bị sửa (bỏ danh sách media, không khớp chữ ký) → ngừng dọn, giữ tệp media", async () => {
+    const hash = await media("anh", "public");
+    await run(new Date("2026-08-01T02:30:00Z"));
+    const [old] = sets();
+    writeFileSync(join(root, "backups/db", old!, "manifest.json"), JSON.stringify({ ...manifest(old!), media: [] }, null, 2));
+    const stats = await run(new Date("2026-10-31T02:30:00Z"), { ...config, keyId: "k2" });
+    expect(stats).toMatchObject({ pruned: 0, pruneSkipped: true });
+    expect(blobs()).toContain(`${hash}.k1.gpg`);
+  });
+
   it("thiếu tệp khóa hiện tại → lỗi trước khi chạy gì, bản cũ quá 30 ngày vẫn giữ", async () => {
     await run(new Date("2026-08-01T02:30:00Z"));
     calls = [];
@@ -266,8 +301,9 @@ describe("job sao lưu", () => {
     await backupAlerts({ notConfigured: true }, new Date("2026-10-31T20:30:00Z"));
     await backupAlerts({ missingKeys: ["k1"] }, new Date("2026-10-31T20:30:00Z"));
     await backupAlerts({ offsite: false, offsiteError: "tool_failed:rclone:1" }, new Date("2026-10-31T20:30:00Z"));
+    await backupAlerts({ pruneSkipped: true }, new Date("2026-10-31T20:30:00Z"));
     const alerts = await prisma().outboxEvent.findMany({ where: { kind: "backup_alert" }, orderBy: { dedupKey: "asc" } });
-    expect(alerts.map((a) => (a.payload as { reason: string }).reason)).toEqual(["missing_key", "no_offsite", "not_configured", "offsite_failed"]);
+    expect(alerts.map((a) => (a.payload as { reason: string }).reason)).toEqual(["missing_key", "no_offsite", "not_configured", "offsite_failed", "prune_skipped"]);
     expect(alerts.every((a) => a.channel === "telegram")).toBe(true);
   });
 });

@@ -193,6 +193,18 @@ describe("đơn gần đây của khóa", () => {
     expect((await recent(l)).unresolved).toEqual([expect.objectContaining({ code })]);
   });
 
+  it("khoản chuyển ghi nhiều mã đơn: đơn vẫn hiện cảnh báo sau 48 giờ, trang thanh toán báo cần đối chiếu", async () => {
+    const l = await setup();
+    const code = await bought(l);
+    const order = await orderOf(code);
+    await ingest(report({ content: `${code} MEZZZZZZZZ`, bankTime: new Date(order.createdAt.getTime() + 60_000) }));
+    expect((await read(l, code)).body.needsManual).toBe(true);
+    await sqlAsMigrator(`ALTER TABLE orders DISABLE TRIGGER USER`);
+    await sqlAsMigrator(`UPDATE orders SET created_at = created_at - interval '5 days', expires_at = expires_at - interval '5 days', status = 'expired', expired_at = now()`);
+    await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
+    expect((await recent(l)).unresolved).toEqual([expect.objectContaining({ code })]);
+  });
+
   it("đã có khóa → enrolled ngay khi mở trang mua", async () => {
     const l = await setup();
     const code = await bought(l);

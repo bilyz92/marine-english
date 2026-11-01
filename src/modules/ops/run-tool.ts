@@ -53,7 +53,8 @@ export const runTool: RunTool = async (steps, opts) => {
     children.forEach((child, i) => child.stderr?.on("data", (chunk: Buffer) => { stderr[i] = (stderr[i] + chunk.toString()).slice(-STDERR_TAIL); }));
     const results = await Promise.all(children.map((child, i) => new Promise<{ cmd: string; code: number | null; signal: string | null; error?: Error }>((resolve) => {
       child.once("error", (error) => resolve({ cmd: steps[i]!.cmd, code: null, signal: null, error }));
-      child.once("exit", (code, signal) => resolve({ cmd: steps[i]!.cmd, code, signal }));
+      // "close" (không phải "exit"): đợi đọc hết stderr, nếu không đoạn chẩn đoán có thể mất khi máy tải nặng.
+      child.once("close", (code, signal) => resolve({ cmd: steps[i]!.cmd, code, signal }));
     })));
     opts.signal.removeEventListener("abort", onAbort);
     clearTimeout(killTimer);

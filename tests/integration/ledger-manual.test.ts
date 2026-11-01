@@ -66,7 +66,7 @@ describe("hàng chờ", () => {
     const queue = await listQueue();
     expect(queue.map((q) => q.reason).sort()).toEqual(["amount_short", "no_code"]);
     expect(queue.find((q) => q.reason === "amount_short")!.candidateOrderCode).toBe(s.code);
-    expect(await orderNeedsManual(s.orderId)).toBe(true);
+    expect(await orderNeedsManual(s.orderId, s.code)).toBe(true);
     await ingest(report({ content: s.code, bankTime: t }));
     expect((await listQueue()).map((q) => q.reason).sort()).toEqual(["amount_short", "no_code"]);
   });

@@ -115,6 +115,7 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 | Chứng chỉ HTTPS còn N ngày | Caddy không gia hạn được | `logs caddy`; kiểm tên miền còn trỏ đúng máy chủ, cổng 80 mở |
 | Quá 26 giờ không có bản sao lưu | Sao lưu hỏng hoặc không chạy | Trang quản trị → Job xem lỗi `me.backup.daily`; chạy ngay; kiểm khóa, chỗ trống đĩa, nơi lưu ngoài |
 | Sao lưu chỉ nằm trên máy chủ | Chưa cấu hình nơi lưu ngoài | Cấu hình `BACKUP_RCLONE_REMOTE` (G8) |
+| Có bản sao lưu với manifest hỏng, đã ngừng dọn | Một thư mục trong `db/` có `manifest.json` hỏng hoặc lệch tên | Xem thư mục đó; không mở được thì chuyển nó ra khỏi `db/` (đừng xóa vội). Việc dọn bản cũ chạy lại ở lần sao lưu sau |
 | Sao lưu có trên máy chủ nhưng đẩy ra ngoài lỗi | Nơi lưu ngoài hoặc mạng lỗi | Kiểm cấu hình rclone, dung lượng nơi lưu ngoài; chạy ngay lại sao lưu khi đã sửa |
 | Sao lưu không chạy: chưa cấu hình | Thiếu `BACKUP_*` | Điền theo mục 2 bước 3 |
 | Thiếu tệp khóa sao lưu … | Một bản còn giữ dùng khóa đã bị xóa khỏi máy chủ | Chép lại tệp khóa từ bản lưu ngoài máy (mục 6); không có thì các bản đó không mở được |

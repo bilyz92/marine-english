@@ -49,9 +49,9 @@ export async function listQueue(opts: { raw: boolean } = { raw: true }): Promise
   }));
 }
 
-/** Cờ “cần xử lý tay” của đơn: có giao dịch đang chờ mà lần phân loại gần nhất trỏ tới đơn. */
-export async function orderNeedsManual(orderId: string): Promise<boolean> {
-  return (await openRows()).some((r) => r.candidate_order_id === orderId);
+/** Cờ “cần xử lý tay” của đơn: có giao dịch đang chờ mà lần phân loại gần nhất trỏ tới đơn, kể cả khi nội dung ghi nhiều mã. */
+export async function orderNeedsManual(orderId: string, orderCode: string): Promise<boolean> {
+  return (await openRows()).some((r) => r.candidate_order_id === orderId || (r.candidate_codes ?? []).includes(orderCode));
 }
 
 export type UnresolvedRow = { observationId: string; source: string; reason: "missing_ref" | "missing_time"; receivedAt: Date; payload?: unknown };

@@ -107,9 +107,15 @@ export function Checkout({ code }: { code: string }) {
   // Đếm ngược theo giờ máy chủ: đồng hồ điện thoại trên tàu có thể lệch.
   const [clockOffsetMs, setClockOffsetMs] = useState(0);
   const router = useRouter();
+  // Nhiều lượt hỏi có thể chạy cùng lúc (định kỳ, mở lại tab, hết giờ): chỉ nhận kết quả mới nhất, và không bao giờ lùi từ trạng thái kết thúc.
+  const generation = useRef(0);
+  const settled = useRef(false);
 
   const load = useCallback(async () => {
+    if (settled.current) return;
+    const id = ++generation.current;
     const res = await fetch(`/api/me/orders/${encodeURIComponent(code)}`, { cache: "no-store" }).catch(() => null);
+    if (id !== generation.current || settled.current) return;
     if (res?.status === 401) {
       router.replace(`/dang-nhap?next=${encodeURIComponent(`/thanh-toan/${code}`)}`);
       return;
@@ -119,6 +125,8 @@ export function Checkout({ code }: { code: string }) {
     if (!res) return setState("offline");
     if (!res.ok) return setState("server");
     const next = (await res.json()) as Order;
+    if (id !== generation.current || settled.current) return;
+    if (next.status === "paid" || next.status === "refunded") settled.current = true;
     setClockOffsetMs(new Date(next.serverNow).getTime() - Date.now());
     setOrder(next);
     setState("ready");

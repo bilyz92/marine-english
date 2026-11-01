@@ -38,6 +38,8 @@ const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: strin
       ? `Sao lưu ${p.day} chỉ nằm trên máy chủ: chưa cấu hình nơi lưu ngoài (BACKUP_RCLONE_REMOTE).`
       : p.reason === "offsite_failed"
         ? `Sao lưu ${p.day} có trên máy chủ nhưng đẩy ra nơi lưu ngoài lỗi: ${p.error}`
+      : p.reason === "prune_skipped"
+        ? `Có bản sao lưu với manifest hỏng trong thư mục db/: đã ngừng dọn bản cũ để không mất dữ liệu. Kiểm tra và gỡ bản hỏng bằng tay.`
       : p.reason === "missing_key"
         ? `Thiếu tệp khóa sao lưu ${(p.keys as string[]).join(", ")} của bản còn giữ: không mở được các bản đó.`
         : `Sao lưu ${p.day} không chạy: chưa cấu hình (BACKUP_*).`,

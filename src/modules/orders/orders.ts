@@ -115,7 +115,7 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
     payment: info && { bankName: info.bankName, accountNo: info.accountNo, accountName: info.accountName, qrImageUrl: info.qrImageUrl },
     paymentUnavailable: open && !info,
     enrolled: await hasActiveEnrollment(prisma(), group, row.course_id),
-    needsManual: await orderNeedsManual(row.id),
+    needsManual: await orderNeedsManual(row.id, row.code),
     serverNow,
   };
 }
@@ -136,7 +136,8 @@ export async function recentOrdersForCourse(ctx: LearnerCtx, courseSlug: string)
       AND o.status IN ('pending', 'expired') AND o.expires_at <= now()
     ORDER BY o.created_at DESC`;
   // Đơn có khoản chuyển đang chờ đối chiếu tay hiện mãi tới khi xử lý xong, không chỉ trong 48 giờ.
-  const manual = new Set((await listQueue({ raw: false })).map((q) => q.candidateOrderCode).filter(Boolean));
+  // Kể cả khoản ghi nhiều mã đơn (chưa chọn được đơn ứng viên chính).
+  const manual = new Set((await listQueue({ raw: false })).flatMap((q) => [q.candidateOrderCode, ...q.candidateCodes]).filter(Boolean));
   return {
     enrolled: await hasActiveEnrollment(prisma(), group, course.id),
     unresolved: rows.filter((r) => r.recent || manual.has(r.code)).map((r) => ({ code: r.code, status: r.status, expiresAt: r.expires_at })),

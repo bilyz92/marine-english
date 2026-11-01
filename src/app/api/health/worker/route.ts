@@ -8,7 +8,9 @@ import { env } from "@/lib/env";
 export async function GET(request: Request): Promise<Response> {
   void request.headers;
   const headers = { "cache-control": "no-store" };
-  if (process.env.NODE_ENV === "production" && (!env().TELEGRAM_BOT_TOKEN || !env().TELEGRAM_ERROR_CHAT_ID)) {
+  const e = env();
+  // Cả nhóm kinh doanh: thiếu thì tin “đơn đã thanh toán”, “cần xử lý tay” nằm chờ mãi mà giám sát bỏ qua (chưa cấu hình).
+  if (process.env.NODE_ENV === "production" && (!e.TELEGRAM_BOT_TOKEN || !e.TELEGRAM_ERROR_CHAT_ID || !e.TELEGRAM_BUSINESS_CHAT_ID)) {
     return Response.json({ ok: false, reason: "alerts_not_configured" }, { status: 503, headers });
   }
   try {

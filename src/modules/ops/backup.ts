@@ -7,6 +7,8 @@ import { env } from "@/lib/env";
 import { withFence, type Lease } from "@/modules/jobs/lease";
 import { enqueueOutbox } from "@/modules/outbox/outbox";
 import type { RunTool, Step } from "./run-tool";
+// Dùng chung bộ kiểm manifest với bước khôi phục (deploy/restore.mjs).
+import { validateManifest, verifyManifestMac } from "../../../deploy/manifest-check.mjs";
 
 export type BackupConfig = { databaseUrl: string; dir: string; keysDir: string; keyId: string; remote: string | null; mediaRoot: string };
 export type MediaEntry = { sha256: string; kid: string; visibility: "public" | "protected"; storageKey: string };
@@ -20,7 +22,7 @@ export type Manifest = {
   counts: Record<string, number>;
   media: MediaEntry[];
 };
-export type BackupStats = { name: string; dbBytes: number; mediaNew: number; mediaTotal: number; pruned: number; offsite: boolean; offsiteError?: string; missingKeys: string[] };
+export type BackupStats = { name: string; dbBytes: number; mediaNew: number; mediaTotal: number; pruned: number; pruneSkipped: boolean; offsite: boolean; offsiteError?: string; missingKeys: string[] };
 
 const RETENTION_MS = 30 * 86_400_000;
 const COUNTED = ["orders", "bank_transactions", "enrollments"] as const;
@@ -76,23 +78,46 @@ async function dumpDatabase(config: BackupConfig, keyFile: string, output: strin
   }
 }
 
-function readManifests(dbDir: string): Manifest[] {
-  if (!existsSync(dbDir)) return [];
-  return readdirSync(dbDir).filter((n) => existsSync(join(dbDir, n, "manifest.json")))
-    .map((n) => JSON.parse(readFileSync(join(dbDir, n, "manifest.json"), "utf8")) as Manifest);
+const SET_NAME = /^\d{8}-\d{6}$/;
+
+/**
+ * Các bản sao lưu trong db/. Một bản chỉ được tin khi: tên thư mục dạng thời điểm, manifest qua bộ kiểm định dạng của bước
+ * khôi phục, tên trong manifest đúng tên thư mục, và manifest.mac khớp theo khóa sao lưu của nó. Hỏng chỗ nào thì vào `suspect`:
+ * không biết bản ấy cần tệp media nào nên không được dọn gì cả. Xóa luôn theo tên thư mục thật.
+ */
+function readManifests(dbDir: string, keysDir: string): { sets: Manifest[]; suspect: string[]; missingKeys: Set<string> } {
+  const result = { sets: [] as Manifest[], suspect: [] as string[], missingKeys: new Set<string>() };
+  if (!existsSync(dbDir)) return result;
+  for (const dir of readdirSync(dbDir)) {
+    if (!SET_NAME.test(dir)) continue;
+    try {
+      const raw = readFileSync(join(dbDir, dir, "manifest.json"));
+      const m = validateManifest(JSON.parse(raw.toString("utf8"))) as Manifest;
+      for (const kid of new Set([m.kid, ...m.media.map((x) => x.kid)])) if (!existsSync(join(keysDir, kid))) result.missingKeys.add(kid);
+      const mac = readFileSync(join(dbDir, dir, "manifest.mac"), "utf8");
+      if (m.name !== dir || !verifyManifestMac(raw, mac, readFileSync(join(keysDir, m.kid)))) throw new Error("manifest_untrusted");
+      result.sets.push(m);
+    } catch {
+      result.suspect.push(dir);
+    }
+  }
+  return result;
 }
 
 /** Bỏ bản quá 30 ngày (không bao giờ bỏ bản mới nhất), rồi bỏ tệp media không manifest nào còn trỏ tới. */
-function prune(config: BackupConfig, now: Date): number {
+function prune(config: BackupConfig, now: Date): { pruned: number; pruneSkipped: boolean } {
   const dbDir = join(config.dir, "db");
-  const manifests = readManifests(dbDir).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const { sets, suspect } = readManifests(dbDir, config.keysDir);
+  // Một bản không đọc được manifest: không biết nó cần tệp media nào, dọn sẽ có thể làm hỏng nó. Ngừng hẳn và cảnh báo.
+  if (suspect.length > 0) return { pruned: 0, pruneSkipped: true };
+  const manifests = sets.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const newest = manifests.at(-1);
   const expired = manifests.filter((m) => m !== newest && now.getTime() - Date.parse(m.createdAt) > RETENTION_MS);
   for (const m of expired) rmSync(join(dbDir, m.name), { recursive: true, force: true });
   const referenced = new Set(manifests.filter((m) => !expired.includes(m)).flatMap((m) => m.media.map((x) => blobName(x.sha256, x.kid))));
   const store = join(config.dir, "media-store");
   for (const file of readdirSync(store)) if (!file.startsWith(".") && !referenced.has(file)) rmSync(join(store, file));
-  return expired.length;
+  return { pruned: expired.length, pruneSkipped: false };
 }
 
 /** "20261031-023000" (UTC) → thời điểm. */
@@ -177,7 +202,7 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
     writeFileSync(join(tmp, "manifest.mac"), createHmac("sha256", readFileSync(keyFile)).update(manifestRaw).digest("hex"), { mode: 0o600 });
     // Chỉ công bố và dọn khi còn giữ lease: lần chạy đã mất lease không được đụng tới bộ sao lưu.
     // Dọn nhiều tệp (sau khi đổi khóa) có thể lâu hơn hạn mặc định 5 giây của transaction.
-    const pruned = await withFence(lease, async () => {
+    const { pruned, pruneSkipped } = await withFence(lease, async () => {
       renameSync(tmp, join(config.dir, "db", name));
       return prune(config, now);
     }, { txTimeoutMs: 120_000 });
@@ -192,9 +217,8 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
       }
     }
     // Khóa của mọi bản còn giữ phải còn: mất khóa là mất bản sao lưu đó.
-    const kids = new Set(readManifests(join(config.dir, "db")).flatMap((m) => [m.kid, ...m.media.map((x) => x.kid)]));
-    const missingKeys = [...kids].filter((kid) => !existsSync(join(config.keysDir, kid))).sort();
-    return { name, dbBytes: manifest.dump.bytes, mediaNew, mediaTotal: media.length, pruned, offsite: Boolean(config.remote) && !offsiteError, offsiteError, missingKeys };
+    const missingKeys = [...readManifests(join(config.dir, "db"), config.keysDir).missingKeys].sort();
+    return { name, dbBytes: manifest.dump.bytes, mediaNew, mediaTotal: media.length, pruned, pruneSkipped, offsite: Boolean(config.remote) && !offsiteError, offsiteError, missingKeys };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
     for (const partial of partials) rmSync(partial, { force: true });
@@ -202,13 +226,14 @@ export async function backup(input: { config: BackupConfig; run: RunTool; lease:
 }
 
 /** Cảnh báo vận hành về sao lưu, mỗi lý do một tin mỗi ngày (giờ Việt Nam). */
-export async function backupAlerts(state: { offsite?: boolean; offsiteError?: string; notConfigured?: boolean; missingKeys?: string[] }, now = new Date()) {
+export async function backupAlerts(state: { offsite?: boolean; offsiteError?: string; notConfigured?: boolean; missingKeys?: string[]; pruneSkipped?: boolean }, now = new Date()) {
   const day = new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
   const reasons: { reason: string; keys?: string[]; error?: string }[] = [];
   if (state.notConfigured) reasons.push({ reason: "not_configured" });
   if (state.offsiteError) reasons.push({ reason: "offsite_failed", error: state.offsiteError });
   else if (state.offsite === false) reasons.push({ reason: "no_offsite" });
   if (state.missingKeys?.length) reasons.push({ reason: "missing_key", keys: state.missingKeys });
+  if (state.pruneSkipped) reasons.push({ reason: "prune_skipped" });
   await withTx(async (tx) => {
     for (const r of reasons) {
       await enqueueOutbox(tx, { dedupKey: `backup_alert:${r.reason}:${day}`, kind: "backup_alert", channel: "telegram", payload: { ...r, day } });
