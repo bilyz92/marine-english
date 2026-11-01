@@ -5,7 +5,7 @@ import { env } from "@/lib/env";
 import type { OtpKind, OtpSender } from "@/modules/mail/contracts";
 
 export type { OtpKind } from "@/modules/mail/contracts";
-export type OtpPurpose = "signup" | "login" | "link";
+export type OtpPurpose = "signup" | "login" | "link" | "reset";
 
 export type IssueInput = {
   purpose: OtpPurpose;
@@ -13,7 +13,7 @@ export type IssueInput = {
   /** Định danh đã chuẩn hóa (+84… hoặc email chữ thường). */
   value: string;
   ip: string;
-  /** Bắt buộc khi purpose = 'link'. */
+  /** Bắt buộc khi purpose = 'link' hoặc 'reset'. */
   userId?: string;
   /** false: vẫn kiểm và tính hạn mức nhưng không tạo mã, không gửi (phản hồi trung tính). */
   create: boolean;

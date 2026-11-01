@@ -25,6 +25,7 @@ export async function searchLearners(ctx: AdminCtx, query: string) {
     SELECT u.id, u.display_name, u.rank, u.status, u.created_at, u.merged_into_id FROM users u
     WHERE u.display_name ILIKE ${name}
        OR EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id AND i.value_canonical IN (${email}, ${phone ?? email}))
+       OR EXISTS (SELECT 1 FROM password_logins p WHERE p.user_id = u.id AND p.phone_canonical = ${phone ?? email})
        OR EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.code = ${code})
     ORDER BY u.created_at DESC LIMIT ${LIMIT}`;
   if (users.length === 0) return [];
@@ -33,6 +34,8 @@ export async function searchLearners(ctx: AdminCtx, query: string) {
   const courses = await prisma().$queryRaw<{ user_id: string; enrollment_id: string; source: string; title_vi: string; course_id: string }[]>`
     SELECT e.user_id, e.id AS enrollment_id, e.source, c.title_vi, e.course_id FROM enrollments e JOIN courses c ON c.id = e.course_id
     WHERE e.user_id = ANY(${ids}::uuid[]) AND e.revoked_at IS NULL`;
+  // Số + mật khẩu (D2): số chưa xác minh trừ khi học viên đã tự xác minh; dòng nhả = mất cách đăng nhập này, cần hỗ trợ.
+  const logins = await prisma().passwordLogin.findMany({ where: { userId: { in: ids } } });
   const canSeePhone = permissionsFor(ctx).includes("learner.phone.view");
   return users.map((u) => ({
     id: u.id, displayName: u.display_name, rank: u.rank, status: u.status, createdAt: u.created_at, mergedIntoId: u.merged_into_id,
@@ -41,6 +44,10 @@ export async function searchLearners(ctx: AdminCtx, query: string) {
       // Mã Google không có ích cho người vận hành.
       value: i.kind === "google" ? "Đã liên kết" : i.kind === "phone" && !canSeePhone ? maskPhone(i.valueCanonical) : i.valueCanonical,
     })),
+    passwordLogin: logins.filter((p) => p.userId === u.id).map((p) => ({
+      phone: canSeePhone ? p.phoneCanonical : maskPhone(p.phoneCanonical),
+      verified: p.phoneVerifiedAt !== null, released: p.releasedAt !== null, mustChange: p.mustChange,
+    }))[0] ?? null,
     courses: courses.filter((c) => c.user_id === u.id).map((c) => ({ enrollmentId: c.enrollment_id, courseId: c.course_id, title: c.title_vi, source: c.source })),
   }));
 }

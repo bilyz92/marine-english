@@ -20,6 +20,7 @@ const MESSAGES: Record<string, string> = {
   last_owner: "Không thể đổi: đây là tài khoản chủ cuối cùng.",
   needs_price: "Cần đặt giá trước khi mở bán.",
   invalid: "Hai tài khoản này không gộp được.",
+  password_conflict: "Cả hai tài khoản đều có đăng nhập bằng số + mật khẩu nên chưa gộp được. Báo kỹ thuật để xử lý.",
   already_settled: "Giao dịch này đã được xử lý.",
   invalid_transition: "Yêu cầu không ở bước cho phép làm thao tác này.",
   duplicate_out_ref: "Mã giao dịch chuyển trả này đã được dùng.",

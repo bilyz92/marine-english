@@ -1,6 +1,13 @@
+import { randomInt } from "node:crypto";
 import { withTx, type Tx } from "@/lib/db";
-import { audit } from "@/modules/audit/audit";
+import { HttpError } from "@/lib/http";
+import { audit, auditDenied } from "@/modules/audit/audit";
+import { authorize } from "@/modules/auth-admin/authorize";
+import type { AdminCtx, LearnerCtx } from "@/modules/sessions/guards";
+import { isRecentAuth, tokenHash } from "@/modules/sessions/sessions";
 import { canonicalizeVnPhone } from "@/modules/identity/phone";
+import { issueOtp, verifyOtp } from "./otp";
+import { otpSenderFor } from "./otp-sender";
 import { revokeAllForSubject } from "@/modules/sessions/sessions";
 import { burnPasswordCheck, hashPassword, passwordProblem, verifyPassword, type PasswordProblem } from "./password-hash";
 
@@ -13,7 +20,15 @@ const REGISTRATIONS_PER_IP_HOUR = 5;
 
 const maskPhone = (phone: string) => `•••• ${phone.slice(-4)}`;
 
-/** Thứ tự khóa chung cho mọi đường đụng tới mật khẩu hay số: IP trước, số sau (trong transaction của người gọi). */
+/**
+ * Thứ tự khóa chung cho mọi đường đụng tới mật khẩu hay số (đăng nhập, đăng ký, đặt lại, đổi, chủ đặt tạm, gộp): dòng `users` (khi đã biết
+ * học viên) → khóa tư vấn IP → khóa tư vấn số → dòng `password_logins`. Bước nào không cần thì bỏ, nhưng không bao giờ đảo thứ tự.
+ */
+async function lockActiveLearner(tx: Tx, userId: string): Promise<boolean> {
+  const [user] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+  return user?.status === "active";
+}
+
 async function lockKeys(tx: Tx, ip: string | null, phone: string | null): Promise<void> {
   if (ip) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pw-ip:${ip}`}))`;
   if (phone) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`phone:${phone}`}))`;
@@ -46,20 +61,14 @@ async function phoneTaken(tx: Tx, phone: string, exceptUserId: string | null): P
 }
 
 /**
- * Đổi mật khẩu (mọi đường: tự đổi, đặt lại qua email, chủ đặt tạm, đăng nhập bằng mật khẩu tạm): ghi băm mới, rồi trong cùng transaction
- * thu hồi phiên, vé thay máy chưa dùng và mã đặt lại còn hiệu lực của học viên (trừ phiên đang dùng nếu có).
+ * Sau mọi lần đổi mật khẩu hay gắn số (tự đổi, đặt lại qua email, chủ đặt tạm, đăng nhập bằng mật khẩu tạm, thêm số + mật khẩu): trong cùng
+ * transaction thu hồi phiên, vé thay máy chưa dùng và mã đặt lại còn hiệu lực của học viên (trừ phiên đang dùng nếu có).
  */
-export async function replacePassword(
-  tx: Tx,
-  userId: string,
-  input: { hash: string; mustChange: boolean; keepSessionId?: string },
-): Promise<void> {
-  await tx.$executeRaw`
-    UPDATE password_logins SET password_hash = ${input.hash}, must_change = ${input.mustChange}, updated_at = now() WHERE user_id = ${userId}::uuid`;
-  if (input.keepSessionId) {
+async function revokeCredentials(tx: Tx, userId: string, keepSessionId?: string): Promise<void> {
+  if (keepSessionId) {
     await tx.$executeRaw`
       UPDATE learner_sessions SET revoked_at = now(), prev_valid_until = NULL, next_token_enc = NULL
-      WHERE user_id = ${userId}::uuid AND revoked_at IS NULL AND id <> ${input.keepSessionId}::uuid`;
+      WHERE user_id = ${userId}::uuid AND revoked_at IS NULL AND id <> ${keepSessionId}::uuid`;
   } else {
     await revokeAllForSubject(tx, "learner", userId);
   }
@@ -67,6 +76,31 @@ export async function replacePassword(
   await tx.$executeRaw`
     UPDATE otp_challenges SET invalidated_at = now()
     WHERE user_id = ${userId}::uuid AND purpose = 'reset' AND consumed_at IS NULL AND invalidated_at IS NULL`;
+}
+
+/** Ghi băm mới cho dòng đang có rồi thu hồi như `revokeCredentials`. */
+export async function replacePassword(
+  tx: Tx,
+  userId: string,
+  input: { hash: string; mustChange: boolean; keepSessionId?: string },
+): Promise<void> {
+  await tx.$executeRaw`
+    UPDATE password_logins SET password_hash = ${input.hash}, must_change = ${input.mustChange}, updated_at = now() WHERE user_id = ${userId}::uuid`;
+  await revokeCredentials(tx, userId, input.keepSessionId);
+}
+
+/**
+ * Gắn số (mới) + mật khẩu vào dòng của học viên: chưa có dòng thì tạo, dòng đã nhả thì dùng lại chỗ đó. Số học viên đã tự xác minh thì ghi
+ * đã xác minh ngay. Người gọi đã khóa số và kiểm số chưa có chủ khác.
+ */
+async function attachPhone(tx: Tx, userId: string, phone: string, hash: string, mustChange: boolean): Promise<void> {
+  await tx.$executeRaw`
+    INSERT INTO password_logins (user_id, phone_canonical, password_hash, must_change, phone_verified_at)
+    VALUES (${userId}::uuid, ${phone}, ${hash}, ${mustChange},
+            (SELECT now() FROM user_identities WHERE user_id = ${userId}::uuid AND kind = 'phone' AND value_canonical = ${phone}))
+    ON CONFLICT (user_id) DO UPDATE SET
+      phone_canonical = EXCLUDED.phone_canonical, password_hash = EXCLUDED.password_hash, must_change = EXCLUDED.must_change,
+      phone_verified_at = EXCLUDED.phone_verified_at, released_at = NULL, updated_at = now()`;
 }
 
 export type RegisterResult<T> =
@@ -148,6 +182,7 @@ export async function loginWithPassword<T>(
   const problem = row.must_change && input.newPassword ? passwordProblem(input.newPassword, phone!) : null;
   const newHash = row.must_change && input.newPassword && !problem ? await hashPassword(input.newPassword) : null;
   return withTx(async (tx): Promise<LoginResult<T>> => {
+    if (!(await lockActiveLearner(tx, row.user_id))) return { kind: "invalid" };
     // Mật khẩu hay số có thể vừa đổi, vừa bị nhả trong lúc băm: chỉ vào khi dòng vẫn y như lúc đọc.
     const [current] = await tx.$queryRaw<{ ok: boolean }[]>`
       SELECT true AS ok FROM password_logins
@@ -162,6 +197,78 @@ export async function loginWithPassword<T>(
       await replacePassword(tx, row.user_id, { hash: newHash!, mustChange: false });
     }
     const value = await then(tx, row.user_id);
+    return value === null ? { kind: "invalid" } : { kind: "ok", value };
+  });
+}
+
+/** Học viên đang giữ số (dòng chưa nhả) và email nhận mã đặt lại: email đã xác minh mới nhất (bằng nhau thì id nhỏ hơn). */
+async function resetTarget(tx: Tx, phone: string): Promise<{ userId: string; email: string; hash: string } | null> {
+  const [row] = await tx.$queryRaw<{ user_id: string; email: string; password_hash: string }[]>`
+    SELECT p.user_id, e.value_canonical AS email, p.password_hash
+    FROM password_logins p
+    JOIN LATERAL (SELECT value_canonical FROM user_identities
+                  WHERE user_id = p.user_id AND kind = 'email' ORDER BY verified_at DESC, id ASC LIMIT 1) e ON true
+    WHERE p.phone_canonical = ${phone} AND p.released_at IS NULL`;
+  return row ? { userId: row.user_id, email: row.email, hash: row.password_hash } : null;
+}
+
+/** Quên mật khẩu: có email liên kết thì gửi mã tới đó; không thì không làm gì. Người gọi luôn trả cùng một câu, không lộ email hay tài khoản. */
+export async function sendPasswordReset(input: { phone: string; ip: string }): Promise<void> {
+  const phone = canonicalizeVnPhone(input.phone);
+  if (!phone) return;
+  const target = await withTx((tx) => resetTarget(tx, phone));
+  // Không có tài khoản hay email: vẫn đi qua cùng bước kiểm hạn mức và ghi nhật ký gửi, với một danh tính giả cố định theo số (HMAC,
+  // không suy ngược được), không tạo mã, không gửi; để số có và không có tài khoản tốn công như nhau.
+  const value = target?.email ?? `reset-${tokenHash("learner", phone).slice(0, 24)}@invalid.local`;
+  await issueOtp({ purpose: "reset", kind: "email", value, ip: input.ip, userId: target?.userId, create: target !== null }, otpSenderFor("email"));
+}
+
+export type ResetResult<T> = { kind: "ok"; value: T } | { kind: "invalid" | "locked" } | { kind: "weak"; problem: PasswordProblem };
+
+const RESET_FAILS_PER_IP = 20;
+
+/**
+ * Đặt mật khẩu mới bằng mã đặt lại. Mã chỉ hợp lệ cho đúng học viên đang giữ số và đúng email nhận mã (chọn lại theo cùng quy tắc).
+ * Mật khẩu mới yếu thì báo trước, mã vẫn còn. Kiểm hạn mức IP (20 lần sai trong 15 phút, mọi số kể cả số không có tài khoản) và dùng mã
+ * trong một transaction ngắn **trước** khi băm; băm ngoài transaction; rồi khóa học viên, đổi mật khẩu, thu hồi phiên, vé thay máy, mã
+ * đặt lại khác, và chạy `then` (tạo phiên).
+ */
+export async function resetPasswordWithCode<T>(
+  input: { phone: string; code: string; newPassword: string; ip: string },
+  then: (tx: Tx, userId: string) => Promise<T | null>,
+): Promise<ResetResult<T>> {
+  const phone = canonicalizeVnPhone(input.phone);
+  if (phone) {
+    const problem = passwordProblem(input.newPassword, phone);
+    if (problem) return { kind: "weak", problem };
+  }
+  const checked = await withTx(async (tx): Promise<{ kind: "invalid" | "locked" } | { kind: "ok"; userId: string; hash: string }> => {
+    await lockKeys(tx, input.ip, phone);
+    const [fails] = await tx.$queryRaw<{ n: number }[]>`
+      SELECT count(*)::int AS n FROM password_attempts
+      WHERE ip = ${input.ip}::inet AND kind = 'reset' AND NOT ok AND at > now() - interval '15 minutes'`;
+    if (fails!.n >= RESET_FAILS_PER_IP) return { kind: "locked" };
+    const [attempt] = await tx.$queryRaw<{ id: string }[]>`
+      INSERT INTO password_attempts (kind, ip, phone_canonical, ok) VALUES ('reset', ${input.ip}::inet, ${phone}, false) RETURNING id`;
+    const target = phone && /^\d{6}$/.test(input.code) ? await resetTarget(tx, phone) : null;
+    if (!target) return { kind: "invalid" };
+    const verified = await verifyOtp(tx, { purpose: "reset", kind: "email", value: target.email, code: input.code, userId: target.userId });
+    if (verified !== "ok") return { kind: "invalid" };
+    await tx.$executeRaw`UPDATE password_attempts SET ok = true WHERE id = ${attempt!.id}::uuid`;
+    return { kind: "ok", userId: target.userId, hash: target.hash };
+  });
+  if (checked.kind !== "ok") return checked;
+  const hash = await hashPassword(input.newPassword);
+  return withTx(async (tx): Promise<ResetResult<T>> => {
+    if (!(await lockActiveLearner(tx, checked.userId))) return { kind: "invalid" };
+    // Mật khẩu có thể vừa đổi ở chỗ khác (chủ đặt tạm, học viên tự đổi) trong lúc băm: không ghi đè, mã đã dùng thì thôi.
+    const [live] = await tx.$queryRaw<{ ok: boolean }[]>`
+      SELECT true AS ok FROM password_logins
+      WHERE user_id = ${checked.userId}::uuid AND phone_canonical = ${phone} AND released_at IS NULL AND password_hash = ${checked.hash}
+      FOR UPDATE`;
+    if (!live) return { kind: "invalid" };
+    await replacePassword(tx, checked.userId, { hash, mustChange: false });
+    const value = await then(tx, checked.userId);
     return value === null ? { kind: "invalid" } : { kind: "ok", value };
   });
 }
@@ -186,4 +293,123 @@ export async function claimVerifiedPhone(tx: Tx, userId: string, phone: string):
   await tx.$executeRaw`
     UPDATE password_logins SET phone_verified_at = coalesce(phone_verified_at, now()), updated_at = now()
     WHERE user_id = ${userId}::uuid AND phone_canonical = ${phone} AND released_at IS NULL`;
+}
+
+export type ChangeResult =
+  | { kind: "ok" }
+  | { kind: "invalid_current" | "locked" | "reauth_required" | "phone_required" | "invalid_phone" | "phone_taken" | "inactive" }
+  | { kind: "weak"; problem: PasswordProblem };
+
+/**
+ * Tài khoản của tôi. Có số + mật khẩu (dòng chưa nhả): đổi mật khẩu, cần mật khẩu hiện tại, kiểm qua cùng bảng lượt thử và cùng khóa như
+ * đăng nhập. Chưa có hoặc đã bị nhả (tài khoản email/Google): thêm số + mật khẩu, cần đăng nhập gần đây. Xong thì thu hồi phiên khác,
+ * vé thay máy và mã đặt lại; phiên đang dùng giữ nguyên.
+ */
+export async function changeOwnPassword(
+  ctx: LearnerCtx,
+  input: { currentPassword?: string; newPassword: string; phone?: string },
+): Promise<ChangeResult> {
+  const [row] = await withTx((tx) => tx.$queryRaw<{ phone_canonical: string; password_hash: string }[]>`
+    SELECT phone_canonical, password_hash FROM password_logins WHERE user_id = ${ctx.userId}::uuid AND released_at IS NULL`);
+  if (!row) return addPhoneAndPassword(ctx, input);
+
+  const phone = row.phone_canonical;
+  const problem = passwordProblem(input.newPassword, phone);
+  if (problem) return { kind: "weak", problem };
+  const attemptId = await withTx(async (tx) => {
+    await lockKeys(tx, ctx.ip, phone);
+    if (await isLocked(tx, ctx.ip, phone)) return null;
+    const [attempt] = await tx.$queryRaw<{ id: string }[]>`
+      INSERT INTO password_attempts (kind, ip, phone_canonical, ok) VALUES ('current', ${ctx.ip}::inet, ${phone}, false) RETURNING id`;
+    return attempt!.id;
+  });
+  if (!attemptId) return { kind: "locked" };
+  if (!(await verifyPassword(input.currentPassword ?? "", row.password_hash))) return { kind: "invalid_current" };
+  const hash = await hashPassword(input.newPassword);
+  return withTx(async (tx): Promise<ChangeResult> => {
+    if (!(await lockActiveLearner(tx, ctx.userId))) return { kind: "inactive" };
+    const [current] = await tx.$queryRaw<{ ok: boolean }[]>`
+      SELECT true AS ok FROM password_logins
+      WHERE user_id = ${ctx.userId}::uuid AND released_at IS NULL AND password_hash = ${row.password_hash} FOR UPDATE`;
+    if (!current) return { kind: "invalid_current" };
+    await tx.$executeRaw`UPDATE password_attempts SET ok = true WHERE id = ${attemptId}::uuid`;
+    await replacePassword(tx, ctx.userId, { hash, mustChange: false, keepSessionId: ctx.sessionId });
+    return { kind: "ok" };
+  });
+}
+
+async function addPhoneAndPassword(ctx: LearnerCtx, input: { newPassword: string; phone?: string }): Promise<ChangeResult> {
+  if (!isRecentAuth(ctx.authAt)) return { kind: "reauth_required" };
+  if (!input.phone) return { kind: "phone_required" };
+  const phone = canonicalizeVnPhone(input.phone);
+  if (!phone) return { kind: "invalid_phone" };
+  const problem = passwordProblem(input.newPassword, phone);
+  if (problem) return { kind: "weak", problem };
+  const hash = await hashPassword(input.newPassword);
+  return withTx(async (tx): Promise<ChangeResult> => {
+    // Học viên có thể vừa bị gộp hay khóa: không gắn số vào tài khoản không còn hoạt động.
+    if (!(await lockActiveLearner(tx, ctx.userId))) return { kind: "inactive" };
+    await lockKeys(tx, ctx.ip, phone);
+    const [live] = await tx.$queryRaw<{ ok: boolean }[]>`
+      SELECT true AS ok FROM password_logins WHERE user_id = ${ctx.userId}::uuid AND released_at IS NULL FOR UPDATE`;
+    // Vừa có dòng chưa nhả (thêm song song): đổi mật khẩu phải qua mật khẩu hiện tại.
+    if (live) return { kind: "invalid_current" };
+    if (await phoneTaken(tx, phone, ctx.userId)) return { kind: "phone_taken" };
+    await attachPhone(tx, ctx.userId, phone, hash, false);
+    await revokeCredentials(tx, ctx.userId, ctx.sessionId);
+    return { kind: "ok" };
+  });
+}
+
+// Mật khẩu tạm: 10 ký tự, bỏ các ký tự dễ nhầm khi đọc qua điện thoại (0/O, 1/I/l/L).
+const TEMP_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+const temporaryPassword = () => Array.from({ length: 10 }, () => TEMP_ALPHABET[randomInt(TEMP_ALPHABET.length)]).join("");
+
+export type AdminResetResult = { kind: "ok"; temporaryPassword: string } | { kind: "not_found" | "no_password_login" | "invalid_phone" | "phone_taken" };
+
+/**
+ * Khôi phục qua hỗ trợ theo G15: chỉ chủ (xác thực lại gần đây), bắt buộc lý do và bằng chứng (mã đơn, giao dịch, hồ sơ). Đặt mật khẩu tạm
+ * (phải đổi ở lần đăng nhập đầu), kèm `phone` thì gắn số mới chưa ai dùng. Thu hồi mọi phiên, vé thay máy, mã đặt lại; nhật ký không có mật khẩu.
+ */
+export async function adminResetPassword(
+  ctx: AdminCtx,
+  userId: string,
+  input: { reason: string; evidence: string; phone?: string },
+): Promise<AdminResetResult> {
+  await authorize(ctx, "learners.password_reset", { action: "learner_password_reset", resource: { type: "user", id: userId } });
+  const reason = input.reason.trim();
+  const evidence = input.evidence.trim();
+  if (!reason || !evidence) throw new HttpError(400, "Cần lý do và bằng chứng");
+  const phone = input.phone ? canonicalizeVnPhone(input.phone) : null;
+  const temp = temporaryPassword();
+  const hash = await hashPassword(temp);
+  const result = await withTx(async (tx): Promise<AdminResetResult> => {
+    const [user] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+    if (!user || user.status !== "active") return { kind: "not_found" };
+    if (input.phone && !phone) return { kind: "invalid_phone" };
+    let before: string | null = null;
+    if (phone) {
+      await lockKeys(tx, null, phone);
+      if (await phoneTaken(tx, phone, userId)) return { kind: "phone_taken" };
+      const [old] = await tx.$queryRaw<{ phone_canonical: string }[]>`SELECT phone_canonical FROM password_logins WHERE user_id = ${userId}::uuid`;
+      before = old ? maskPhone(old.phone_canonical) : null;
+      await attachPhone(tx, userId, phone, hash, true);
+      await revokeCredentials(tx, userId);
+    } else {
+      const [live] = await tx.$queryRaw<{ phone_canonical: string }[]>`
+        SELECT phone_canonical FROM password_logins WHERE user_id = ${userId}::uuid AND released_at IS NULL FOR UPDATE`;
+      if (!live) return { kind: "no_password_login" };
+      before = maskPhone(live.phone_canonical);
+      await replacePassword(tx, userId, { hash, mustChange: true });
+    }
+    await audit(tx, {
+      adminId: ctx.adminId, action: "learner_password_reset", targetType: "user", targetId: userId, result: "ok", reason, ip: ctx.ip,
+      before: { phone: before }, after: { phone: phone ? maskPhone(phone) : before, newPhone: phone !== null, evidence, mustChange: true },
+    });
+    return { kind: "ok", temporaryPassword: temp };
+  });
+  if (result.kind !== "ok") {
+    await auditDenied({ adminId: ctx.adminId, action: "learner_password_reset", targetType: "user", targetId: userId, reason: result.kind, ip: ctx.ip });
+  }
+  return result;
 }

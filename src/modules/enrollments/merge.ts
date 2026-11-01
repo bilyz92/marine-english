@@ -15,7 +15,7 @@ export type MergePreview = { identities: { kind: string; value: string }[]; acti
 export async function mergeAccounts(
   ctx: AdminCtx,
   input: { sourceUserId: string; targetUserId: string; reason: string; preview: boolean },
-): Promise<MergePreview | "merged" | "invalid"> {
+): Promise<MergePreview | "merged" | "invalid" | "password_conflict"> {
   await authorize(ctx, "accounts.merge", { action: "account_merge", resource: { type: "user", id: input.sourceUserId } });
   const reason = input.reason.trim();
   if (!reason) throw new HttpError(400, "Cần lý do gộp tài khoản");
@@ -25,6 +25,14 @@ export async function mergeAccounts(
     const users = await tx.$queryRaw<{ id: string; status: string }[]>`
       SELECT id, status FROM users WHERE id = ANY(${[source, target]}::uuid[]) ORDER BY id FOR UPDATE`;
     if (users.length !== 2 || users.some((u) => u.status !== "active")) return "invalid";
+
+    // Số + mật khẩu (D2): mỗi tài khoản một dòng; chỉ dòng chưa nhả mới tính. Cả hai cùng có → chủ xử lý tay trước.
+    const logins = await tx.$queryRaw<{ user_id: string; live: boolean; phone_canonical: string }[]>`
+      SELECT user_id, released_at IS NULL AS live, phone_canonical FROM password_logins
+      WHERE user_id = ANY(${[source, target]}::uuid[]) ORDER BY user_id FOR UPDATE`;
+    const sourceLogin = logins.find((l) => l.user_id === source);
+    const targetLogin = logins.find((l) => l.user_id === target);
+    if (sourceLogin?.live && targetLogin?.live) return "password_conflict";
 
     const group = await mergeGroupIds(tx, source);
     const identities = await tx.$queryRaw<{ kind: string; value_canonical: string }[]>`
@@ -40,6 +48,28 @@ export async function mergeAccounts(
     if (input.preview) return preview;
 
     await tx.$executeRaw`UPDATE user_identities SET user_id = ${target}::uuid WHERE user_id = ${source}::uuid`;
+    const mask = (phone: string) => `•••• ${phone.slice(-4)}`;
+    // Ghi vào nhật ký gộp: số chuyển sang, và số cũ (đã nhả) của đích nếu bị thay. Không bao giờ ghi băm mật khẩu.
+    const passwordLogin = !sourceLogin?.live ? null : targetLogin
+      ? { action: "replaced_released", replacedPhone: mask(targetLogin.phone_canonical), phone: mask(sourceLogin.phone_canonical) }
+      : { action: "moved", phone: mask(sourceLogin.phone_canonical) };
+    if (sourceLogin?.live) {
+      if (targetLogin) {
+        // Đích chỉ có dòng đã nhả: dòng của nguồn thay vào chỗ đó, dòng nguồn nhả lại (app không xóa được dòng).
+        await tx.$executeRaw`UPDATE password_logins SET released_at = now(), updated_at = now() WHERE user_id = ${source}::uuid`;
+        await tx.$executeRaw`
+          UPDATE password_logins t SET phone_canonical = s.phone_canonical, password_hash = s.password_hash, must_change = s.must_change,
+                 phone_verified_at = s.phone_verified_at, released_at = NULL, updated_at = now()
+          FROM password_logins s WHERE t.user_id = ${target}::uuid AND s.user_id = ${source}::uuid`;
+      } else {
+        await tx.$executeRaw`UPDATE password_logins SET user_id = ${target}::uuid, updated_at = now() WHERE user_id = ${source}::uuid`;
+      }
+      // Số trùng số đã xác minh (vừa chuyển sang) của đích → đã xác minh.
+      await tx.$executeRaw`
+        UPDATE password_logins p SET phone_verified_at = coalesce(p.phone_verified_at, now())
+        WHERE p.user_id = ${target}::uuid AND p.released_at IS NULL
+          AND EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = ${target}::uuid AND i.kind = 'phone' AND i.value_canonical = p.phone_canonical)`;
+    }
     await tx.$executeRaw`UPDATE users SET status = 'merged', merged_into_id = ${target}::uuid WHERE id = ${source}::uuid`;
     // Tiến độ của đích lấy giá trị cao nhất từng bài; dòng của tài khoản nguồn giữ nguyên làm lịch sử.
     await tx.$executeRaw`
@@ -55,7 +85,7 @@ export async function mergeAccounts(
     await tx.$executeRaw`UPDATE devices SET revoked_at = now() WHERE user_id = ${source}::uuid AND revoked_at IS NULL`;
     await audit(tx, {
       adminId: ctx.adminId, action: "account_merge", targetType: "user", targetId: target,
-      before: { sourceUserId: source }, after: { ...preview, mergedInto: target }, result: "ok", reason, ip: ctx.ip,
+      before: { sourceUserId: source }, after: { ...preview, mergedInto: target, passwordLogin }, result: "ok", reason, ip: ctx.ip,
     });
     return "merged";
   }, WAIT_FOR_SYNC_LOCKS);

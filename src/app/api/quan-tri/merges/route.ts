@@ -9,6 +9,6 @@ const Body = z.object({ sourceUserId: z.uuid(), targetUserId: z.uuid(), reason: 
 export const POST = route(async (req: Request) => {
   const ctx = await requireAdmin(req);
   const result = await mergeAccounts(ctx, await readJson(req, Body));
-  if (result === "invalid") return json({ error: "invalid" }, { status: 409 });
+  if (result === "invalid" || result === "password_conflict") return json({ error: result }, { status: 409 });
   return json(result === "merged" ? { result } : { preview: result });
 });
