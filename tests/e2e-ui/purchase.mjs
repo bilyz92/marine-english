@@ -20,6 +20,10 @@ const problems = async (where) => { const list = await b.evaluate(PAGE_CHECKS); 
 
 try {
   await b.width(390);
+  // 0. Khách chưa đăng nhập: trang khóa hiện nút mua.
+  await b.go(`${BASE}/khoa-hoc/${SLUG}`);
+  check("khách: trang khóa có nút mua", await waitFor(async () => (await text()).includes("Mua khóa học")));
+
   // 1. Chưa đăng nhập vào trang mua → sang đăng nhập, giữ đường về.
   await b.go(`${BASE}/mua/${SLUG}`);
   check("chưa đăng nhập → trang đăng nhập có next", (await b.evaluate("location.pathname + location.search")).startsWith(`/dang-nhap?next=%2Fmua%2F${SLUG}`));
@@ -105,6 +109,11 @@ try {
   await b.go(`${BASE}/mua/${SLUG}`);
   check("đã có khóa → báo ngay, có nút vào học", await waitFor(async () => (await text()).includes("Bạn đã có khóa")));
   check("không hiện ô điều khoản", await b.evaluate(`document.querySelector("input[type=checkbox]") === null`));
+
+  // 7. Trang khóa của khóa đã có: ẩn nút mua, hiện vào học (UC-03 A3).
+  await b.go(`${BASE}/khoa-hoc/${SLUG}`);
+  check("đã có khóa → trang khóa hiện vào học", await waitFor(async () => (await text()).includes("Vào học")));
+  check("đã có khóa → trang khóa không còn nút mua", !(await text()).includes("Mua khóa học"));
 
   const errors = b.events.errors.filter((e) => !String(e).includes("401"));
   check("không lỗi trang", errors.length === 0, JSON.stringify(errors.slice(0, 3)));

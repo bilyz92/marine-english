@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import ui from "@/components/ui.module.css";
 import { formatVnd } from "@/lib/format";
 import { getPublishedCourse } from "@/modules/content/catalog";
+import { BuyOrLearn } from "./buy-or-learn";
 import styles from "./course.module.css";
 
 export const metadata: Metadata = { title: "Chi tiết khóa học" };
@@ -35,7 +36,7 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
       </div>
       <aside className={`${ui.card} ${styles.buy}`}>
         <span className={ui.price}>{formatVnd(course.priceVnd)}</span>
-        <Link className={ui.action} href={`/mua/${course.slug}`}>Mua khóa học</Link>
+        <BuyOrLearn slug={course.slug} />
         {firstTrial && <Link className={ui.outline} href={`/khoa-hoc/${course.slug}/hoc-thu/${firstTrial.position}`}>Học thử bài 1</Link>}
       </aside>
     </div>

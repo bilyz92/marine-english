@@ -29,6 +29,10 @@ describe("ingest: tự xác nhận", () => {
     const outbox = await prisma().outboxEvent.findMany({ orderBy: { channel: "asc" } });
     expect(outbox.map((e) => [e.kind, e.channel])).toEqual([["order_paid", "email"], ["order_paid", "telegram"]]);
     expect(await prisma().bankTransactionVerification.count()).toBe(1);
+    const paid = await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } });
+    expect(outbox[0]!.payload).toMatchObject({
+      orderCode: s.code, courses: [course.titleVi], paidAt: paid.paidAt!.toISOString(), learnUrl: new URL("/hoc", process.env.APP_ORIGIN).toString(),
+    });
   });
 
   it("gửi lại y nguyên 3 lần → already_settled, không trùng phân bổ/quyền học/outbox", async () => {

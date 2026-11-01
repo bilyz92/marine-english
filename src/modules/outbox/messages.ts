@@ -3,6 +3,18 @@ import type { TelegramChat } from "./telegram";
 type Payload = Record<string, unknown>;
 
 const vnd = (value: unknown) => `${Number(value).toLocaleString("vi-VN")}đ`;
+const courseList = (p: Payload) => (Array.isArray(p.courses) && p.courses.length ? p.courses.join(", ") : null);
+const vnTime = (iso: unknown) =>
+  new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric", hour12: false })
+    .formatToParts(new Date(String(iso)))
+    .reduce<Record<string, string>>((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+
+/** Sự kiện cũ (trước 01/11) không có khóa, giờ: chỉ hiện phần có. */
+function paidText(p: Payload): string {
+  const t = p.paidAt ? vnTime(p.paidAt) : null;
+  const parts = [courseList(p), vnd(p.amountVnd), t ? `lúc ${t.hour}:${t.minute} ${t.day}/${t.month}/${t.year}` : null].filter(Boolean);
+  return `Đơn ${p.orderCode} đã thanh toán: ${parts.join(", ")}.`;
+}
 
 function opsAlertText(p: Payload): string {
   const type = String(p.type);
@@ -19,7 +31,7 @@ function opsAlertText(p: Payload): string {
 
 // Chỉ dùng các trường liệt kê ở đây: không đưa nội dung chuyển khoản, số tài khoản, mã OTP hay token vào tin.
 const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: string }> = {
-  order_paid: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã thanh toán: ${vnd(p.amountVnd)}.` }),
+  order_paid: (p) => ({ chat: "business", text: paidText(p) }),
   refund_requested: (p) => ({ chat: "business", text: `Học viên yêu cầu hoàn tiền đơn ${p.orderCode}: ${vnd(p.amountVnd)}. Xem trang Hoàn tiền.` }),
   order_refunded: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã hoàn tiền: ${vnd(p.amountVnd)}.` }),
   ledger_queued: (p) => ({
@@ -54,7 +66,12 @@ const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: strin
 const EMAIL: Record<string, (p: Payload) => { subject: string; body: string }> = {
   order_paid: (p) => ({
     subject: `Đơn ${p.orderCode} đã thanh toán`,
-    body: `Marine English đã nhận ${vnd(p.amountVnd)} cho đơn ${p.orderCode}. Khóa học đã mở, anh/chị vào mục Học để bắt đầu.`,
+    body: `Marine English đã nhận ${vnd(p.amountVnd)} cho đơn ${p.orderCode}${courseList(p) ? ` (khóa ${courseList(p)})` : ""}. `
+      + `Khóa học đã mở, anh/chị vào ${p.learnUrl ? `${p.learnUrl}` : "mục Học"} để bắt đầu.`,
+  }),
+  refund_cancelled: (p) => ({
+    subject: `Yêu cầu hoàn tiền đơn ${p.orderCode} không được chấp nhận`,
+    body: `Marine English đã xem yêu cầu hoàn tiền đơn ${p.orderCode} và không chấp nhận. Lý do: ${p.reason}. Khóa học vẫn mở như cũ.`,
   }),
   order_refunded: (p) => ({
     subject: `Đơn ${p.orderCode} đã hoàn tiền`,

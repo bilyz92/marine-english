@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import ui from "@/components/ui.module.css";
+import { BuyOrLearn } from "../../buy-or-learn";
 import { getTrialLesson } from "@/modules/content/catalog";
 
 export const metadata: Metadata = { title: "Học thử" };
@@ -19,7 +20,7 @@ async function Trial({ params }: { params: Promise<{ slug: string; position: str
     <>
       <LessonBody externalId={lesson.externalId} content={lesson.content as LessonContent} />
       <div className={ui.row}>
-        <Link className={ui.action} href={`/mua/${slug}`}>Mua khóa học</Link>
+        <BuyOrLearn slug={slug} />
         <Link className={ui.outline} href={`/khoa-hoc/${slug}`}>← Danh sách bài</Link>
       </div>
     </>

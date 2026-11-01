@@ -65,6 +65,21 @@ describe("học viên tự yêu cầu hoàn tiền (FR-28, BR-18)", () => {
   });
 });
 
+describe("từ chối yêu cầu hoàn tiền báo học viên (UC-10 bước 3)", () => {
+  it("hủy yêu cầu của một đơn → email cho chủ đơn kèm lý do, một lần, không kèm số tài khoản", async () => {
+    const s = await paid();
+    const owner = await adminCtx("owner");
+    const r = await ask(s.learner, { orderCode: s.code, reason: "không hợp", payout: TEST_PAYOUT });
+    const refundId = String(r.body.refundId);
+    expect(await advanceRefund(owner, refundId, { action: "cancel", reason: "đã học quá nửa khóa" })).toBe("ok");
+    const mail = await prisma().outboxEvent.findMany({ where: { kind: "refund_cancelled" } });
+    expect(mail).toHaveLength(1);
+    expect(mail[0]!.channel).toBe("email");
+    expect(mail[0]!.payload).toMatchObject({ orderCode: s.code, userId: s.learner.userId, reason: "đã học quá nửa khóa" });
+    expect(JSON.stringify(mail[0]!.payload)).not.toContain("0011223344");
+  });
+});
+
 describe("duyệt hoàn tiền cần tài khoản nhận (BR-18)", () => {
   it("chưa có tài khoản → không duyệt được; hỗ trợ nhập tài khoản → chủ duyệt được", async () => {
     const s = await paid();

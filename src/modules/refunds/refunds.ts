@@ -253,6 +253,13 @@ export async function advanceRefund(
       if (refund!.kind === "full") await refundOrder(tx, order!, refundId, refund!.amount_vnd);
     } else {
       await tx.$executeRaw`UPDATE refunds SET status = ${move.to}, closed_at = now() WHERE id = ${refundId}::uuid`;
+      // UC-10 bước 3: từ chối thì báo chủ đơn kèm lý do (hoàn khoản chưa ghép thì không có đơn, không có ai để báo).
+      if (step.action === "cancel" && order) {
+        await enqueueOutbox(tx, {
+          dedupKey: `refund_cancelled:${refundId}`, kind: "refund_cancelled", channel: "email",
+          payload: { orderId: order.id, orderCode: order.code, userId: order.user_id, reason: note },
+        });
+      }
     }
     await audit(tx, {
       adminId: ctx.adminId, action: `refund_${step.action}`, targetType: "refund", targetId: refundId,

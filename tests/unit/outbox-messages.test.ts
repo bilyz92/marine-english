@@ -3,14 +3,32 @@ import { emailMessage, telegramMessage } from "@/modules/outbox/messages";
 import { NotConfiguredError, telegramSender } from "@/modules/outbox/telegram";
 
 describe("nội dung tin", () => {
-  it("đơn đã thanh toán: Telegram vào nhóm kinh doanh, email cho học viên", () => {
-    const payload = { orderId: "o1", orderCode: "ME7K3QX9AB", userId: "u1", amountVnd: 199000 };
+  it("đơn đã thanh toán: Telegram vào nhóm kinh doanh (mã, khóa, số tiền, giờ VN; không danh tính), email có khóa và link vào app", () => {
+    const payload = {
+      orderId: "o1", orderCode: "ME7K3QX9AB", userId: "u1", amountVnd: 199000,
+      courses: ["Engine Cadet — Tàu dầu"], paidAt: "2026-11-01T02:05:00.000Z", learnUrl: "https://example.vn/hoc",
+    };
     const t = telegramMessage("order_paid", payload);
     expect(t.chat).toBe("business");
-    expect(t.text).toContain("ME7K3QX9AB");
-    expect(t.text).toContain("199.000");
+    expect(t.text).toBe("Đơn ME7K3QX9AB đã thanh toán: Engine Cadet — Tàu dầu, 199.000đ, lúc 09:05 01/11/2026.");
     expect(t.text).not.toContain("u1");
-    expect(emailMessage("order_paid", payload).subject).toContain("ME7K3QX9AB");
+    const e = emailMessage("order_paid", payload);
+    expect(e.subject).toContain("ME7K3QX9AB");
+    expect(e.body).toContain("Engine Cadet — Tàu dầu");
+    expect(e.body).toContain("199.000đ");
+    expect(e.body).toContain("https://example.vn/hoc");
+  });
+
+  it("sự kiện đơn đã thanh toán cũ (chưa có khóa, giờ, link) vẫn hiện được", () => {
+    const payload = { orderId: "o1", orderCode: "ME7K3QX9AB", userId: "u1", amountVnd: 199000 };
+    expect(telegramMessage("order_paid", payload).text).toBe("Đơn ME7K3QX9AB đã thanh toán: 199.000đ.");
+    expect(emailMessage("order_paid", payload).body).toContain("ME7K3QX9AB");
+  });
+
+  it("yêu cầu hoàn tiền bị từ chối: email nêu mã đơn và lý do", () => {
+    const e = emailMessage("refund_cancelled", { orderCode: "ME7K3QX9AB", userId: "u1", reason: "đã học quá nửa khóa" });
+    expect(e.subject).toContain("ME7K3QX9AB");
+    expect(e.body).toContain("đã học quá nửa khóa");
   });
 
   it("cảnh báo lỗi đi nhóm lỗi; tổng kết đi nhóm kinh doanh", () => {
