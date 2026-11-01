@@ -119,7 +119,8 @@ export async function ingestInTx(tx: Tx, r: BankReport): Promise<IngestOutcome> 
 export async function classifyAndSettle(tx: Tx, btId: string): Promise<IngestOutcome> {
   const [settled] = await tx.$queryRaw<{ ok: boolean }[]>`
     SELECT EXISTS (SELECT 1 FROM payment_allocations WHERE bank_transaction_id = ${btId}::uuid)
-        OR EXISTS (SELECT 1 FROM bank_transaction_dispositions WHERE bank_transaction_id = ${btId}::uuid AND superseded_at IS NULL) AS ok`;
+        OR EXISTS (SELECT 1 FROM bank_transaction_dispositions WHERE bank_transaction_id = ${btId}::uuid AND superseded_at IS NULL)
+        OR bank_transaction_refund_held(${btId}::uuid) AS ok`;
   if (settled!.ok) return "already_settled";
 
   const [bt] = await tx.$queryRaw<{ amount_vnd: number; bank_time: Date; content: string; now: Date }[]>`

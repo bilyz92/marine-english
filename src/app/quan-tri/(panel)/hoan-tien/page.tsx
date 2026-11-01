@@ -6,7 +6,7 @@ import { ActionDialog, adminApi, can, Field, fmtTime, LoadState, problemOf, useA
 import styles from "../admin.module.css";
 
 type Refund = {
-  id: string; kind: string; amountVnd: number; status: string; reason: string; requestedAt: string; order: { code: string };
+  id: string; kind: string; amountVnd: number; status: string; reason: string; requestedAt: string; order: { code: string } | null;
   payoutBankName: string | null; payoutAccountNo: string | null; payoutAccountName: string | null; requestedByUser: string | null;
 };
 type Step = "approve" | "send" | "confirm" | "fail" | "cancel" | "payout";
@@ -21,6 +21,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
   cancelled: { label: "Đã hủy", className: styles.tag! },
 };
 const STEP_LABEL: Record<Step, string> = { approve: "Duyệt", send: "Đã chuyển tiền", confirm: "Xác nhận", fail: "Báo lỗi", cancel: "Hủy yêu cầu", payout: "Nhập tài khoản nhận" };
+const KIND: Record<string, string> = { full: "Toàn phần", excess: "Phần thừa", unallocated: "Khoản chưa ghép đơn" };
 const NEXT: Record<string, Step[]> = { requested: ["approve", "cancel"], approved: ["send", "cancel"], sent: ["confirm", "fail"] };
 
 export default function RefundsPage() {
@@ -66,7 +67,7 @@ export default function RefundsPage() {
           {data.refunds.map((x) => (
             <div key={x.id} className={styles.item}>
               <div className={styles.itemText}>
-                <span><span className={styles.code}>{x.order.code}</span> · {x.kind === "full" ? "Toàn phần" : "Phần thừa"} · <strong>{formatVnd(x.amountVnd)}</strong></span>
+                <span>{x.order && <><span className={styles.code}>{x.order.code}</span> · </>}{KIND[x.kind] ?? x.kind} · <strong>{formatVnd(x.amountVnd)}</strong></span>
                 <span className={styles.muted}>{x.reason} · {fmtTime(x.requestedAt)}{x.requestedByUser ? " · học viên tự gửi" : ""}</span>
                 <span className={styles.muted}>{x.payoutAccountNo ? `Nhận: ${x.payoutBankName} · ${x.payoutAccountNo} · ${x.payoutAccountName}` : "Chưa có tài khoản nhận tiền"}</span>
               </div>
@@ -87,7 +88,7 @@ export default function RefundsPage() {
         <Field label="Số tài khoản"><input className={styles.input} inputMode="numeric" value={form.accountNo ?? ""} onChange={set("accountNo")} /></Field>
         <Field label="Tên chủ tài khoản"><input className={styles.input} value={form.accountName ?? ""} onChange={set("accountName")} /></Field>
       </ActionDialog>
-      <ActionDialog open={refund !== null} title={`${step ? STEP_LABEL[step] : ""}: ${refund ? formatVnd(refund.amountVnd) : ""} · đơn ${refund?.order.code ?? ""}`} confirmLabel={step ? STEP_LABEL[step] : ""} danger={step === "confirm" || step === "fail" || step === "cancel"} busy={busy} problem={problem} onClose={() => setDialog(null)} onConfirm={() => void submit()}>
+      <ActionDialog open={refund !== null} title={`${step ? STEP_LABEL[step] : ""}: ${refund ? formatVnd(refund.amountVnd) : ""}${refund?.order ? ` · đơn ${refund.order.code}` : ""}`} confirmLabel={step ? STEP_LABEL[step] : ""} danger={step === "confirm" || step === "fail" || step === "cancel"} busy={busy} problem={problem} onClose={() => setDialog(null)} onConfirm={() => void submit()}>
         {step === "confirm" && refund?.kind === "full" && <p className={styles.notice}>Xác nhận sẽ chuyển đơn sang đã hoàn tiền và thu hồi quyền học; tiến độ học được giữ.</p>}
         {step === "payout" && (
           <>

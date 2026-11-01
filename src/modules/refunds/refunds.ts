@@ -90,6 +90,47 @@ export async function requestFullRefund(
 }
 
 /**
+ * Hoàn trọn một khoản chuyển đang nằm hàng chờ, chưa ghép vào đơn nào (khách chuyển thiếu, sai mã, sau hạn, chuyển hai lần).
+ * Khi đề nghị còn hiệu lực, khoản này rời hàng chờ; hủy hay lỗi thì quay lại. Tài khoản nhận bắt buộc trước khi duyệt (BR-18).
+ */
+export async function requestTransferRefund(
+  ctx: AdminCtx,
+  input: { bankTransactionId: string; reason: string; payout?: Payout },
+): Promise<{ refundId: string } | { rejected: "not_found" | "not_verified" | "already_settled" }> {
+  await authorize(ctx, "refunds.request", { action: "refund_request", resource: { type: "bank_transaction", id: input.bankTransactionId } });
+  const reason = input.reason.trim();
+  if (!reason) throw new HttpError(400, "Cần lý do hoàn tiền");
+  const result = await withTx(async (tx) => {
+    const [bt] = await tx.$queryRaw<{ amount_vnd: number; verified: boolean; settled: boolean }[]>`
+      SELECT bt.amount_vnd,
+             EXISTS (SELECT 1 FROM bank_transaction_verifications v WHERE v.bank_transaction_id = bt.id) AS verified,
+             EXISTS (SELECT 1 FROM payment_allocations pa WHERE pa.bank_transaction_id = bt.id)
+               OR EXISTS (SELECT 1 FROM bank_transaction_dispositions d WHERE d.bank_transaction_id = bt.id AND d.superseded_at IS NULL)
+               OR bank_transaction_refund_held(bt.id) AS settled
+      FROM bank_transactions bt WHERE bt.id = ${input.bankTransactionId}::uuid FOR UPDATE`;
+    if (!bt) return { rejected: "not_found" as const };
+    if (bt.settled) return { rejected: "already_settled" as const };
+    if (!bt.verified) return { rejected: "not_verified" as const };
+    const p = input.payout;
+    const [refund] = await tx.$queryRaw<{ id: string }[]>`
+      INSERT INTO refunds (order_id, kind, amount_vnd, reason, requested_by, payout_bank_name, payout_account_no, payout_account_name)
+      VALUES (NULL, 'unallocated', ${bt.amount_vnd}, ${reason}, ${ctx.adminId}::uuid, ${p?.bankName ?? null}, ${p?.accountNo ?? null}, ${p?.accountName ?? null})
+      RETURNING id`;
+    await tx.$executeRaw`
+      INSERT INTO refund_sources (refund_id, bank_transaction_id, amount_vnd) VALUES (${refund!.id}::uuid, ${input.bankTransactionId}::uuid, ${bt.amount_vnd})`;
+    await audit(tx, {
+      adminId: ctx.adminId, action: "refund_request", targetType: "refund", targetId: refund!.id,
+      after: { bankTransactionId: input.bankTransactionId, kind: "unallocated", amountVnd: bt.amount_vnd }, result: "ok", reason, ip: ctx.ip,
+    });
+    return { refundId: refund!.id };
+  });
+  if ("rejected" in result) {
+    await auditDenied({ adminId: ctx.adminId, action: "refund_request", targetType: "bank_transaction", targetId: input.bankTransactionId, reason: result.rejected, ip: ctx.ip });
+  }
+  return result;
+}
+
+/**
  * Học viên tự gửi yêu cầu hoàn tiền cho đơn đã thanh toán của mình (FR-28). Mức và điều kiện hoàn chưa chốt (G13):
  * không tự từ chối theo số ngày hay số bài, người duyệt quyết định. Báo nhóm kinh doanh, tin không kèm số tài khoản.
  */
@@ -173,14 +214,17 @@ export async function advanceRefund(
     throw new HttpError(400, "Thiếu lý do, mã giao dịch chuyển trả hoặc bằng chứng");
   }
   const result = await withTx(async (tx) => {
-    const [found] = await tx.$queryRaw<{ order_id: string }[]>`SELECT order_id FROM refunds WHERE id = ${refundId}::uuid`;
+    const [found] = await tx.$queryRaw<{ order_id: string | null }[]>`SELECT order_id FROM refunds WHERE id = ${refundId}::uuid`;
     if (!found) return "not_found";
     await tx.$queryRaw`
       SELECT bt.id FROM bank_transactions bt JOIN refund_sources rs ON rs.bank_transaction_id = bt.id
       WHERE rs.refund_id = ${refundId}::uuid ORDER BY bt.id FOR UPDATE OF bt`;
-    const [order] = await tx.$queryRaw<{ id: string; code: string; user_id: string }[]>`
-      SELECT id, code, user_id FROM orders WHERE id = ${found.order_id}::uuid FOR UPDATE`;
-    const [refund] = await tx.$queryRaw<{ kind: "full" | "excess"; status: string; amount_vnd: number; payout_account_no: string | null }[]>`
+    // Hoàn khoản chưa ghép thì không có đơn.
+    const [order] = found.order_id
+      ? await tx.$queryRaw<{ id: string; code: string; user_id: string }[]>`
+          SELECT id, code, user_id FROM orders WHERE id = ${found.order_id}::uuid FOR UPDATE`
+      : [];
+    const [refund] = await tx.$queryRaw<{ kind: "full" | "excess" | "unallocated"; status: string; amount_vnd: number; payout_account_no: string | null }[]>`
       SELECT kind, status, amount_vnd, payout_account_no FROM refunds WHERE id = ${refundId}::uuid FOR UPDATE`;
     const move = NEXT[step.action];
     if (!move.from.includes(refund!.status)) return "invalid_transition";

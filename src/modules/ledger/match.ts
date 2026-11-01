@@ -37,7 +37,8 @@ export async function matchTransfers(
       SELECT bt.id, bt.amount_vnd, bt.bank_time,
              EXISTS (SELECT 1 FROM bank_transaction_verifications v WHERE v.bank_transaction_id = bt.id) AS verified,
              EXISTS (SELECT 1 FROM payment_allocations pa WHERE pa.bank_transaction_id = bt.id)
-               OR EXISTS (SELECT 1 FROM bank_transaction_dispositions d WHERE d.bank_transaction_id = bt.id AND d.superseded_at IS NULL) AS settled
+               OR EXISTS (SELECT 1 FROM bank_transaction_dispositions d WHERE d.bank_transaction_id = bt.id AND d.superseded_at IS NULL)
+               OR bank_transaction_refund_held(bt.id) AS settled
       FROM bank_transactions bt WHERE bt.id = ANY(${ids}::uuid[]) ORDER BY bt.id FOR UPDATE`;
     if (rows.length !== ids.length) return { result: "rejected", reason: "not_found" };
     if (rows.some((r) => r.settled)) return { result: "rejected", reason: "already_settled" };
@@ -99,12 +100,13 @@ export async function setDisposition(
   await requireOwnerFor(ctx, "ledger_disposition", "bank_transaction", bankTransactionId);
   if (!input.reason.trim()) throw new HttpError(400, "Cần lý do");
   const result = await withTx(async (tx) => {
-    const [bt] = await tx.$queryRaw<{ allocated: boolean; previous: string | null }[]>`
-      SELECT EXISTS (SELECT 1 FROM payment_allocations pa WHERE pa.bank_transaction_id = bt.id) AS allocated,
+    // Đã phân bổ hay đang có đề nghị hoàn: không kết luận được (kết luận cũ thì được thay).
+    const [bt] = await tx.$queryRaw<{ settled: boolean; previous: string | null }[]>`
+      SELECT EXISTS (SELECT 1 FROM payment_allocations pa WHERE pa.bank_transaction_id = bt.id) OR bank_transaction_refund_held(bt.id) AS settled,
              (SELECT kind FROM bank_transaction_dispositions d WHERE d.bank_transaction_id = bt.id AND d.superseded_at IS NULL) AS previous
       FROM bank_transactions bt WHERE bt.id = ${bankTransactionId}::uuid FOR UPDATE`;
     if (!bt) return "not_found";
-    if (bt.allocated) return "already_settled";
+    if (bt.settled) return "already_settled";
     await tx.$executeRaw`
       UPDATE bank_transaction_dispositions SET superseded_at = now()
       WHERE bank_transaction_id = ${bankTransactionId}::uuid AND superseded_at IS NULL`;

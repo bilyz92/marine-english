@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import type { QueueReason } from "./classifier";
 
-// Hàng chờ xử lý tay (TD §4.7): dòng sổ chưa phân bổ, chưa có kết luận hiệu lực, kèm lần phân loại gần nhất.
+// Hàng chờ xử lý tay (TD §4.7): dòng sổ chưa phân bổ, chưa có kết luận hiệu lực, chưa có đề nghị hoàn còn hiệu lực,
+// kèm lần phân loại gần nhất.
 
 export type QueueRow = {
   bankTransactionId: string;
@@ -33,6 +34,7 @@ async function openRows(): Promise<Row[]> {
     LEFT JOIN orders o ON o.id = lc.candidate_order_id
     WHERE NOT EXISTS (SELECT 1 FROM payment_allocations pa WHERE pa.bank_transaction_id = bt.id)
       AND NOT EXISTS (SELECT 1 FROM bank_transaction_dispositions d WHERE d.bank_transaction_id = bt.id AND d.superseded_at IS NULL)
+      AND NOT bank_transaction_refund_held(bt.id)
     ORDER BY bt.bank_time, bt.id`;
 }
 

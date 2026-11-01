@@ -7,7 +7,7 @@ import styles from "../admin.module.css";
 
 type Row = { bankTransactionId: string; bankTime: string; amountVnd: number; content: string | null; source: string; reason: string; candidateCodes: string[]; candidateOrderCode: string | null };
 type Unresolved = { observationId: string; source: string; reason: string; receivedAt: string };
-type Action = { kind: "match" | "verify" | "dispose"; rows: Row[] } | { kind: "enter" } | { kind: "reopen" };
+type Action = { kind: "match" | "verify" | "dispose" | "refund"; rows: Row[] } | { kind: "enter" } | { kind: "reopen" };
 
 const MATCH_RESULT: Record<string, string> = {
   paid: "Đã ghép: đơn chuyển sang đã thanh toán.",
@@ -42,6 +42,10 @@ export default function LedgerPage() {
       r = await adminApi(`/api/quan-tri/ledger/${action.rows[0]!.bankTransactionId}/verify`, { method: "POST", body: { evidence: form.evidence } });
     } else if (action.kind === "dispose") {
       r = await adminApi(`/api/quan-tri/ledger/${action.rows[0]!.bankTransactionId}/disposition`, { method: "POST", body: { kind: form.kind ?? "ignored", reason: form.reason } });
+    } else if (action.kind === "refund") {
+      const payout = form.accountNo ? { bankName: form.bankName, accountNo: form.accountNo.replace(/\s/g, ""), accountName: form.accountName } : undefined;
+      r = await adminApi(`/api/quan-tri/ledger/${action.rows[0]!.bankTransactionId}/refund`, { method: "POST", body: { reason: form.reason, payout } });
+      success = "Đã tạo đề nghị hoàn tiền: xem ở trang Hoàn tiền.";
     } else if (action.kind === "reopen") {
       r = await adminApi(`/api/quan-tri/ledger/${encodeURIComponent(form.id?.trim() ?? "")}/reopen`, { method: "POST", body: { reason: form.reason } });
     } else {
@@ -90,6 +94,7 @@ export default function LedgerPage() {
                 {r.reason === "unverified"
                   ? isOwner && <button className={styles.btn} onClick={() => open({ kind: "verify", rows: [r] })}>Xác minh</button>
                   : <button className={styles.btn} onClick={() => open({ kind: "match", rows: [r] }, { orderCode: r.candidateOrderCode ?? "" })}>Ghép với đơn</button>}
+                {r.reason !== "unverified" && can(me, "refunds.request") && <button className={styles.btn} onClick={() => open({ kind: "refund", rows: [r] })}>Hoàn lại khoản này</button>}
                 {isOwner && <button className={styles.btn} onClick={() => open({ kind: "dispose", rows: [r] }, { kind: "ignored" })}>Bỏ qua / trùng</button>}
               </div>
             </div>
@@ -120,6 +125,14 @@ export default function LedgerPage() {
       <ActionDialog open={action?.kind === "dispose"} title={`Kết luận khoản ${formatVnd(total(rows))}`} confirmLabel="Lưu kết luận" danger busy={busy} problem={problem} onClose={() => setAction(null)} onConfirm={() => void submit()}>
         <Field label="Kết luận"><select className={styles.input} value={form.kind ?? "ignored"} onChange={set("kind")}><option value="ignored">Bỏ qua</option><option value="duplicate">Trùng</option></select></Field>
         <Field label="Lý do *"><textarea className={styles.input} required value={form.reason ?? ""} onChange={set("reason")} /></Field>
+      </ActionDialog>
+      <ActionDialog open={action?.kind === "refund"} title={`Hoàn lại ${formatVnd(total(rows))} cho người chuyển`} confirmLabel="Gửi đề nghị hoàn" busy={busy} problem={problem} onClose={() => setAction(null)} onConfirm={() => void submit()}>
+        <p className={styles.muted}>Hoàn trọn khoản này, không gắn đơn nào. Khoản rời hàng chờ; nếu hủy đề nghị thì quay lại. Chủ duyệt ở trang Hoàn tiền.</p>
+        <Field label="Lý do *"><textarea className={styles.input} required value={form.reason ?? ""} onChange={set("reason")} /></Field>
+        <p className={styles.muted}>Tài khoản nhận tiền của người chuyển (bắt buộc trước khi duyệt; có thể nhập sau):</p>
+        <Field label="Ngân hàng"><input className={styles.input} value={form.bankName ?? ""} onChange={set("bankName")} /></Field>
+        <Field label="Số tài khoản"><input className={styles.input} inputMode="numeric" value={form.accountNo ?? ""} onChange={set("accountNo")} /></Field>
+        <Field label="Tên chủ tài khoản"><input className={styles.input} value={form.accountName ?? ""} onChange={set("accountName")} /></Field>
       </ActionDialog>
       <ActionDialog open={action?.kind === "reopen"} title="Mở lại giao dịch đã kết luận" confirmLabel="Mở lại" busy={busy} problem={problem} onClose={() => setAction(null)} onConfirm={() => void submit()}>
         <Field label="Mã giao dịch *"><input className={styles.input} required value={form.id ?? ""} onChange={set("id")} /></Field>

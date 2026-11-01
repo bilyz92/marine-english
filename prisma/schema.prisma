@@ -492,7 +492,7 @@ model BankTransactionDisposition {
 
 model Refund {
   id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orderId     String         @map("order_id") @db.Uuid
+  orderId     String?        @map("order_id") @db.Uuid
   kind        String
   amountVnd   Int            @map("amount_vnd")
   status      String         @default("requested")
@@ -513,7 +513,7 @@ model Refund {
   payoutAccountName String? @map("payout_account_name")
   requestedByUser   String? @map("requested_by_user") @db.Uuid
   learner           User?   @relation("RefundRequestedByLearner", fields: [requestedByUser], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  order       Order          @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  order       Order?         @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   requester   AdminUser?     @relation("RefundRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
   approver    AdminUser?     @relation("RefundApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
   sender      AdminUser?     @relation("RefundSentBy", fields: [sentBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
