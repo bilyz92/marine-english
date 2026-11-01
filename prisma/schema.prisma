@@ -22,6 +22,7 @@ model User {
   mergedInto       User?              @relation("UserMerge", fields: [mergedIntoId], references: [id], onDelete: Restrict)
   mergedFrom       User[]             @relation("UserMerge")
   identities       UserIdentity[]
+  passwordLogin    PasswordLogin?
   devices          Device[]
   sessions         LearnerSession[]
   loginTickets     LoginTicket[]
@@ -48,6 +49,34 @@ model UserIdentity {
 
   @@unique([kind, valueCanonical])
   @@map("user_identities")
+}
+
+/// D2: số điện thoại + mật khẩu; số chưa xác minh, không phải danh tính đã xác minh. Duy nhất theo số giữa các dòng chưa nhả (index một phần trong migration).
+model PasswordLogin {
+  userId          String    @id @map("user_id") @db.Uuid
+  phoneCanonical  String    @map("phone_canonical")
+  passwordHash    String    @map("password_hash")
+  phoneVerifiedAt DateTime? @map("phone_verified_at") @db.Timestamptz(6)
+  releasedAt      DateTime? @map("released_at") @db.Timestamptz(6)
+  mustChange      Boolean   @default(false) @map("must_change")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("password_logins")
+}
+
+model PasswordAttempt {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kind           String
+  ip             String   @db.Inet
+  phoneCanonical String?  @map("phone_canonical")
+  ok             Boolean
+  at             DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([phoneCanonical, at])
+  @@index([ip, at])
+  @@map("password_attempts")
 }
 
 model Device {

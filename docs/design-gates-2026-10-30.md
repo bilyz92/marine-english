@@ -25,7 +25,7 @@ cung cấp (G4 SePay, G6 Zalo, G7 email) và **không** ra mắt. Bảng và log
 | G3 | Phạm vi giai đoạn 1: những gì có / để sau (đề xuất ở mục 10) | Chủ dự án | **Chặn plan giai đoạn 1** | **Đóng 30/10/2026**: đồng ý đề xuất mục 10 |
 | G4 | SePay: gói, tài khoản ngân hàng liên kết, quyền gọi API đối soát, kiểu xác thực HMAC, quy tắc nhận diện mã thanh toán; thử webhook thật bằng số tiền nhỏ | Chủ dự án | **Chặn phần thanh toán** | Mở |
 | G5 | Mã đơn: xác nhận `ME` + 8 ký tự, khớp quy tắc nhận diện của SePay (G4) | Chủ dự án | Chặn phần thanh toán | Đề xuất |
-| G6 | Zalo OA đã xác thực, mẫu ZNS gửi mã được duyệt, chi phí mỗi tin, hạn mức ngân sách tháng; có dùng chung OA/đối tác của Cole không | Chủ dự án | **Chặn đăng nhập bằng số điện thoại** (email/Google vẫn làm được) | Mở |
+| G6 | Zalo OA đã xác thực, mẫu ZNS gửi mã được duyệt, chi phí mỗi tin, hạn mức ngân sách tháng; có dùng chung OA/đối tác của Cole không | Chủ dự án | **Chặn đăng nhập bằng mã Zalo** gửi tới số điện thoại (email/Google và số + mật khẩu vẫn làm được, xem D2) | Mở |
 | G7 | Nhà cung cấp email (Resend hoặc Brevo), tên miền gửi | Chủ dự án | Chặn đăng nhập email, thông báo | Mở |
 | G8 | VPS: nhà cung cấp, cấu hình, người vận hành, mục tiêu khôi phục (mục 8) | Chủ dự án | **Chặn triển khai** | Mở |
 | G9 | Thời hạn học offline và thời gian ân hạn (mục 6) | Chủ dự án | **Chặn thiết kế offline** | Đề xuất |
@@ -33,9 +33,17 @@ cung cấp (G4 SePay, G6 Zalo, G7 email) và **không** ra mắt. Bảng và log
 | G11 | Ma trận quyền quản trị (mục 5) | Chủ dự án | Chặn trang quản trị | Đề xuất |
 | G12a | Kiến trúc dữ liệu cá nhân: bảng dữ liệu thu thập, mục đích, bên xử lý, mô hình đồng ý, thời hạn lưu từng loại, cách xóa/ẩn danh, ngoại lệ sao lưu (mục 9) | Chủ dự án + Claude | **Chặn thiết kế dữ liệu cuối** và phần code liên quan (schema, log, job xóa, xuất dữ liệu, xóa tài khoản) | Mở |
 | G12b | Văn bản pháp lý cuối, thông tin hộ kinh doanh, liên hệ | Chủ dự án (+ kế toán/pháp lý) | Chặn ra mắt | Mở |
-| G15 | Chính sách tài khoản chỉ có số điện thoại: chấp nhận rủi ro số bị cấp lại hay bắt buộc liên kết thêm email/Google; tiêu chí khôi phục qua hỗ trợ (mục 3) | Chủ dự án | Chặn đăng nhập bằng số điện thoại | Đề xuất |
+| G15 | Chính sách tài khoản chỉ có số điện thoại: chấp nhận rủi ro số bị cấp lại hay bắt buộc liên kết thêm email/Google; tiêu chí khôi phục qua hỗ trợ (mục 3) | Chủ dự án | Chặn đăng nhập bằng **mã gửi tới số** (Zalo). Không chặn số + mật khẩu (D2): người được cấp lại số không có mật khẩu | Đề xuất |
 | G13 | Chính sách hoàn tiền (đề xuất 100% trong 7 ngày nếu học dưới 3 bài), cách hoàn (chuyển khoản tay) | Chủ dự án | Chặn ra mắt | Mở |
 | G14 | Giá bán, combo, mã giảm giá | Chủ dự án | Chặn ra mắt | Mở |
+
+| D2 | Học viên đăng ký và đăng nhập bằng **số điện thoại + mật khẩu**, thêm vào bên cạnh email và Google | Chủ dự án | — | **Quyết 01/11/2026** |
+
+D2 (01/11/2026, chủ dự án chọn trong phiên làm việc): số điện thoại **chưa xác minh** khi đăng ký (chưa có SMS, mã Zalo chờ G6), lưu riêng ở
+`password_logins`, không bao giờ coi là danh tính đã xác minh (`user_identities`). Quên mật khẩu: mã tới email đã liên kết; đặt lại tay theo
+tiêu chí khôi phục của G15 (chỉ chủ, có lý do và bằng chứng như mã đơn, giao dịch, hồ sơ; có nhật ký); mã Zalo khi xong G6. Dữ liệu mới
+(G12a): băm mật khẩu giữ cùng tài khoản; `password_attempts` (IP, số, đúng/sai) giữ 30 ngày như `otp_send_log`, có job dọn.
+Kế hoạch: `docs/superpowers/plans/2026-11-01-phone-password.md`.
 
 Mỗi cổng khi đóng ghi: ngày, lựa chọn, lý do, bằng chứng (ảnh webhook thử, ảnh mẫu ZNS được duyệt, bản khôi phục thử…).
 

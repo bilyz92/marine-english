@@ -1,4 +1,5 @@
 import type { Tx } from "@/lib/db";
+import { claimVerifiedPhone } from "./password";
 
 export type IdentityKind = "email" | "phone" | "google";
 
@@ -18,5 +19,7 @@ export async function createUserWithIdentity(
   await tx.$executeRaw`
     INSERT INTO user_identities (user_id, kind, value_canonical, verified_at)
     VALUES (${user!.id}::uuid, ${input.kind}, ${input.value}, now())`;
+  // Số đã xác minh thắng dòng mật khẩu chưa xác minh của người khác (D2).
+  if (input.kind === "phone") await claimVerifiedPhone(tx, user!.id, input.value);
   return user!.id;
 }

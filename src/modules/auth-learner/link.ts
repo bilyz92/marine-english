@@ -9,6 +9,7 @@ import { parseContact } from "./contact";
 import { lockActiveUser } from "./devices";
 import type { IdentityKind } from "./identities";
 import { issueOtp, verifyOtp } from "./otp";
+import { claimVerifiedPhone } from "./password";
 import { otpSenderFor } from "./otp-sender";
 
 // Liên kết thêm cách đăng nhập: chỉ khi đã xác thực trong 10 phút gần đây và chứng minh được định danh mới.
@@ -44,7 +45,11 @@ async function attachIdentity(tx: Tx, userId: string, kind: IdentityKind, value:
     INSERT INTO user_identities (user_id, kind, value_canonical, verified_at)
     VALUES (${userId}::uuid, ${kind}, ${value}, now())
     ON CONFLICT (kind, value_canonical) DO NOTHING`;
-  if (inserted === 1) return "linked";
+  if (inserted === 1) {
+    // Số đã xác minh thắng dòng mật khẩu chưa xác minh của người khác (D2).
+    if (kind === "phone") await claimVerifiedPhone(tx, userId, value);
+    return "linked";
+  }
   const [owner] = await tx.$queryRaw<{ user_id: string }[]>`
     SELECT user_id FROM user_identities WHERE kind = ${kind} AND value_canonical = ${value}`;
   return owner?.user_id === userId ? "linked" : "owned_by_other";
