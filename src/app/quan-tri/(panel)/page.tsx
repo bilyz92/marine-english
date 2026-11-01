@@ -9,7 +9,7 @@ import styles from "./admin.module.css";
 type Overview = {
   receivedVnd: number; refundedVnd: number; paidOrders: { auto: number; manual: number }; newLearners: number; refundsOpen: number; queueOpen: number;
   oldestQueue: { bankTransactionId: string; bankTime: string; amountVnd: number; reason: string; candidateOrderCode: string | null }[];
-  byCourse: { course: string; paidOrders: number; receivedVnd: number }[];
+  byCourse: { courseId: string; course: string; paidOrders: number; receivedVnd: number }[];
   recentOrders: { code: string; status: string; amountVnd: number; createdAt: string; course: string; learner: string }[];
   jobs: { name: string; status: string; startedAt: string; error: string | null }[];
 };
@@ -44,7 +44,7 @@ export default function OverviewPage() {
             <h2 className={styles.h2}>Theo khóa học</h2>
             {data.byCourse.length === 0 && <p className={styles.muted}>Chưa có đơn đã thanh toán trong khoảng này.</p>}
             {data.byCourse.map((c) => (
-              <div key={c.course} className={styles.item}>
+              <div key={c.courseId} className={styles.item}>
                 <div className={styles.itemText}><span>{c.course}</span><span className={styles.muted}>{c.paidOrders} đơn</span></div>
                 <strong>{formatVnd(c.receivedVnd)}</strong>
               </div>

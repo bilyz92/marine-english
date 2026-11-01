@@ -22,6 +22,8 @@ const STATUS: Record<string, { label: string; className: string }> = {
 };
 const STEP_LABEL: Record<Step, string> = { approve: "Duyệt", send: "Đã chuyển tiền", confirm: "Xác nhận", fail: "Báo lỗi", cancel: "Hủy yêu cầu", payout: "Nhập tài khoản nhận" };
 const KIND: Record<string, string> = { full: "Toàn phần", excess: "Phần thừa", unallocated: "Khoản chưa ghép đơn" };
+/** Sửa tài khoản đã có, hay tài khoản học viên tự khai: chỉ chủ, có lý do. Nhập lần đầu cho yêu cầu do quản trị tạo: hỗ trợ được. */
+const isCorrection = (r: Refund) => r.payoutAccountNo !== null || r.requestedByUser !== null;
 const NEXT: Record<string, Step[]> = { requested: ["approve", "cancel"], approved: ["send", "cancel"], sent: ["confirm", "fail"] };
 
 export default function RefundsPage() {
@@ -45,7 +47,7 @@ export default function RefundsPage() {
     setBusy(true);
     const payout = form.accountNo ? { bankName: form.bankName, accountNo: form.accountNo.replace(/\s/g, ""), accountName: form.accountName } : undefined;
     const r = refund && step === "payout"
-      ? await adminApi(`/api/quan-tri/refunds/${refund.id}`, { method: "POST", body: { action: "payout", payout } })
+      ? await adminApi(`/api/quan-tri/refunds/${refund.id}`, { method: "POST", body: { action: "payout", payout, reason: form.reason } })
       : refund && step
         ? await adminApi(`/api/quan-tri/refunds/${refund.id}`, { method: "POST", body: { action: step, ...form } })
         : await adminApi("/api/quan-tri/refunds", { method: "POST", body: { orderCode: form.orderCode?.trim().toUpperCase(), reason: form.reason, payout } });
@@ -73,7 +75,7 @@ export default function RefundsPage() {
               </div>
               <span className={STATUS[x.status]?.className}>{STATUS[x.status]?.label ?? x.status}</span>
               <div className={styles.actions}>
-                {x.status === "requested" && can(me, "refunds.request") && <button className={styles.btn} onClick={() => open({ refund: x, step: "payout" })}>{x.payoutAccountNo ? "Sửa tài khoản nhận" : "Nhập tài khoản nhận"}</button>}
+                {x.status === "requested" && (isCorrection(x) ? can(me, "refunds.approve") : can(me, "refunds.request")) && <button className={styles.btn} onClick={() => open({ refund: x, step: "payout" })}>{x.payoutAccountNo ? "Sửa tài khoản nhận" : "Nhập tài khoản nhận"}</button>}
                 {can(me, "refunds.approve") && NEXT[x.status]?.map((s) => <button key={s} className={styles.btn} onClick={() => open({ refund: x, step: s })}>{STEP_LABEL[s]}</button>)}
               </div>
             </div>
@@ -96,6 +98,7 @@ export default function RefundsPage() {
             <Field label="Ngân hàng *"><input className={styles.input} required value={form.bankName ?? ""} onChange={set("bankName")} /></Field>
             <Field label="Số tài khoản *"><input className={styles.input} required inputMode="numeric" value={form.accountNo ?? ""} onChange={set("accountNo")} /></Field>
             <Field label="Tên chủ tài khoản *"><input className={styles.input} required value={form.accountName ?? ""} onChange={set("accountName")} /></Field>
+            {refund && isCorrection(refund) && <Field label="Lý do sửa *"><textarea className={styles.input} required value={form.reason ?? ""} onChange={set("reason")} /></Field>}
           </>
         )}
         {step === "approve" && refund && <p className={styles.notice}>Chuyển {formatVnd(refund.amountVnd)} tới {refund.payoutAccountNo ? `${refund.payoutBankName} · ${refund.payoutAccountNo} · ${refund.payoutAccountName}` : "(chưa có tài khoản nhận)"}.</p>}

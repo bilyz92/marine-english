@@ -153,17 +153,38 @@ export async function requestRefundAsLearner(
   });
 }
 
-/** Nhập hoặc sửa tài khoản nhận tiền khi yêu cầu còn ở bước “đề nghị” (hoàn phần thừa tự sinh khi ghép tay chưa có tài khoản). */
-export async function setRefundPayout(ctx: AdminCtx, refundId: string, payout: Payout): Promise<"ok" | "invalid_transition" | "not_found"> {
+/** Số tài khoản chỉ còn 4 số cuối, để hiện cho người không có quyền duyệt và ghi nhật ký. */
+export const maskAccountNo = (accountNo: string) => `•••• ${accountNo.slice(-4)}`;
+
+/**
+ * Nhập hoặc sửa tài khoản nhận tiền khi yêu cầu còn ở bước “đề nghị”. Nhập lần đầu cho yêu cầu do quản trị tạo (ví dụ hoàn phần
+ * thừa tự sinh khi ghép tay): hỗ trợ làm được. Sửa tài khoản đã có, hay tài khoản học viên tự khai: chỉ chủ vừa xác thực lại, có lý do.
+ */
+export async function setRefundPayout(
+  ctx: AdminCtx,
+  refundId: string,
+  payout: Payout,
+  reason?: string,
+): Promise<"ok" | "invalid_transition" | "not_found"> {
   await authorize(ctx, "refunds.request", { action: "refund_payout", resource: { type: "refund", id: refundId } });
   const result = await withTx(async (tx) => {
-    const [refund] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM refunds WHERE id = ${refundId}::uuid FOR UPDATE`;
+    const [refund] = await tx.$queryRaw<{ status: string; payout_account_no: string | null; requested_by_user: string | null }[]>`
+      SELECT status, payout_account_no, requested_by_user FROM refunds WHERE id = ${refundId}::uuid FOR UPDATE`;
     if (!refund) return "not_found" as const;
     if (refund.status !== "requested") return "invalid_transition" as const;
+    const correction = refund.payout_account_no !== null || refund.requested_by_user !== null;
+    if (correction) {
+      await authorize(ctx, "refunds.approve", { action: "refund_payout", resource: { type: "refund", id: refundId } });
+      if (!reason?.trim()) throw new HttpError(400, "Cần lý do sửa tài khoản nhận");
+    }
     await tx.$executeRaw`
       UPDATE refunds SET payout_bank_name = ${payout.bankName}, payout_account_no = ${payout.accountNo}, payout_account_name = ${payout.accountName}
       WHERE id = ${refundId}::uuid`;
-    await audit(tx, { adminId: ctx.adminId, action: "refund_payout", targetType: "refund", targetId: refundId, result: "ok", ip: ctx.ip });
+    await audit(tx, {
+      adminId: ctx.adminId, action: "refund_payout", targetType: "refund", targetId: refundId, result: "ok", reason: reason?.trim(), ip: ctx.ip,
+      before: { accountNo: refund.payout_account_no && maskAccountNo(refund.payout_account_no) },
+      after: { bankName: payout.bankName, accountNo: maskAccountNo(payout.accountNo) },
+    });
     return "ok" as const;
   });
   if (result !== "ok") {

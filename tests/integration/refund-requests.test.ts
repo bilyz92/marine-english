@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { GET as myRefunds, POST as requestMyRefund } from "@/app/api/me/refunds/route";
 import { GET as overviewRoute } from "@/app/api/quan-tri/overview/route";
+import { GET as refundsRoute } from "@/app/api/quan-tri/refunds/route";
 import { ingest } from "@/modules/ledger/ingest";
 import { advanceRefund, requestFullRefund, setRefundPayout } from "@/modules/refunds/refunds";
 import { adminSess, callAdmin } from "../helpers/admin-call";
-import { adminCtx } from "../helpers/admin-ctx";
+import { adminCtx, rejected } from "../helpers/admin-ctx";
+import { auditRows } from "../helpers/admin";
 import { paidCourseSetup, report, TEST_PAYOUT } from "../helpers/ledger";
 import { learnerRequest, testLearner, type TestLearner } from "../helpers/learner-ctx";
 import { sqlAsMigrator } from "../helpers/otp";
+import { publish } from "../helpers/content";
 
 async function paid() {
   const s = await paidCourseSetup();
@@ -101,6 +104,41 @@ describe("duyệt hoàn tiền cần tài khoản nhận (BR-18)", () => {
     await expect(sqlAsMigrator(`UPDATE refunds SET payout_account_no = '9999' WHERE id = $1`, [r.refundId])).rejects.toThrow();
   });
 
+  it("hỗ trợ chỉ thấy 4 số cuối tài khoản nhận; chủ thấy đủ", async () => {
+    const s = await paid();
+    await ask(s.learner, { orderCode: s.code, reason: "không hợp", payout: TEST_PAYOUT });
+    const list = async (role: "owner" | "support") =>
+      ((await (await callAdmin(refundsRoute, await adminSess(role), "GET", "/api/quan-tri/refunds")).json()) as { refunds: { payoutAccountNo: string }[] }).refunds;
+    expect((await list("owner"))[0]!.payoutAccountNo).toBe("0011223344");
+    expect((await list("support"))[0]!.payoutAccountNo).toBe("•••• 3344");
+  });
+
+  it("hỗ trợ không sửa được tài khoản học viên tự khai hay tài khoản đã nhập; chủ sửa được khi có lý do, nhật ký che số", async () => {
+    const s = await paid();
+    const support = await adminCtx("support");
+    const owner = await adminCtx("owner");
+    const mine = String((await ask(s.learner, { orderCode: s.code, reason: "không hợp", payout: TEST_PAYOUT })).body.refundId);
+    const other = { ...TEST_PAYOUT, accountNo: "5566778899" };
+    expect(await rejected(setRefundPayout(support, mine, other))).toBe("role");
+    await expect(setRefundPayout(owner, mine, other)).rejects.toMatchObject({ status: 400 });
+    expect(await setRefundPayout(owner, mine, other, "khách nhắn sai số, gọi lại xác nhận")).toBe("ok");
+    expect((await prisma().refund.findUniqueOrThrow({ where: { id: mine } })).payoutAccountNo).toBe("5566778899");
+    const [entry] = (await auditRows("refund_payout")).filter((r) => r.result === "ok");
+    expect(entry!.reason).toBe("khách nhắn sai số, gọi lại xác nhận");
+    const { rows } = await sqlAsMigrator(`SELECT before, after FROM admin_audit_log WHERE action = 'refund_payout' AND result = 'ok'`);
+    expect(JSON.stringify(rows)).not.toMatch(/0011223344|5566778899/);
+    expect(rows[0]).toMatchObject({ before: { accountNo: "•••• 3344" }, after: { accountNo: "•••• 8899" } });
+  });
+
+  it("hỗ trợ nhập lần đầu cho yêu cầu do quản trị tạo được; nhập rồi thì hỗ trợ không sửa nữa", async () => {
+    const s = await paid();
+    const support = await adminCtx("support");
+    const r = await requestFullRefund(await adminCtx("owner"), { orderCode: s.code, reason: "khách gọi điện" });
+    if (!("refundId" in r)) throw new Error(JSON.stringify(r));
+    expect(await setRefundPayout(support, r.refundId, TEST_PAYOUT)).toBe("ok");
+    expect(await rejected(setRefundPayout(support, r.refundId, { ...TEST_PAYOUT, accountNo: "5566778899" }))).toBe("role");
+  });
+
   it("yêu cầu không tồn tại → not_found", async () => {
     expect(await setRefundPayout(await adminCtx("owner"), crypto.randomUUID(), TEST_PAYOUT)).toBe("not_found");
   });
@@ -111,6 +149,29 @@ describe("báo cáo doanh thu theo khóa (FR-20)", () => {
     const s = await paid();
     const { data } = await callAdmin(overviewRoute, await adminSess("owner"), "GET", "/api/quan-tri/overview?days=1").then(async (r) => ({ data: (await r.json()) as { byCourse: { course: string; paidOrders: number; receivedVnd: number }[] } }));
     const course = await prisma().course.findFirstOrThrow({ where: { slug: "engine_cadet_tanker" } });
-    expect(data.byCourse).toEqual([{ course: course.titleVi, paidOrders: 1, receivedVnd: (await prisma().order.findUniqueOrThrow({ where: { code: s.code } })).amountDueVnd }]);
+    expect(data.byCourse).toEqual([{ courseId: course.id, course: course.titleVi, paidOrders: 1, receivedVnd: (await prisma().order.findUniqueOrThrow({ where: { code: s.code } })).amountDueVnd }]);
+  });
+
+  it("hai khóa trùng tên vẫn tách riêng; đơn nhiều khóa chia tiền theo giá từng dòng", async () => {
+    const s = await paid();
+    await publish("engine_cadet_dry_cargo", 100_000);
+    const id = async (slug: string) => (await prisma().course.findUniqueOrThrow({ where: { slug } })).id;
+    const tanker = await id("engine_cadet_tanker");
+    const dry = await id("engine_cadet_dry_cargo");
+    await sqlAsMigrator(`UPDATE courses SET title_vi = (SELECT title_vi FROM courses WHERE id = $1) WHERE id = $2`, [tanker, dry]);
+    // Đơn hai khóa (combo chưa có trên giao diện, chờ G14): dựng thẳng bằng SQL trong một transaction.
+    await sqlAsMigrator(`
+      INSERT INTO orders (code, user_id, status, amount_due_vnd, refund_policy_version, expires_at, created_at, paid_at)
+      VALUES ('MEAAAAAAAB', '${s.learner.userId}', 'paid', 200000, 'v1', now() + interval '15 minutes', now(), now());
+      INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
+      SELECT o.id, v.course_id, v.id, 150000, CASE WHEN v.course_id = '${tanker}' THEN 120000 ELSE 80000 END
+      FROM orders o, LATERAL (SELECT DISTINCT ON (course_id) id, course_id FROM course_versions
+                              WHERE course_id IN ('${tanker}', '${dry}') ORDER BY course_id, version DESC) v
+      WHERE o.code = 'MEAAAAAAAB';`);
+    const res = await callAdmin(overviewRoute, await adminSess("owner"), "GET", "/api/quan-tri/overview?days=1");
+    const { byCourse } = (await res.json()) as { byCourse: { courseId: string; paidOrders: number; receivedVnd: number }[] };
+    const first = (await prisma().order.findUniqueOrThrow({ where: { code: s.code } })).amountDueVnd;
+    expect(byCourse.map(({ courseId, paidOrders, receivedVnd }) => ({ courseId, paidOrders, receivedVnd })).sort((a, b) => a.receivedVnd - b.receivedVnd))
+      .toEqual([{ courseId: dry, paidOrders: 1, receivedVnd: 80_000 }, { courseId: tanker, paidOrders: 2, receivedVnd: first + 120_000 }]);
   });
 });
