@@ -27,6 +27,12 @@ export async function hasCourseAccess(userId: string, courseId: string): Promise
   return hasActiveEnrollment(prisma(), await mergeGroupIds(null, userId), courseId);
 }
 
+/** Học viên (theo nhóm gộp) đã có khóa mang mã này chưa; mã không tồn tại thì chưa. */
+export async function hasCourseAccessBySlug(userId: string, slug: string): Promise<boolean> {
+  const [course] = await prisma().$queryRaw<{ id: string }[]>`SELECT id FROM courses WHERE slug = ${slug}`;
+  return course ? hasCourseAccess(userId, course.id) : false;
+}
+
 export type MyCourse = { slug: string; titleVi: string; sources: ("order" | "grant")[] };
 
 /** Khóa học viên đang có quyền (theo nhóm gộp) và nguồn quyền. */
