@@ -87,6 +87,15 @@ try {
   check("chủ vào tổng quan", await see("Tiền đã nhận"));
   check("có cảnh báo khoản cần xử lý", await see("khoản cần xử lý tay"));
   check("menu có mục của chủ", (await text()).includes("Quản trị viên") && (await text()).includes("Job"));
+  // FR-20: khoảng ngày tự chọn (ngày Việt Nam).
+  await click("Tự chọn");
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
+  await fill("Từ ngày", today);
+  await fill("Đến ngày", today);
+  check("khoảng tự chọn tải được số theo khóa", await waitFor(async () => {
+    const t = await text();
+    return t.includes("Theo khóa học") && !t.includes("không hợp lệ") && (await b.evaluate(`document.querySelector("input[type=date]")?.value`)) === today;
+  }));
   for (const [path, marker] of [["/quan-tri", "Tiền đã nhận"], ["/quan-tri/so-giao-dich", "Cần xử lý tay"], ["/quan-tri/hoan-tien", "Đề nghị hoàn tiền"], ["/quan-tri/don-hang", orderCode], ["/quan-tri/hoc-vien", "Tìm học viên"], ["/quan-tri/khoa-hoc", SLUG], ["/quan-tri/cap-khoa", "Tìm học viên"], ["/quan-tri/gop-tai-khoan", "Tài khoản nguồn"], ["/quan-tri/quan-tri-vien", ownerEmail], ["/quan-tri/jobs", "me.orders.expire"]]) {
     for (const width of [360, 1280]) {
       await b.width(width);

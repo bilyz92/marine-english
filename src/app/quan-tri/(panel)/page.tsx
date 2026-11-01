@@ -3,28 +3,38 @@
 import { useState } from "react";
 import Link from "next/link";
 import { formatVnd } from "@/lib/format";
-import { fmtTime, LoadState, ORDER_STATUS, QUEUE_REASON, useLoad } from "./admin-lib";
+import { Field, fmtTime, LoadState, ORDER_STATUS, QUEUE_REASON, useLoad } from "./admin-lib";
 import styles from "./admin.module.css";
 
 type Overview = {
   receivedVnd: number; refundedVnd: number; paidOrders: { auto: number; manual: number }; newLearners: number; refundsOpen: number; queueOpen: number;
   oldestQueue: { bankTransactionId: string; bankTime: string; amountVnd: number; reason: string; candidateOrderCode: string | null }[];
-  byCourse: { courseId: string; course: string; paidOrders: number; receivedVnd: number }[];
+  byCourse: { courseId: string; course: string; paidOrders: number; receivedVnd: number; refundedOrders: number; refundedVnd: number }[];
   recentOrders: { code: string; status: string; amountVnd: number; createdAt: string; course: string; learner: string }[];
   jobs: { name: string; status: string; startedAt: string; error: string | null }[];
 };
 const RANGES = [{ days: 1, label: "Hôm nay" }, { days: 7, label: "7 ngày" }, { days: 30, label: "30 ngày" }];
 
 export default function OverviewPage() {
-  const [days, setDays] = useState(1);
-  const { data, ...state } = useLoad<Overview>(`/api/quan-tri/overview?days=${days}`);
+  const [days, setDays] = useState<number | null>(1);
+  // Khoảng tự chọn (FR-20): ngày Việt Nam, gồm cả hai đầu; chỉ áp khi đủ hai ngày.
+  const [custom, setCustom] = useState({ from: "", to: "" });
+  const query = days === null && custom.from && custom.to ? `from=${custom.from}&to=${custom.to}` : `days=${days ?? 1}`;
+  const { data, ...state } = useLoad<Overview>(`/api/quan-tri/overview?${query}`);
   const paid = data ? data.paidOrders.auto + data.paidOrders.manual : 0;
   return (
     <>
       <h1 className={styles.h1}>Tổng quan</h1>
       <div className={styles.actions}>
         {RANGES.map((r) => <button key={r.days} className={r.days === days ? styles.btnMain : styles.btn} aria-pressed={r.days === days} onClick={() => setDays(r.days)}>{r.label}</button>)}
+        <button className={days === null ? styles.btnMain : styles.btn} aria-pressed={days === null} onClick={() => setDays(null)}>Tự chọn</button>
       </div>
+      {days === null && (
+        <div className={styles.actions}>
+          <Field label="Từ ngày"><input className={styles.input} type="date" value={custom.from} onChange={(e) => setCustom({ ...custom, from: e.target.value })} /></Field>
+          <Field label="Đến ngày"><input className={styles.input} type="date" value={custom.to} onChange={(e) => setCustom({ ...custom, to: e.target.value })} /></Field>
+        </div>
+      )}
       <LoadState {...state} />
       {data && (
         <>
@@ -42,10 +52,13 @@ export default function OverviewPage() {
           </div>
           <section className={styles.card}>
             <h2 className={styles.h2}>Theo khóa học</h2>
-            {data.byCourse.length === 0 && <p className={styles.muted}>Chưa có đơn đã thanh toán trong khoảng này.</p>}
+            {data.byCourse.length === 0 && <p className={styles.muted}>Chưa có đơn đã thanh toán hay hoàn tiền trong khoảng này.</p>}
             {data.byCourse.map((c) => (
               <div key={c.courseId} className={styles.item}>
-                <div className={styles.itemText}><span>{c.course}</span><span className={styles.muted}>{c.paidOrders} đơn</span></div>
+                <div className={styles.itemText}>
+                  <span>{c.course}</span>
+                  <span className={styles.muted}>{c.paidOrders} đơn{c.refundedOrders ? ` · hoàn ${c.refundedOrders} đơn, ${formatVnd(c.refundedVnd)}` : ""}</span>
+                </div>
                 <strong>{formatVnd(c.receivedVnd)}</strong>
               </div>
             ))}

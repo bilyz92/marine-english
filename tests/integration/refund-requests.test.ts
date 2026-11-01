@@ -149,7 +149,30 @@ describe("báo cáo doanh thu theo khóa (FR-20)", () => {
     const s = await paid();
     const { data } = await callAdmin(overviewRoute, await adminSess("owner"), "GET", "/api/quan-tri/overview?days=1").then(async (r) => ({ data: (await r.json()) as { byCourse: { course: string; paidOrders: number; receivedVnd: number }[] } }));
     const course = await prisma().course.findFirstOrThrow({ where: { slug: "engine_cadet_tanker" } });
-    expect(data.byCourse).toEqual([{ courseId: course.id, course: course.titleVi, paidOrders: 1, receivedVnd: (await prisma().order.findUniqueOrThrow({ where: { code: s.code } })).amountDueVnd }]);
+    expect(data.byCourse).toEqual([{ courseId: course.id, course: course.titleVi, paidOrders: 1, receivedVnd: (await prisma().order.findUniqueOrThrow({ where: { code: s.code } })).amountDueVnd, refundedOrders: 0, refundedVnd: 0 }]);
+  });
+
+  it("khoảng ngày tự chọn (theo ngày Việt Nam) và số hoàn tách theo khóa", async () => {
+    const s = await paid();
+    const owner = await adminCtx("owner");
+    const r = await requestFullRefund(owner, { orderCode: s.code, reason: "khách đổi ý", payout: TEST_PAYOUT });
+    if (!("refundId" in r)) throw new Error(JSON.stringify(r));
+    await advanceRefund(owner, r.refundId, { action: "approve" });
+    await advanceRefund(owner, r.refundId, { action: "send", outBankRef: "OUT9", evidence: "ủy nhiệm chi" });
+    await advanceRefund(owner, r.refundId, { action: "confirm" });
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
+    const sess = await adminSess("owner");
+    const get = (query: string) => callAdmin(overviewRoute, sess, "GET", `/api/quan-tri/overview?${query}`);
+    const res = await get(`from=${today}&to=${today}`);
+    expect(res.status).toBe(200);
+    const course = await prisma().course.findFirstOrThrow({ where: { slug: "engine_cadet_tanker" } });
+    const due = (await prisma().order.findUniqueOrThrow({ where: { code: s.code } })).amountDueVnd;
+    expect(((await res.json()) as { byCourse: unknown[] }).byCourse)
+      .toEqual([{ courseId: course.id, course: course.titleVi, paidOrders: 1, receivedVnd: due, refundedOrders: 1, refundedVnd: due }]);
+    expect(((await (await get("from=2020-01-01&to=2020-01-31")).json()) as { byCourse: unknown[] }).byCourse).toEqual([]);
+    for (const bad of [`from=${today}&to=2020-01-01`, "from=2020-01-01&to=2026-12-31", "from=2026-11-1&to=2026-11-02", `from=${today}`]) {
+      expect((await get(bad)).status).toBe(400);
+    }
   });
 
   it("hai khóa trùng tên vẫn tách riêng; đơn nhiều khóa chia tiền theo giá từng dòng", async () => {
