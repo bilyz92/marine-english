@@ -63,3 +63,12 @@
 
 - Grant INSERT cho `me_app` nới quyền: app bị chiếm có thể thêm phiên bản rác hoặc đổi `current_version_id`. Chấp nhận vì chủ cần sửa trên web; mọi thay đổi qua route có quyền chủ + audit.
 - Đổi `current_version_id` của khóa đang bán: học viên thấy nội dung mới ở lần tải sau; tiến độ gắn theo bài nên giữ được.
+
+## Kết quả đo và quyết định khi làm (02/11/2026)
+
+- Đọc 3 gói zip thật (`scripts/check-content-packages.ts`): Oiler 120 bài 98/99/95, Wiper 107 bài 86/87/82, Engine Cadet 94 bài 89/90/89; mỗi gói < 0,4 s, RSS tăng ≤ 48 MB. Ba tệp Word: 58/59/58 câu chính.
+- Nhập Oiler (120 bài): 1,2 s bằng CLI, 1,4 s qua web (dưới xa mốc 30 s, không cần gom lô).
+- Gói 12 MB đi thẳng tới handler (bỏ qua proxy) đã kiểm bằng `tests/e2e-ui/content.mjs`.
+- Ruling: test "sửa bài khi nhập đang giữ khóa → 409 busy" chuyển sang bước 5 (API sửa bài có ở bước 5).
+- Ruling: lỗi SQL thô bị Prisma bọc thành P2010; thêm `sqlState()` đọc mã Postgres thật cho phần nội dung, **không** đổi `pgCode()` dùng chung (đổi làm `withTx` thử lại khi chờ khóa quá hạn và nghẽn pool ở luồng đăng nhập). Hệ quả có sẵn từ trước: `withTx` không tự thử lại deadlock của câu SQL thô; ghi lại để xem xét riêng.
+- Ruling: trang `/admin/khoa-hoc/[slug]` khai báo `instant = false` (Cache Components không dựng sẵn được trang động trong khu quản trị).

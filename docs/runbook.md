@@ -155,6 +155,16 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 
 **Không nhận được tin nào cả** cũng là dấu hiệu: worker hoặc Telegram có thể đã chết. Dịch vụ theo dõi bên ngoài (G8) gọi `/api/health` và `/api/health/worker` để báo trong trường hợp này.
 
+## 6A. Thêm và sửa nội dung khóa học (từ 02/11/2026)
+
+- Chỉ chủ, đăng nhập trong 10 phút gần đây. `/admin/noi-dung`: chọn tệp `.zip` (gói học liệu như `docs/07_Oiler.zip`), `.json` (tệp `*_Learning_Data_*.json`) hoặc `.docx` (ngân hàng câu hỏi Word, chỉ có câu hỏi tiếng Anh) → **Xem trước** → **Nhập vào hệ thống**. Tối đa 16 MB, mỗi lúc một lần nhập.
+- Khóa mới luôn ở dạng nháp. Khóa **đang bán** mà nội dung đổi thì trang bắt tích xác nhận; học viên thấy nội dung mới ở lần mở bài sau, tiến độ giữ nguyên.
+- Sửa hoặc thêm bài: `/admin/khoa-hoc` → **Bài học** của khóa → **Sửa** / **Thêm bài**; **Tạo khóa mới** cho khóa trống. Mỗi lần lưu tạo phiên bản mới, không mất bản cũ; mọi lần nhập/sửa ghi nhật ký quản trị.
+- Báo "Đang có thao tác nội dung khác" (409 busy) hoặc "vừa được sửa ở chỗ khác" (409 stale): đợi vài giây, tải lại trang rồi làm lại.
+- nginx phải có khối `location = /api/quan-tri/content/import` với `client_max_body_size 16m` (mẫu `deploy/nginx-marine-english.conf`); thiếu thì tệp trên 5 MB bị nginx trả 413.
+- Kiểm gói lớn trước khi tải: `node --import ./src/worker/alias-loader.mjs scripts/check-content-packages.ts <tệp…>`.
+- Nút **Nghe** trong bài dùng giọng tiếng Anh có sẵn trên máy học viên (không gửi chữ ra ngoài); máy không có giọng tiếng Anh thì không hiện nút. Chưa có chấm phát âm.
+
 ## 7A. Học viên quên mật khẩu (đăng nhập bằng số + mật khẩu)
 
 - Học viên có email đã liên kết: tự làm ở màn đăng nhập, “Quên mật khẩu?”, mã gửi tới email đó.
