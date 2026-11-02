@@ -1,10 +1,12 @@
 // Lệnh quản trị chạy trên máy chủ bằng MIGRATOR_DATABASE_URL (không qua web):
 //   pnpm cli admin:bootstrap <email>
 //   pnpm cli admin:recover <email> --reason "<lý do>" --confirm <email>
+//   pnpm cli admin:login-link <email>   (in link đăng nhập quản trị 15 phút, dùng một lần; cần SESSION_KEY_ADMIN, APP_ORIGIN; thay email khi chưa có G7)
 //   pnpm cli content:import <tệp.json>
 //   pnpm cli license:public-keys   (in NEXT_PUBLIC_LICENSE_PUBLIC_KEYS từ LICENSE_SIGNING_KEYS, dùng khi build app)
 //   pnpm cli media:add <mã bài> <tệp> [--role audio|image|attachment] [--public]   (MEDIA_ROOT, mặc định ./media)
 // Tệp tự chứa (chỉ dùng pg) để chạy thẳng bằng Node, không cần bước build.
+import { createHmac, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { importContent } from "./content-import.ts";
@@ -88,6 +90,41 @@ export async function recoverOwner(
   });
 }
 
+/**
+ * Link đăng nhập quản trị in ra màn hình, thay cho email khi chưa có nhà cung cấp email (G7). Chỉ ai vào được máy chủ mới chạy được.
+ * Giống link gửi qua email: 15 phút, dùng một lần, link cũ bị hủy; token chỉ lưu dạng HMAC (cùng cách với tokenHash("admin")).
+ */
+export async function issueLoginLink(
+  client: Client,
+  email: string,
+  opts: { adminKey: string; origin: string },
+): Promise<string | "not_found"> {
+  const canonical = canonicalEmail(email);
+  if (!canonical) return "not_found";
+  const token = randomBytes(32).toString("base64url");
+  const hash = createHmac("sha256", Buffer.from(opts.adminKey, "base64")).update(token).digest("hex");
+  const issued = await inTransaction<boolean>(client, async () => {
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id FROM admin_users WHERE email_lower = $1 AND (status = 'active' OR (status = 'invited' AND now() < invite_expires_at))`,
+      [canonical],
+    );
+    const admin = rows[0];
+    if (!admin) return false;
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`admin-link:${admin.id}`]);
+    await client.query(
+      `UPDATE admin_email_links SET invalidated_at = now() WHERE admin_user_id = $1 AND used_at IS NULL AND invalidated_at IS NULL`,
+      [admin.id],
+    );
+    await client.query(
+      `INSERT INTO admin_email_links (token_hash, admin_user_id, expires_at) VALUES ($1, $2, now() + interval '15 minutes')`,
+      [hash, admin.id],
+    );
+    await auditSystem(client, "cli_login_link", admin.id, null);
+    return true;
+  });
+  return issued ? `${opts.origin}/quan-tri/dang-nhap#link=${token}` : "not_found";
+}
+
 function flag(args: string[], name: string): string {
   const i = args.indexOf(name);
   return i >= 0 ? (args[i + 1] ?? "") : "";
@@ -112,6 +149,17 @@ async function main(argv: string[]): Promise<number> {
       console.log({ created: "Đã tạo tài khoản chủ.", owner_exists: "Đã có tài khoản chủ, không đổi gì.", invalid_email: "Email không hợp lệ." }[result]);
       return result === "created" ? 0 : 1;
     }
+    if (command === "admin:login-link") {
+      const adminKey = process.env.SESSION_KEY_ADMIN;
+      const origin = process.env.APP_ORIGIN;
+      if (!adminKey || !origin) {
+        console.error("Thiếu SESSION_KEY_ADMIN hoặc APP_ORIGIN");
+        return 2;
+      }
+      const result = await issueLoginLink(client, email, { adminKey, origin });
+      console.log(result === "not_found" ? "Không có quản trị viên đang hoạt động với email này." : `Link đăng nhập (15 phút, dùng một lần):\n${result}`);
+      return result === "not_found" ? 1 : 0;
+    }
     if (command === "admin:recover") {
       const result = await recoverOwner(client, { email, reason: flag(argv, "--reason"), confirm: flag(argv, "--confirm") });
       console.log(result === "recovered" ? "Đã khôi phục quyền chủ." : "Từ chối: cần --confirm trùng email và --reason ít nhất 10 ký tự.");
@@ -134,7 +182,7 @@ async function main(argv: string[]): Promise<number> {
       console.log(`Đã gắn tệp vào ${result.attached} phiên bản bài.`);
       return 0;
     }
-    console.error("Lệnh: media:add <mã bài> <tệp> | content:import <tệp.json> | admin:bootstrap <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
+    console.error("Lệnh: media:add <mã bài> <tệp> | content:import <tệp.json> | admin:bootstrap <email> | admin:login-link <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
     return 2;
   } finally {
     await client.end();

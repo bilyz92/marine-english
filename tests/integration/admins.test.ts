@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { changeAdmin, inviteAdmin } from "@/modules/auth-admin/admins";
 import { validateSession } from "@/modules/sessions/sessions";
-import { bootstrapOwner, recoverOwner } from "@/worker/cli";
+import { consumeAdminLink } from "@/modules/auth-admin/email-link";
+import { bootstrapOwner, issueLoginLink, recoverOwner } from "@/worker/cli";
 import { adminRow, adminSession, ageInvite, auditRows, insertAdmin, ownerCtx } from "../helpers/admin";
 import { errCode, pgAs } from "../helpers/pg";
 import { sqlAsMigrator } from "../helpers/otp";
@@ -18,6 +19,30 @@ async function withMigrator<T>(run: (c: Client) => Promise<T>): Promise<T> {
     await client.end();
   }
 }
+
+describe("CLI in link đăng nhập quản trị (thay email khi chưa có G7)", () => {
+  const opts = () => ({ adminKey: process.env.SESSION_KEY_ADMIN!, origin: process.env.APP_ORIGIN! });
+
+  it("in link 15 phút cho quản trị viên đang hoạt động; link dùng được đúng một lần; link cũ bị hủy; có nhật ký", async () => {
+    await withMigrator((c) => bootstrapOwner(c, "chu@x.vn"));
+    const first = await withMigrator((c) => issueLoginLink(c, " Chu@X.vn ", opts()));
+    const second = await withMigrator((c) => issueLoginLink(c, "chu@x.vn", opts()));
+    if (typeof first !== "string" || typeof second !== "string") throw new Error("không in được link");
+    expect(second).toMatch(new RegExp(`^${process.env.APP_ORIGIN}/quan-tri/dang-nhap#link=[A-Za-z0-9_-]{43}$`));
+    const token = (url: string) => url.split("#link=")[1]!;
+    expect(await consumeAdminLink(token(first))).toBeNull();
+    expect(await consumeAdminLink(token(second))).not.toBeNull();
+    expect(await consumeAdminLink(token(second))).toBeNull();
+    expect((await auditRows("cli_login_link")).map((r) => [r.result, r.admin_user_id])).toEqual([["ok", null], ["ok", null]]);
+  });
+
+  it("email không phải quản trị viên đang hoạt động hay sai dạng → từ chối, không tạo link", async () => {
+    expect(await withMigrator((c) => issueLoginLink(c, "la@x.vn", opts()))).toBe("not_found");
+    expect(await withMigrator((c) => issueLoginLink(c, "khong-phai-email", opts()))).toBe("not_found");
+    const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM admin_email_links`);
+    expect(rows[0].n).toBe(0);
+  });
+});
 
 describe("CLI khởi tạo và khôi phục", () => {
   it("bootstrap tạo owner; lần hai báo đã có owner", async () => {

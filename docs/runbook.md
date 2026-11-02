@@ -42,7 +42,10 @@ Dữ liệu nằm ở các volume `pgdata`, `media`, `backups`, `caddy_data`. Kh
   Đổi khóa ký giấy phép (`LICENSE_SIGNING_KEYS` trên máy chủ) thì phải build lại với khóa công khai mới.
 - Sao lưu: khóa `b2026a` ở `~/marine-english-backup-keys/` (quyền 600, uid 1000). Bản đầu 02/11/2026, thử khôi phục trên máy phát triển: đạt.
   **Chưa có nơi lưu ngoài** (`BACKUP_RCLONE_REMOTE` trống): bản sao lưu đang nằm cùng ổ đĩa với dữ liệu.
-- Chưa có: nhà cung cấp email (G7) và mã Google, nên chưa ai đăng nhập được `/quan-tri`; khóa học còn nháp; chưa có thông tin thanh toán (G4); chưa có nơi lưu ngoài cho sao lưu; chưa có Telegram.
+- Đăng nhập `/quan-tri` khi chưa có email (G7): trên máy chủ chạy `cd ~/marine-english && ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml deploy/cli.sh deploy/prod.env admin:login-link <email>`.
+  Lệnh in link đăng nhập 15 phút, dùng một lần; chỉ người vào được máy chủ dùng được; mỗi lần in đều ghi nhật ký `cli_login_link`.
+  Tài khoản chủ đầu tiên: `ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml deploy/cli.sh deploy/prod.env admin:bootstrap <email>`.
+- Chưa có: nhà cung cấp email (G7) và mã Google; khóa học còn nháp; chưa có thông tin thanh toán (G4); chưa có nơi lưu ngoài cho sao lưu; chưa có Telegram.
 
 ## 2. Cài máy mới từ đầu
 
