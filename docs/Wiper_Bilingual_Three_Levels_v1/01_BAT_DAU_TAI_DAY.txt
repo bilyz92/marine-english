@@ -1,0 +1,10 @@
+CHUYỂN GÓI WIPER SANG MÁY ĐANG BUILD WEB
+
+1. Giải nén, chép cả thư mục Wiper_Web_App_Handoff_v1 vào dự án đang mở trong VS Code.
+2. Mở 03_LOI_NHAC_CHO_AI.txt, sao chép gửi AI đang viết code và chỉ đường dẫn thư mục vừa chép.
+3. AI đọc dữ liệu và bản yêu cầu rồi tích hợp vào kiến trúc hiện có.
+4. Kiểm tra các ca nghiệm thu, sau đó lưu bằng Git/GitHub theo quy trình dự án.
+
+Chép JSON chưa tự tạo nút bấm. Bản yêu cầu mô tả giao diện, chức năng và cách
+liên kết dữ liệu. Ba Word không cần thiết để chạy ứng dụng, chỉ dùng đối chiếu.
+Gói này là nội dung và yêu cầu tích hợp, chưa là mã nguồn chạy sẵn trên máy khác.

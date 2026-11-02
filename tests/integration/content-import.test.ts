@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Client } from "pg";
-import { ContentImportError, importContent } from "@/worker/content-import";
+import { ContentImportError, importContent, importDatasets, pgSql } from "@/worker/content-import";
 import { errCode, pgAs } from "../helpers/pg";
 
 type Fixture = { publication: { importable: boolean }; lessons: { id: string; question: { text: { vi: string } } }[] };
@@ -81,4 +81,69 @@ describe("nhập nội dung", () => {
     const result = await withMigrator((c) => importContent(c, data));
     expect(result).toEqual({ courses: 3, newCourseVersions: 3, newLessonVersions: 94 });
   }, 120_000);
+
+  it("me_app nhập được trong giao dịch của người gọi (lần đầu và nhập lại), báo cáo từng khóa", async () => {
+    const app = await pgAs("app");
+    try {
+      const run = async () => {
+        await app.query("BEGIN");
+        try {
+          const report = await importDatasets(pgSql(app), [fixture()]);
+          await app.query("COMMIT");
+          return report;
+        } catch (error) {
+          await app.query("ROLLBACK");
+          throw error;
+        }
+      };
+      const first = await run();
+      expect(first.newLessonVersions).toBe(5);
+      const tanker = first.courses.find((c) => c.slug === "engine_cadet_tanker")!;
+      expect(tanker).toMatchObject({ existed: false, status: "draft", lessons: 4, versionBefore: null, newVersion: true });
+      expect(tanker.versionAfter).toBeTruthy();
+      const again = await run();
+      expect(again.newLessonVersions).toBe(0);
+      expect(again.courses.find((c) => c.slug === "engine_cadet_tanker")).toMatchObject({ existed: true, newVersion: false, versionBefore: tanker.versionAfter, versionAfter: tanker.versionAfter });
+    } finally {
+      await app.end();
+    }
+  });
+
+  it("người gọi ROLLBACK thì không còn gì (bộ nhập không tự COMMIT)", async () => {
+    const app = await pgAs("app");
+    try {
+      await app.query("BEGIN");
+      await importDatasets(pgSql(app), [fixture()]);
+      await app.query("ROLLBACK");
+    } finally {
+      await app.end();
+    }
+    expect((await q(`SELECT count(*)::int AS n FROM lessons`))[0].n).toBe(0);
+  });
+
+  it("Oiler: câu phụ liên kết ở bài khác được chép vào linked_follow_up_questions", async () => {
+    const data = JSON.parse(readFileSync("docs/Oiler_Bilingual_Three_Levels_v1/Oiler_Learning_Data_v1.json", "utf8"));
+    const started = Date.now();
+    const result = await withMigrator((c) => importContent(c, data));
+    expect(result).toEqual({ courses: 3, newCourseVersions: 3, newLessonVersions: 120 });
+    console.log(`nhập Oiler (120 bài): ${Date.now() - started} ms`);
+    const [row] = await q(`SELECT lv.content FROM lesson_versions lv JOIN lessons l ON l.id = lv.lesson_id WHERE l.external_id = 'OL-A010-SMS'`);
+    expect(row.content.linked_follow_up_questions.map((f: { id: string }) => f.id)).toEqual(["OL-A010.probe.1"]);
+    expect(row.content.linked_follow_up_questions[0].prompt.en).toBeTruthy();
+  }, 120_000);
+
+  it("me_app: thêm được dòng nội dung mới nhưng không sửa/xóa phiên bản, không xóa bài", async () => {
+    await withMigrator((c) => importContent(c, fixture()));
+    const app = await pgAs("app");
+    try {
+      expect(await errCode(app, `INSERT INTO lessons (external_id) VALUES ('X-1')`)).toBeNull();
+      expect(await errCode(app, `UPDATE courses SET title_vi = 'Tên mới'`)).toBeNull();
+      expect(await errCode(app, `UPDATE lesson_versions SET version = 9`)).not.toBeNull();
+      expect(await errCode(app, `DELETE FROM course_versions`)).not.toBeNull();
+      expect(await errCode(app, `DELETE FROM lessons`)).toBe("42501");
+      expect(await errCode(app, `UPDATE lessons SET external_id = 'Y'`)).toBe("42501");
+    } finally {
+      await app.end();
+    }
+  });
 });

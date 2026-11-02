@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "statistics": {
+    "unique_source_main_questions": 83,
+    "active_lessons": 120,
+    "source_follow_up_questions_with_own_answers": 107,
+    "bilingual_micro_questions_and_answers": 479,
+    "question_variants": 123,
+    "lessons_with_three_variants": 41,
+    "learning_support_levels": 3,
+    "phrase_exercises": 360,
+    "meaning_exercises": 120,
+    "learning_exercises": 480,
+    "course_lesson_counts": {
+      "oiler_tanker": 98,
+      "oiler_dry_cargo": 99,
+      "oiler_container": 95
+    }
+  },
+  "checks": [
+    "all 83 original main codes mapped",
+    "all 107 original follow-ups have own bilingual model answers",
+    "120 namespaced lessons with three required points and three support levels",
+    "every micro question has a real bilingual short answer",
+    "every exercise has answer and feedback",
+    "selected common questions have exactly three variants",
+    "Word content matches JSON",
+    "truthful profile and no-experience branches included",
+    "lesson-scoped placeholder bindings verified",
+    "original files unchanged",
+    "no ID collisions with Wiper or Engine Cadet"
+  ],
+  "source_numbering_gaps_retained": [
+    "A004",
+    "A005",
+    "A020"
+  ],
+  "technical_and_language_approval": "pending_training_reviewer",
+  "render_check": "passed",
+  "rendered_page_counts": {
+    "Oiler_01_Tankers_Bilingual_Three_Levels_v1": 239,
+    "Oiler_02_Dry_Cargo_Bilingual_Three_Levels_v1": 243,
+    "Oiler_03_Container_Bilingual_Three_Levels_v1": 235
+  },
+  "answer_option_distribution": {
+    "B": 40,
+    "A": 40,
+    "C": 40
+  }
+}

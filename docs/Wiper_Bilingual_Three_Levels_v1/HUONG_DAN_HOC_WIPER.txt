@@ -1,0 +1,45 @@
+BỘ HỌC LIỆU WIPER SONG NGỮ THEO BA MỨC
+
+Dùng riêng ba Word là đủ để học, in hoặc chỉnh sửa nội dung. JSON và gói bàn
+giao dành cho người xây dựng web/app, không bắt buộc học viên phải dùng.
+
+MỖI BÀI CÓ BA MỨC
+Mức 1 Mới bắt đầu: học lần lượt 3–7 câu hỏi nhỏ có đáp án Anh–Việt. Hiểu từ,
+đọc mẫu, che đáp án, tự nói từng phần rồi làm bài nhớ cụm từ có lời giải.
+Mức 2 Cơ bản: tự trả lời câu đầy đủ theo ba ý gạch đầu dòng, làm bài hiểu nghĩa
+và đối chiếu đáp án mẫu. Không cần giống nguyên văn nếu đủ ý và đúng nghĩa.
+Mức 3 Khá/Tốt: không xem dàn ý trước khi nói; luyện câu đầy đủ, một cách hỏi
+tương đương nếu có, rồi câu phụ. Xem đáp án và góp ý sau khi đã thử.
+Chọn mức theo từng bài, không bắt buộc học tuần tự cả ba mức. Ba mức thay đổi
+trợ giúp ngôn ngữ; yêu cầu chuyên môn và giới hạn quyền hạn Wiper giữ nguyên.
+
+CẤU TRÚC WORD
+Mở đầu là cách học và lộ trình theo chủ đề. Mỗi mã WP có phần Mức 1, tiếp theo
+là Mức 2–3. Các câu lớn về công ước, phụ lục MARPOL, loại cháy và một số chủ
+đề cá nhân đã được tách thành bài riêng. Cuối tập có câu phụ kèm đáp án và
+bảng đối chiếu mã gốc với mã WP. Có thể dùng ngăn điều hướng tiêu đề của Word.
+
+CÂU TRẢ LỜI CÁ NHÂN
+Tên, tuổi và dữ liệu khác trong ngoặc phải lấy từ hồ sơ thật hoặc do học viên
+xác nhận. Không tự điền kinh nghiệm hoặc chứng chỉ chưa có. Có nhánh riêng
+cho chưa đi biển/chưa thực hành, chỉ quan sát, đã hỗ trợ và chưa hoàn thành
+khóa học. Câu hỏi về gia đình trong nguồn là tùy chọn, không bắt buộc nhập.
+
+DỮ LIỆU WEB/APP
+Wiper_Learning_Data_v1.json là dữ liệu chính. Mã WP tách biệt khỏi mã Engine
+Cadet để hai bộ tồn tại cùng nhau. Mỗi bài có question, key_points,
+model_answer, learning_material.levels và question_breakdown.units.
+learning_exercises có đề bài, phương án, đáp án và phản hồi.
+37 bài thông dụng có ba cách hỏi thực tế mỗi bài; bài không có biến thể dùng
+câu chuẩn. Toàn bộ 107 câu phụ gốc có đáp án riêng.
+Lịch ôn cách quãng và bài phỏng vấn thử là cấu hình thử nghiệm cho hệ thống,
+không phải điểm tuyển dụng hay bằng chứng được phép vận hành thiết bị.
+Chưa có tệp audio thực và chưa có mã nguồn giao diện trong gói học liệu.
+Nếu sửa Word thủ công, cần cập nhật lại JSON và kiểm tra đối chiếu trước khi
+đưa nội dung mới lên web. Bộ này chưa có chức năng tự đồng bộ khi sửa Word.
+
+RÀ SOÁT TRƯỚC KHI PHÁT HÀNH
+Đã kiểm tra độ phủ câu hỏi, đáp án, ba ý, ba mức và đối chiếu Word–JSON.
+Học liệu để trạng thái draft, chờ người phụ trách huấn luyện duyệt chuyên môn,
+ngôn ngữ và tính phù hợp với tàu trước khi phát hành khóa học hoặc chấm tự động.
+Nguồn Word gốc giữ nguyên; nội dung chỉ dẫn trong nguồn là tài liệu tham khảo.

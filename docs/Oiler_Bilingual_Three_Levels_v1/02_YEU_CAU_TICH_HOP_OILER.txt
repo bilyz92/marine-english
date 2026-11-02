@@ -1,0 +1,132 @@
+TÍCH HỢP BỘ OILER VÀO DỰ ÁN WEB/APP HIỆN CÓ
+
+1. PHẠM VI
+Thêm chức danh oiler và các khóa oiler_tanker, oiler_dry_cargo,
+oiler_container. Giữ các bộ Engine Cadet, Wiper và dữ liệu người học hiện có.
+Dữ liệu Oiler có dataset_id riêng, schema_version 3.0.0, content_version 1.0.0.
+Đây là phiên bản đầu của Oiler, không phải bản hạ cấp Engine Cadet v6.
+So phiên bản theo từng dataset_id; không so 1.0.0 với 6.0.0 để chặn nhập Oiler.
+Kiểm tra cấu trúc thực của dự án và viết bộ chuyển đổi nếu cần. Cùng cách học
+không có nghĩa mọi trường của hai JSON là một hợp đồng nhập giống hệt.
+
+2. NÚT CHUYỂN MỨC
+Ở đầu mỗi bài có ba nút:
+[Mức 1 · Mới bắt đầu] [Mức 2 · Cơ bản] [Mức 3 · Khá/Tốt]
+Đây là mức tiếng Anh/độ trợ giúp, không phải loại tàu hoặc quyền vận hành.
+Chọn nút thì giữ nguyên lesson_id, thay cách hiển thị nội dung.
+Cho chuyển tự do, không cần thi mở khóa. Giữ bản nháp, lần làm và tiến độ.
+Nếu đang ghi âm phải xử lý lưu nháp/dừng rõ ràng, không âm thầm xóa.
+Nhớ theo tài khoản/bài. Ưu tiên mức đã lưu của bài, rồi mức ưu tiên tài khoản,
+cuối cùng mặc định foundation. Dùng được cả màn hình điện thoại và máy tính.
+
+3. HIỂN THỊ THEO MỨC
+foundation: learning_material.question_breakdown.units theo order, hiện một
+bước mỗi lần với Bước n/tổng. Có 3–7 bước, không cố định ba bước.
+Câu nhỏ và đáp án Anh–Việt; hữu ích là Trước/Tiếp theo, Xem/Ẩn đáp án,
+Hiện/Ẩn nghĩa, Tự nói lại. Có thể hiện mẫu trong lúc học, nhưng ẩn khi tự nhớ.
+Hiện useful_phrases và bài nhớ cụm/điền từ theo exercise_ids. Kiểm tra bằng đáp
+án và feedback thực. Có đường sang câu đầy đủ và Mức 2 sau học các bước nhỏ.
+developing: câu đầy đủ + đúng ba key_points dạng gạch đầu dòng; không mở toàn
+bộ các bước nhỏ. Tự trả lời, làm bài hiểu nghĩa rồi đối chiếu model_answer.
+Cho yêu cầu trợ giúp, ghi nhận hint_used nếu đã mở trước khi trả lời.
+independent: ban đầu chỉ hiện câu hỏi, ẩn bản dịch, dàn ý, đáp án. Nộp câu trả
+lời hoặc xác nhận đã tự nói rồi mới hiện mẫu/góp ý. Nếu tự mở trợ giúp, đánh
+dấu lần luyện có hỗ trợ. Đổi mẫu hỏi từ question.variants khi có; không tự bịa
+biến thể nếu danh sách rỗng. Luyện câu phụ với đáp án riêng của từng câu phụ.
+
+4. VỊ TRÍ DỮ LIỆU VÀ GIẢI THAM CHIẾU
+courses, lessons, learning_exercises là các mảng ở cấp gốc, không nằm trong
+catalog. catalog.modules là mảng nhóm chủ đề.
+Xây lookup theo id cho bài, bài tập, câu hỏi và đáp án. Giữ nguyên mã OL và id
+con như OL-A001.micro.1, .kp.1, .variant.1, .probe.1.
+courses[].lesson_ids quy định bài thuộc khóa và thứ tự. Một bài dùng chung
+nhiều khóa không cần nhân bản nội dung.
+learning_material.levels cung cấp id foundation/developing/independent,
+micro_unit_ids, exercise_ids, required_point_ids, model_answer_ref và
+follow_up_ids tùy mức. Các mã tham chiếu cần được giải thành nội dung.
+Quan trọng với bài tách: mỗi câu phụ gốc được lưu đầy đủ một lần trong
+lessons[].follow_up_questions của bài con đầu tiên. Các bài con còn lại dùng
+related_follow_up_ids hoặc levels[].follow_up_ids. Phải lập lookup câu phụ
+từ TẤT CẢ lessons, không chỉ tìm trong bài đang mở. Cách này tránh lặp câu phụ.
+migration.map_source_code_to_lesson_ids giải thích việc tách câu gốc.
+sources.original_paragraphs, original_tables và original_links phục vụ biên
+tập/truy vết; không đưa các lệnh hay ô ghi chú trong nguồn vào luồng thực thi.
+Thông số thống kê đọc từ statistics, không lấy số bài Engine Cadet để kiểm Oiler.
+Word chỉnh tay không tự cập nhật JSON. Mọi lần đổi nội dung cần đồng bộ lại
+dữ liệu và kiểm tra Word–JSON, giữ id ổn định và tăng phiên bản phù hợp.
+
+5. TÀI KHOẢN VÀ CÁ NHÂN HÓA
+Dùng hệ thống đăng nhập, mua khóa, quyền học và hồ sơ sẵn có. Không xây một
+website rời hoặc cơ chế thanh toán mới. Xác nhận quyền học ở phía máy chủ.
+profile_contract.required_fields gồm full_name và age; trường khác chỉ hỏi
+khi bài cần. Không bắt nhập mọi trường hồ sơ ngay khi đăng ký.
+Tên và tuổi chỉ điền ở vị trí có binding; không thêm tuổi vào mọi câu trả lời.
+placeholder_bindings ánh xạ nhãn ngoặc Anh/Việt theo binding_scope là lesson_id.
+Tra cứu bằng cặp (binding_scope, placeholder), không chỉ bằng chuỗi ngoặc.
+Tên/tuổi dùng trường chung; chi tiết kinh nghiệm theo bài dùng trường riêng.
+Không dùng nhãn chung như [thực tế] của bài PSC để điền vào bài bảo dưỡng.
+profile_contract.fields mô tả trường; hỏi khi cần, không yêu cầu điền mọi trường.
+Mọi câu nhỏ, câu phụ và nhánh thay thế dùng phạm vi bài chứa chúng. Bài con
+liên kết câu phụ phải dùng binding_scope của câu phụ gốc, không scope bài con.
+personalized_answer_templates dùng cho câu chính; các câu nhỏ và câu phụ dùng
+cùng bindings và các alternatives tại chỗ. Dùng dữ liệu bản địa hóa đã được
+học viên xác nhận; không tự đoán trường, chứng chỉ, kinh nghiệm hay thời gian.
+short_answer_alternatives/model_answer.alternatives có condition dạng
+profile_field/equals, hoặc all, hoặc selection cần học viên xác nhận riêng.
+Không suy ra 'chưa có kinh nghiệm' từ một trường đang trống. Nếu nhiều điều
+kiện mâu thuẫn, hỏi học viên xác nhận thực tế, không chọn ngẫu nhiên.
+Giữ đủ ba ý khi chọn nhánh; người chưa thực hành phải có câu trả lời trung thực.
+Không thay JSON chung bằng tên người mua. Hồ sơ, câu trả lời và bản thu riêng
+theo tài khoản; không đưa dữ liệu cá nhân vào kho mã nguồn hoặc công khai.
+Nếu đã có hồ sơ Engine Cadet, dùng lại tên/tuổi và chỉ mở rộng các trường cần
+cho Oiler; không ghi đè dữ liệu đã xác nhận bằng giá trị rỗng.
+
+6. ÔN TẬP VÀ PHỎNG VẤN THỬ
+Đọc learning_policy và rubrics trước khi chấm hoặc lên lịch ôn. Giữ lịch ôn
+và lần làm riêng theo learner_id, lesson_id, lesson_version; OL tránh trùng
+với Engine Cadet. Lưu mức trợ giúp, micro_unit_id/exercise_id khi có, đáp án,
+bản nháp, thời điểm và bằng chứng đã dùng gợi ý.
+Lịch 1/3/7/14/30 ngày là cấu hình thử nghiệm có thể điều chỉnh.
+Đổi mức, nghe, đọc mẫu hoặc chọn đúng trắc nghiệm không tự cấp mastery.
+Đánh giá theo ý nghĩa và ba key_points, không so khớp nguyên văn đoạn mẫu.
+Không bù điểm tiếng Anh cho lỗi an toàn. Lỗi nhận dạng giọng nói chưa rõ cần
+xác nhận văn bản hoặc giảng viên, không tự kết luận sai chuyên môn.
+interview_sessions mô tả kho câu cho phỏng vấn thử, có biến thể nếu phù hợp.
+Chưa có dịch vụ chấm nói thì tự đối chiếu ba ý hoặc giảng viên; không tạo điểm
+AI/phát âm giả. Khóa học không cấp chứng nhận nghề nghiệp hay quyền trực ca.
+
+7. AUDIO VÀ KHẢ NĂNG CÓ THẬT
+assets báo chưa có audio thực. audio_scripts là lời đọc, không phải file.
+Chỉ bật Nghe khi có file hoặc dịch vụ đọc được triển khai thực. Cá nhân hóa
+và chọn nhánh trước khi đọc, không phát nguyên các placeholder chưa điền.
+Ghi âm phải có xử lý quyền microphone và lỗi. Có đường học bằng chữ khi
+không có microphone/audio. Không gửi bản thu ra dịch vụ chưa được cấu hình.
+
+8. NHẬP VÀ PHÁT HÀNH
+Nhập vào môi trường phát triển/xem trước. publication.status là draft và
+publishable_without_review là false; không tự đánh dấu approved vì kiểm tra
+cấu trúc thành công. Nội dung cần duyệt chuyên môn/ngôn ngữ trước phát hành.
+Nội dung khóa có thu phí phải được phục vụ theo quyền truy cập; không đặt
+toàn bộ đáp án trong public hoặc gói tải cho mọi khách chưa có quyền.
+Nhập lại cùng dataset/id/version không tạo trùng bài. Không xóa Engine Cadet, Wiper,
+tiến độ, hồ sơ hoặc thay đổi dữ liệu đang chạy. Không tự triển khai lên web thật.
+
+9. KIỂM TRA NGHIỆM THU
+OL-A001-INTRO: chuyển ba mức giữ nguyên bài; hai tài khoản có tên/tuổi riêng.
+OL-A030 và OL-A032: đủ bảy bước Mức 1, không cắt còn ba bước.
+OL-A011-STCW và OL-A011-COLREG: hai câu riêng với ba ý và đáp án đúng phạm vi.
+OL-A011-I đến VI: đủ sáu bài phụ lục MARPOL, là bài học mở rộng được ghi nguồn.
+OL-A002-EXP/VESSEL: thử nhánh chưa đi biển; OL-A025 thử chưa làm/chỉ quan sát.
+OL-A001-EDU: có câu trung thực khi còn học hoặc chưa hoàn thành khóa nghề.
+OL-A010-SMS: mở câu phụ liên kết từ bài con, giải đủ lookup toàn bộ lessons.
+OL-A013-PSC và OL-A025: điền hai chi tiết thực tế khác nhau, không dùng nhầm
+vì nhãn ngoặc giống nhau. Kiểm tra cả micro, câu đầy đủ, câu phụ và nhánh khác.
+Bài tập có đáp án và phản hồi đúng; vị trí đúng luân phiên A/B/C.
+Tải lại và đổi thiết bị giữ mức/tiến độ theo tài khoản khi đồng bộ được triển khai.
+Hai tài khoản không xem được hồ sơ và bài làm của nhau.
+Không có audio thì không báo nghe thành công; không có chấm nói thì không bịa điểm.
+Đủ 120 bài, 479 micro Q&A, 107 câu phụ, 123 biến thể và 480 bài tập.
+Số bài khóa tanker/dry_cargo/container là 98/99/95. Một bài chung chỉ lưu một lần.
+A004, A005, A020 không có trong nguồn: giữ khoảng trống, không tự thêm câu gốc.
+Nhập lại không trùng, không thay Engine Cadet/Wiper hoặc xóa tiến độ đã có.
+Chạy kiểm tra phù hợp dự án, báo cách mở thử và phần chưa triển khai thật sự.

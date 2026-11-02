@@ -1,0 +1,11 @@
+Hãy thêm bộ khóa học Wiper vào dự án web/app hiện có, áp dụng cùng phương pháp học ba mức tiếng Anh như Engine Cadet. Gói Wiper_Web_App_Handoff_v1 đã được chép vào dự án; hãy xác định vị trí của gói.
+
+Đọc hướng dẫn dự án, cấu trúc mã nguồn và các tệp 02_YEU_CAU_TICH_HOP_WIPER.txt, Wiper_Learning_Data_v1.json, validation_wiper_v1.json trước khi sửa.
+
+Trên đầu mỗi bài có ba nút Mức 1 · Mới bắt đầu / Mức 2 · Cơ bản / Mức 3 · Khá/Tốt. Chuyển nút giữ nguyên bài và thay độ hỗ trợ: học từng câu nhỏ / ba ý chính / câu đầy đủ ít hỗ trợ. Cho chuyển tự do, giữ bản nháp và nhớ mức theo tài khoản/bài.
+
+Dùng đúng nội dung thật trong JSON, giải đủ các mã tham chiếu, cá nhân hóa trung thực và giữ giới hạn Wiper. Đặc biệt, mã WP và dataset Wiper phải tồn tại cùng Engine Cadet; không ghi đè theo mã gốc A001 hoặc so content_version Wiper 1.0.0 với Cadet 6.0.0 như cùng một bộ dữ liệu.
+
+Dùng lại giao diện, tài khoản, mua khóa, quyền học, lưu tiến độ và công nghệ hiện có. Nếu hợp đồng dữ liệu khác, viết bộ chuyển đổi rõ ràng và bảo toàn id, phiên bản, bản nguồn. Không dựng website riêng hoặc xóa dữ liệu đang chạy.
+
+Thực hiện bản tích hợp có thể mở thử trong môi trường phát triển. Kiểm tra các trường hợp nghiệm thu, báo tệp thay đổi, cách thử và phần còn thiếu. Không tự phát hành lên web thật, đổi draft thành approved hay tạo điểm AI/audio giả. Nếu còn thiếu thông tin dự án sau khi đọc mã nguồn, hỏi đúng phần chưa rõ và tiếp tục các phần độc lập.

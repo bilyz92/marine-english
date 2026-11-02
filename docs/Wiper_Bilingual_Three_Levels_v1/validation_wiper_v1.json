@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "statistics": {
+    "unique_source_main_questions": 82,
+    "active_lessons": 107,
+    "source_follow_up_questions_with_own_answers": 107,
+    "bilingual_micro_questions_and_answers": 389,
+    "question_variants": 111,
+    "lessons_with_three_variants": 37,
+    "learning_support_levels": 3,
+    "phrase_exercises": 321,
+    "meaning_exercises": 107,
+    "learning_exercises": 428,
+    "course_lesson_counts": {
+      "wiper_tanker": 86,
+      "wiper_dry_cargo": 87,
+      "wiper_container": 82
+    }
+  },
+  "checks": [
+    "82 original main-question codes fully mapped",
+    "107 original follow-up prompts each have own bilingual answer",
+    "three required points and three support levels per lesson",
+    "three variants on selected common questions",
+    "3 to 7 actual micro Q and A per lesson",
+    "all Word answers and variants match JSON",
+    "no Wiper IDs collide with Engine Cadet",
+    "original files remain unchanged"
+  ],
+  "technical_and_language_approval": "pending_training_reviewer",
+  "render_check": "passed",
+  "rendered_page_counts": {
+    "Wiper_01_Tankers_Bilingual_Three_Levels_v1": 200,
+    "Wiper_02_Dry_Cargo_Bilingual_Three_Levels_v1": 203,
+    "Wiper_03_Container_Bilingual_Three_Levels_v1": 192
+  },
+  "answer_option_distribution": {
+    "B": 36,
+    "A": 36,
+    "C": 35
+  }
+}
