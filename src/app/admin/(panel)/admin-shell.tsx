@@ -13,6 +13,7 @@ const NAV: { href: string; label: string; permission: string }[] = [
   { href: "/admin/don-hang", label: "Đơn hàng", permission: "orders.view" },
   { href: "/admin/hoc-vien", label: "Học viên", permission: "orders.view" },
   { href: "/admin/khoa-hoc", label: "Khóa học", permission: "orders.view" },
+  { href: "/admin/noi-dung", label: "Nhập nội dung", permission: "content.edit" },
   { href: "/admin/cap-khoa", label: "Cấp không thu tiền", permission: "grants.create" },
   { href: "/admin/gop-tai-khoan", label: "Gộp tài khoản", permission: "accounts.merge" },
   { href: "/admin/quan-tri-vien", label: "Quản trị viên", permission: "admins.manage" },

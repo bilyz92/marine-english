@@ -27,7 +27,7 @@ export async function disconnectDb(): Promise<void> {
 
 const RETRYABLE = new Set(["40P01", "40001", "55P03"]);
 
-function pgCode(error: unknown): string | undefined {
+export function pgCode(error: unknown): string | undefined {
   const e = error as { code?: unknown; meta?: { code?: unknown }; cause?: { code?: unknown } };
   for (const c of [e?.code, e?.meta?.code, e?.cause?.code]) {
     if (typeof c === "string" && /^[0-9A-Z]{5}$/.test(c)) return c;

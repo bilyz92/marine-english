@@ -27,5 +27,6 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/((?!_next/|favicon.ico).*)"],
+  // Tải gói nội dung không qua proxy (proxy đệm thân request, giới hạn 10 MB); handler tự kiểm phiên, CSRF, quyền và kích thước.
+  matcher: ["/((?!_next/|favicon.ico|api/quan-tri/content/import$).*)"],
 };

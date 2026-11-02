@@ -35,7 +35,7 @@ export default function CoursesPage() {
       <LoadState {...state} reload={reload} />
       {data && (
         <section className={styles.card}>
-          {data.courses.length === 0 && <p className={styles.muted}>Chưa có khóa nào. Nhập nội dung bằng lệnh content:import.</p>}
+          {data.courses.length === 0 && <p className={styles.muted}>Chưa có khóa nào. Chủ thêm khóa ở mục Nhập nội dung.</p>}
           {data.courses.map((c) => (
             <div key={c.id} className={styles.item}>
               <div className={styles.itemText}><span>{c.titleVi}</span><span className={styles.muted}>{c.slug} · {c.priceVnd ? formatVnd(c.priceVnd) : "Chưa đặt giá"}</span></div>

@@ -86,7 +86,7 @@ function withLinkedFollowUps(lessons: RawLesson[]): RawLesson[] {
 export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<ImportReport> {
   const parsed = datasets.map(parse);
   const report: ImportReport = { courses: [], newCourseVersions: 0, newLessonVersions: 0 };
-  await sql.query(`SELECT pg_advisory_xact_lock(hashtext('content-import'))`);
+  await sql.query(`SELECT 1 AS ok FROM pg_advisory_xact_lock(hashtext('content-import'))`);
   for (const { contentVersion, courses, lessons, activities } of parsed) {
     const lessonVersion = new Map<string, { id: string; hash: string }>();
     for (const lesson of withLinkedFollowUps(lessons)) {
@@ -94,16 +94,16 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
       const content: Json = { ...lesson, activities: own };
       const hash = sha256(canonical(content));
       await sql.query(`INSERT INTO lessons (external_id) VALUES ($1) ON CONFLICT (external_id) DO NOTHING`, [lesson.id]);
-      const [l] = await sql.query<{ id: string }>(`SELECT id FROM lessons WHERE external_id = $1`, [lesson.id]);
+      const [l] = await sql.query<{ id: string }>(`SELECT id::text AS id FROM lessons WHERE external_id = $1`, [lesson.id]);
       const [existing] = await sql.query<{ id: string }>(
-        `SELECT id FROM lesson_versions WHERE lesson_id = $1 AND content_hash = $2`,
+        `SELECT id::text AS id FROM lesson_versions WHERE lesson_id = $1::uuid AND content_hash = $2`,
         [l!.id, hash],
       );
       let id = existing?.id;
       if (!id) {
         const [created] = await sql.query<{ id: string }>(
           `INSERT INTO lesson_versions (lesson_id, version, content, content_hash)
-           VALUES ($1, (SELECT coalesce(max(version), 0) + 1 FROM lesson_versions WHERE lesson_id = $1), $2, $3) RETURNING id`,
+           VALUES ($1::uuid, (SELECT coalesce(max(version), 0) + 1 FROM lesson_versions WHERE lesson_id = $1::uuid), $2::jsonb, $3) RETURNING id::text AS id`,
           [l!.id, JSON.stringify(content), hash],
         );
         id = created!.id;
@@ -120,36 +120,36 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
       });
       const sourceHash = sha256(JSON.stringify(members.map((m) => [m.externalId, m.hash])));
       const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null }>(
-        `SELECT id, status, current_version_id FROM courses WHERE slug = $1 FOR UPDATE`,
+        `SELECT id::text AS id, status, current_version_id::text AS current_version_id FROM courses WHERE slug = $1 FOR UPDATE`,
         [course.id],
       );
       const [c] = await sql.query<{ id: string; status: string }>(
         `INSERT INTO courses (slug, title_vi, title_en) VALUES ($1, $2, $3)
          ON CONFLICT (slug) DO UPDATE SET title_vi = EXCLUDED.title_vi, title_en = EXCLUDED.title_en, updated_at = now()
-         RETURNING id, status`,
+         RETURNING id::text AS id, status`,
         [course.id, course.title.vi, course.title.en],
       );
       const [existing] = await sql.query<{ id: string }>(
-        `SELECT id FROM course_versions WHERE course_id = $1 AND source_hash = $2`,
+        `SELECT id::text AS id FROM course_versions WHERE course_id = $1::uuid AND source_hash = $2`,
         [c!.id, sourceHash],
       );
       let versionId = existing?.id;
       if (!versionId) {
         const [created] = await sql.query<{ id: string }>(
           `INSERT INTO course_versions (course_id, version, content_version, source_hash)
-           VALUES ($1, (SELECT coalesce(max(version), 0) + 1 FROM course_versions WHERE course_id = $1), $2, $3) RETURNING id`,
+           VALUES ($1::uuid, (SELECT coalesce(max(version), 0) + 1 FROM course_versions WHERE course_id = $1::uuid), $2, $3) RETURNING id::text AS id`,
           [c!.id, contentVersion, sourceHash],
         );
         versionId = created!.id;
         report.newCourseVersions += 1;
         for (const [i, m] of members.entries()) {
           await sql.query(
-            `INSERT INTO course_version_lessons (course_version_id, lesson_version_id, position, is_free_trial) VALUES ($1, $2, $3, $4)`,
+            `INSERT INTO course_version_lessons (course_version_id, lesson_version_id, position, is_free_trial) VALUES ($1::uuid, $2::uuid, $3::int, $4::boolean)`,
             [versionId, m.id, i + 1, i < FREE_TRIAL_LESSONS],
           );
         }
       }
-      await sql.query(`UPDATE courses SET current_version_id = $2, updated_at = now() WHERE id = $1 AND current_version_id IS DISTINCT FROM $2`, [c!.id, versionId]);
+      await sql.query(`UPDATE courses SET current_version_id = $2::uuid, updated_at = now() WHERE id = $1::uuid AND current_version_id IS DISTINCT FROM $2::uuid`, [c!.id, versionId]);
       report.courses.push({
         slug: course.id,
         titleVi: course.title.vi,

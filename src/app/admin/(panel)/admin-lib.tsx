@@ -36,6 +36,10 @@ const MESSAGES: Record<string, string> = {
   missing_payout: "Chưa có tài khoản nhận tiền của học viên: nhập trước khi duyệt.",
   active_full_refund: "Đơn này đã có yêu cầu hoàn tiền đang mở.",
   not_paid: "Đơn chưa thanh toán hoặc đã hoàn.",
+  stale_preview: "Dữ liệu đã đổi hoặc bản xem trước đã quá 15 phút. Bấm Xem trước lại.",
+  needs_confirm: "Có khóa đang bán sẽ đổi nội dung: tích ô xác nhận rồi làm lại.",
+  stale: "Bài hoặc khóa vừa được sửa ở chỗ khác. Tải lại rồi làm lại.",
+  busy: "Đang có thao tác nội dung khác, thử lại sau ít giây.",
 };
 export const messageFor = (code: unknown) => (typeof code === "string" && MESSAGES[code]) || (typeof code === "string" && code) || "Có lỗi, thử lại sau.";
 
@@ -50,6 +54,17 @@ export async function adminApi<T = Record<string, never>>(path: string, init: { 
   if (!res) return { ok: false, status: 0, data: { error: "Không kết nối được, kiểm tra mạng." } as never };
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- phiên hết hạn: tải lại toàn trang để bỏ trạng thái cũ.
   if (res.status === 401) window.location.assign(`/admin/dang-nhap`);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+/** Gửi tệp (bytes thô) tới API quản trị, ví dụ gói nội dung. */
+export async function adminUpload<T>(path: string, file: Blob, headers: Record<string, string> = {}): Promise<ApiResult<T>> {
+  const res = await fetch(path, { method: "POST", headers: { "content-type": "application/octet-stream", ...csrf(), ...headers }, body: file }).catch(() => null);
+  if (!res) return { ok: false, status: 0, data: { error: "Không kết nối được, kiểm tra mạng." } as never };
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- phiên hết hạn: tải lại toàn trang để bỏ trạng thái cũ.
+  if (res.status === 401) window.location.assign(`/admin/dang-nhap`);
+  if (res.status === 413) return { ok: false, status: 413, data: { error: "Tệp lớn hơn 16 MB." } as never };
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, data };
 }

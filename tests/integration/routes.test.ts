@@ -71,6 +71,13 @@ describe("proxy", () => {
     expect((await proxy(req("/api/me/identities", { cookie: "__Host-me_admin=t" }))).status).toBe(401);
   });
 
+  it("chỉ đường dẫn tải gói nội dung được bỏ qua proxy", async () => {
+    const { config } = await import("@/proxy");
+    const re = new RegExp(`^${config.matcher[0]}$`);
+    expect(re.test("/api/quan-tri/content/import")).toBe(false);
+    for (const p of ["/api/quan-tri/content/import/x", "/api/quan-tri/content/importer", "/api/quan-tri/admins", "/admin"]) expect(re.test(p)).toBe(true);
+  });
+
   it("đường dẫn cũ /quan-tri/** chuyển hẳn sang /admin/**, giữ query; API /api/quan-tri không đổi", async () => {
     for (const [from, to] of [
       ["/quan-tri", "/admin"],
