@@ -21,8 +21,9 @@ export default function AdminLoginPage({ searchParams }: PageProps<"/admin/dang-
     <main className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brand}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.svg" alt="" width={36} height={36} />
+          <span className={styles.logo}>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="2" /><path d="M12 7v14" /><path d="M5 12H3a9 9 0 0 0 18 0h-2" /><path d="M8 10h8" /></svg>
+          </span>
           <span className={styles.brandName}>Marine English</span>
           <span className={styles.badge}>Quản trị</span>
         </div>
