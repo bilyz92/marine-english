@@ -35,6 +35,12 @@ export function pgCode(error: unknown): string | undefined {
   return undefined;
 }
 
+/** Mã Postgres thật của lỗi, kể cả khi câu SQL thô bị Prisma bọc thành P2010 (mã nằm trong meta.driverAdapterError). */
+export function sqlState(error: unknown): string | undefined {
+  const inner = (error as { meta?: { driverAdapterError?: { cause?: { code?: unknown } } } })?.meta?.driverAdapterError?.cause?.code;
+  return typeof inner === "string" ? inner : pgCode(error);
+}
+
 export type TxOptions = {
   lockTimeoutMs?: number;
   statementTimeoutMs?: number;

@@ -35,7 +35,7 @@ export type CourseReport = {
 export type ImportReport = { courses: CourseReport[]; newCourseVersions: number; newLessonVersions: number };
 
 /** JSON với khóa sắp xếp, để hash không phụ thuộc thứ tự khóa. */
-function canonical(value: Json): string {
+export function canonical(value: Json): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value && typeof value === "object") {
     return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonical(value[k]!)}`).join(",")}}`;
@@ -44,6 +44,9 @@ function canonical(value: Json): string {
 }
 
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
+
+/** Hash nội dung bài (dùng chung cho bộ nhập và trình soạn bài trên web). */
+export const contentHash = (content: unknown) => sha256(canonical(content as Json));
 
 function parse(data: unknown): { contentVersion: string; courses: RawCourse[]; lessons: RawLesson[]; activities: RawActivity[] } {
   const d = data as { publication?: { importable?: unknown }; content_version?: unknown; courses?: unknown; lessons?: unknown; activities?: unknown };
@@ -92,7 +95,7 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
     for (const lesson of withLinkedFollowUps(lessons)) {
       const own = activities.filter((a) => a.lesson_id === lesson.id).sort((a, b) => a.order - b.order);
       const content: Json = { ...lesson, activities: own };
-      const hash = sha256(canonical(content));
+      const hash = contentHash(content);
       await sql.query(`INSERT INTO lessons (external_id) VALUES ($1) ON CONFLICT (external_id) DO NOTHING`, [lesson.id]);
       const [l] = await sql.query<{ id: string }>(`SELECT id::text AS id FROM lessons WHERE external_id = $1`, [lesson.id]);
       const [existing] = await sql.query<{ id: string }>(

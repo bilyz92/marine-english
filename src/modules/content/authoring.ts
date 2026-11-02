@@ -1,5 +1,5 @@
 import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
-import { pgCode, withTx, type Tx } from "@/lib/db";
+import { sqlState, withTx, type Tx } from "@/lib/db";
 import { env } from "@/lib/env";
 import { HttpError } from "@/lib/http";
 import { audit } from "@/modules/audit/audit";
@@ -11,7 +11,7 @@ import { PackageError, readPackage } from "./package";
 // Xem trước = chạy đúng đường nhập trong giao dịch rồi ROLLBACK; nhập thật cần biên nhận của lần xem trước.
 
 export class ContentConflict extends Error {
-  constructor(readonly code: "stale_preview" | "needs_confirm" | "busy", readonly courses: string[] = []) {
+  constructor(readonly code: "stale_preview" | "stale" | "needs_confirm" | "busy", readonly courses: string[] = []) {
     super(code);
   }
 }
@@ -111,7 +111,7 @@ export async function importUpload(
       return view;
     } catch (error) {
       if (error instanceof DryRun) return { ...error.view, receipt: issueReceipt(ctx.adminId, pkg.sha256, error.view.courses) };
-      if (pgCode(error) === "55P03") throw new ContentConflict("busy");
+      if (sqlState(error) === "55P03") throw new ContentConflict("busy");
       throw error;
     }
   } finally {

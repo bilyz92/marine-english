@@ -18,7 +18,16 @@ const check = (name, ok, extra = "") => { console.log(ok ? "✓" : "✗", name, 
 const text = () => b.evaluate(`document.body?.innerText ?? ""`);
 const waitFor = async (fn, ms = 30000) => { for (let i = 0; i < ms / 250; i++) { if (await fn()) return true; await sleep(250); } return false; };
 const see = (s, ms) => waitFor(async () => (await text()).includes(s), ms);
-const click = async (label) => { const ok = await waitFor(() => b.evaluate(`(() => { const el = [...document.querySelectorAll("button,a")].find((e) => e.textContent.trim() === ${JSON.stringify(label)} && !e.disabled); if (!el) return false; el.click(); return true; })()`), 15000); if (!ok) check(`bấm được “${label}”`, false); return ok; };
+const click = async (label) => { const ok = await waitFor(() => b.evaluate(`(() => { const scope = document.querySelector("dialog[open]") ?? document; const el = [...scope.querySelectorAll("button,a")].find((e) => e.textContent.trim() === ${JSON.stringify(label)} && !e.disabled); if (!el) return false; el.click(); return true; })()`), 15000); if (!ok) check(`bấm được “${label}”`, false); return ok; };
+const fill = (label, value) => b.evaluate(`(() => {
+  const scope = document.querySelector("dialog[open]") ?? document;
+  const field = [...scope.querySelectorAll("label")].find((l) => l.textContent.trim().startsWith(${JSON.stringify(label)}));
+  const el = field?.querySelector("input,textarea");
+  if (!el) throw new Error("không có ô " + ${JSON.stringify(label)});
+  const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement : HTMLInputElement;
+  Object.getOwnPropertyDescriptor(proto.prototype, "value").set.call(el, ${JSON.stringify(value)});
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+})()`);
 const hydrated = () => waitFor(() => b.evaluate(`(() => { const el = document.querySelector("button"); return !!el && Object.keys(el).some((k) => k.startsWith("__reactProps")); })()`), 30000);
 
 async function chooseFile(path) {
@@ -105,6 +114,36 @@ try {
   await click("Xem trước");
   check("gói 12 MB qua được (không bị proxy chặn)", await see("wiper_container · 82 bài", 60000), (await text()).slice(-300));
 
+  // Tạo khóa nháp, thêm bài, sửa bài.
+  const slug = `khoa_thu_${stamp}`;
+  await b.go(`${BASE}/admin/khoa-hoc`);
+  await hydrated();
+  await click("Tạo khóa mới");
+  await fill("Mã khóa", slug);
+  await fill("Tên tiếng Việt", "Khóa thử soạn bài");
+  await fill("Tên tiếng Anh", "Authoring test");
+  await click("Tạo khóa");
+  check("tạo khóa mới", await see(slug));
+  await b.go(`${BASE}/admin/khoa-hoc/${slug}`);
+  await hydrated();
+  check("khóa mới chưa có bài", await see("Khóa chưa có bài"));
+  await click("Thêm bài");
+  await fill("Câu hỏi · tiếng Anh", "What does a lube oil purifier do?");
+  await fill("Câu hỏi · tiếng Việt", "Máy lọc dầu bôi trơn làm gì?");
+  await click("Thêm ý chính");
+  await fill("Ý chính 1 · tiếng Anh", "Removes water and solids");
+  await click("Lưu bài");
+  check("thêm bài đầu tiên", await see(`Đã thêm bài ${slug}-b1`));
+  check("bài hiện trong danh sách, chưa có đáp án", await see("chưa có đáp án mẫu"));
+  await click("Sửa");
+  check("mở bài để sửa", await see("Sửa bài"));
+  await fill("Đáp án mẫu · tiếng Anh", "It separates water and dirt from the oil.");
+  await click("Lưu bài");
+  check("sửa bài", await see(`Đã lưu bài ${slug}-b1`) && !(await text()).includes("chưa có đáp án mẫu"));
+  await b.shot(`${OUT}/soan-bai.png`);
+
+  await b.go(`${BASE}/admin/noi-dung`);
+  await hydrated();
   await b.width(360, 800);
   const problems = await b.evaluate(PAGE_CHECKS);
   check("điện thoại không tràn, ô có nhãn", problems.length === 0, JSON.stringify(problems));
