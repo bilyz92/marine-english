@@ -6,21 +6,28 @@ import { englishLocalVoices, pickVoice, speakableText, VOICE_KEY } from "@/lib/c
 
 // Nút "Nghe" đọc tiếng Anh bằng giọng cài trên máy. Không có giọng tiếng Anh cục bộ thì không hiện nút.
 
+// Một kho giọng chung cho mọi nút: trình duyệt thường trả danh sách rỗng lúc đầu rồi báo "voiceschanged" một lần,
+// nên khi danh sách đổi phải báo cho MỌI thành phần đang dùng.
 const NO_VOICES: SpeechSynthesisVoice[] = [];
 let cached: SpeechSynthesisVoice[] = NO_VOICES;
+const listeners = new Set<() => void>();
+
+function refresh() {
+  const next = window.speechSynthesis.getVoices();
+  if (next.length === cached.length && next.every((v, i) => v === cached[i])) return;
+  cached = next.length ? next : NO_VOICES;
+  for (const l of listeners) l();
+}
 
 function subscribe(onChange: () => void): () => void {
   if (typeof window === "undefined" || !window.speechSynthesis) return () => {};
-  const update = () => {
-    const next = window.speechSynthesis.getVoices();
-    if (next.length !== cached.length || next.some((v, i) => v !== cached[i])) {
-      cached = next.length ? next : NO_VOICES;
-      onChange();
-    }
+  if (!listeners.size) window.speechSynthesis.addEventListener?.("voiceschanged", refresh);
+  listeners.add(onChange);
+  refresh();
+  return () => {
+    listeners.delete(onChange);
+    if (!listeners.size) window.speechSynthesis.removeEventListener?.("voiceschanged", refresh);
   };
-  window.speechSynthesis.addEventListener?.("voiceschanged", update);
-  update();
-  return () => window.speechSynthesis.removeEventListener?.("voiceschanged", update);
 }
 
 const snapshot = () => cached;

@@ -2,7 +2,13 @@
 # mọi tệp đi qua app, tệp trả phí chỉ qua API có kiểm quyền.
 {$APP_DOMAIN} {
 	encode zstd gzip
-	request_body {
+	# Chủ tải gói nội dung: 16 MB, khớp giới hạn của app; mọi đường dẫn khác 5 MB.
+	@contentImport path /api/quan-tri/content/import
+	request_body @contentImport {
+		max_size 16MB
+	}
+	@other not path /api/quan-tri/content/import
+	request_body @other {
 		max_size 5MB
 	}
 	header {

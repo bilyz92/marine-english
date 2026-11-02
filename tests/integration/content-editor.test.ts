@@ -62,7 +62,13 @@ describe("soạn bài trên web", () => {
     expect(row).toMatchObject({ admin_user_id: owner.adminId, target_id: "engine_cadet_tanker/A001", result: "ok" });
 
     // Lưu lại y nguyên: không tạo phiên bản mới.
-    const same = await put(owner, "engine_cadet_tanker", "A001", { expectedVersionId: after.course.currentVersionId, ...fields("Introduce yourself, please.") });
+    const ids = (key: string) => (lesson.content[key] as { id: string }[]).map((x) => x.id);
+    const same = await put(owner, "engine_cadet_tanker", "A001", {
+      expectedVersionId: after.course.currentVersionId,
+      ...fields("Introduce yourself, please."),
+      keyPoints: [{ id: ids("key_points")[0], en: "Point one", vi: "Ý một" }],
+      followUps: [{ id: ids("follow_up_questions")[0], en: "Why?", vi: "Vì sao?" }],
+    });
     expect(same.status).toBe(200);
     expect((await listing(owner, "engine_cadet_tanker")).course.currentVersionId).toBe(after.course.currentVersionId);
   });
@@ -142,4 +148,27 @@ describe("soạn bài trên web", () => {
     expect((await callAdmin(createCourse, support, "POST", "/x", { slug: "abc_def", titleVi: "A", titleEn: "B" })).status).toBe(403);
     expect((await put(owner, "engine_cadet_tanker", "A001", { expectedVersionId: v, ...fields("") })).status).toBe(400);
   });
+
+  it("bỏ một mục: giữ đúng mã và dữ liệu kèm theo của các mục còn lại; mục mới có mã mới, không thừa hưởng", async () => {
+    await seedContent();
+    const owner = await adminSess("owner");
+    const v = (await listing(owner, "engine_cadet_tanker")).course.currentVersionId;
+    const res = await put(owner, "engine_cadet_tanker", "A001", {
+      expectedVersionId: v,
+      ...fields("Introduce yourself."),
+      keyPoints: [{ id: "A001.kp.2", en: "Second point", vi: "" }, { id: "A001.kp.3", en: "Third point", vi: "" }, { en: "Brand new point", vi: "" }],
+      followUps: [{ en: "A new follow-up?", vi: "" }],
+    });
+    expect(res.status).toBe(200);
+    const lesson = (await (await callAdmin(getLesson, owner, "GET", "/x", undefined, { slug: "engine_cadet_tanker", externalId: "A001" })).json()) as Lesson;
+    const kps = lesson.content.key_points as { id: string; order: number; assessment_scope?: string; text: { en: string } }[];
+    expect(kps.map((k) => [k.id, k.order, k.text.en])).toEqual([["A001.kp.2", 1, "Second point"], ["A001.kp.3", 2, "Third point"], ["A001.kp.4", 3, "Brand new point"]]);
+    expect(kps[0]!.assessment_scope).toBe("this_question");
+    expect(kps[2]).not.toHaveProperty("assessment_scope");
+    const fus = lesson.content.follow_up_questions as Record<string, unknown>[];
+    expect(fus).toHaveLength(1);
+    expect(fus[0]!.id).not.toBe("A001.probe.1");
+    expect(fus[0]).not.toHaveProperty("model_answer");
+  });
 });
+

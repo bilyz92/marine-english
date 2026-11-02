@@ -15,7 +15,7 @@ const FREE_TRIAL_LESSONS = 3;
 const EDIT_TX = { lockTimeoutMs: 3_000, retries: 0 };
 
 const text = z.string().trim().max(4000);
-const pair = z.object({ en: text, vi: text.optional().default("") });
+const pair = z.object({ id: z.string().max(200).optional(), en: text, vi: text.optional().default("") });
 export const LessonFields = z.object({
   questionEn: text.min(1),
   questionVi: text.optional().default(""),
@@ -77,6 +77,25 @@ export async function lessonInCourse(ctx: AdminCtx, slug: string, externalId: st
   return { externalId, content: m.content, currentVersionId: course.current_version_id, status: course.status };
 }
 
+/** Mục danh sách soạn được: mục cũ ghép theo mã (giữ dữ liệu kèm theo), mục mới lấy mã mới, không thừa hưởng gì. */
+function mergeById(oldItems: Json[], items: { id?: string; en: string; vi: string }[], prefix: string, build: (p: { en: string; vi: string }) => Json, withOrder: boolean): Json[] {
+  const byId = new Map(oldItems.map((o) => [String(o.id), o]));
+  const taken = new Set([...byId.keys(), ...items.map((i) => i.id).filter(Boolean)] as string[]);
+  let n = 0;
+  const fresh = () => {
+    do n++;
+    while (taken.has(`${prefix}.${n}`));
+    taken.add(`${prefix}.${n}`);
+    return `${prefix}.${n}`;
+  };
+  return items
+    .filter((i) => i.en)
+    .map((i, k) => {
+      const old = i.id ? byId.get(i.id) : undefined;
+      return { ...(old ?? {}), id: old ? i.id : fresh(), ...(withOrder ? { order: k + 1 } : {}), ...build(i) };
+    });
+}
+
 /** Ghép trường soạn được vào nội dung cũ; giữ nguyên mọi trường khác (học liệu ba mức, hoạt động, nguồn…). */
 export function applyFields(base: Json, id: string, f: z.infer<typeof LessonFields>): Json {
   const old = (key: string) => ((base[key] as Json[] | undefined) ?? []);
@@ -84,9 +103,9 @@ export function applyFields(base: Json, id: string, f: z.infer<typeof LessonFiel
     ...base,
     id,
     question: { ...(base.question as Json | undefined), id: (base.question as Json | undefined)?.id ?? `${id}.question`, text: bilingual(f.questionEn, f.questionVi) },
-    key_points: f.keyPoints.filter((k) => k.en).map((k, i) => ({ ...old("key_points")[i], id: old("key_points")[i]?.id ?? `${id}.kp.${i + 1}`, order: i + 1, text: bilingual(k.en, k.vi) })),
+    key_points: mergeById(old("key_points"), f.keyPoints, `${id}.kp`, (k) => ({ text: bilingual(k.en, k.vi) }), true),
     vocabulary: f.vocabulary.filter((v) => v.en).map((v, i) => ({ id: `${id}.vocab.${i + 1}`, text: bilingual(v.en, v.vi) })),
-    follow_up_questions: f.followUps.filter((q) => q.en).map((q, i) => ({ ...old("follow_up_questions")[i], id: old("follow_up_questions")[i]?.id ?? `${id}.probe.${i + 1}`, prompt: bilingual(q.en, q.vi) })),
+    follow_up_questions: mergeById(old("follow_up_questions"), f.followUps, `${id}.probe`, (q) => ({ prompt: bilingual(q.en, q.vi) }), false),
   };
   if (f.modelAnswerEn) next.model_answer = { ...(base.model_answer as Json | undefined), id: (base.model_answer as Json | undefined)?.id ?? `${id}.answer`, text: bilingual(f.modelAnswerEn, f.modelAnswerVi) };
   else delete next.model_answer;

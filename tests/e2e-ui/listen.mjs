@@ -15,21 +15,25 @@ const hydrated = () => waitFor(() => b.evaluate(`(() => { const el = document.qu
 const buttons = (label) => b.evaluate(`[...document.querySelectorAll("button")].filter((e) => e.textContent.trim() === ${JSON.stringify(label)}).length`);
 
 // Giả lập Web Speech: danh sách giọng theo kịch bản, ghi lại câu được đọc.
-const stub = (voices) => `(() => {
-  const voices = ${JSON.stringify(voices)}.map((v) => ({ ...v, voiceURI: v.name, default: false }));
+// delayMs > 0: như Chrome thật, lúc đầu chưa có giọng, sau đó mới báo "voiceschanged".
+const stub = (voices, delayMs = 0) => `(() => {
+  const all = ${JSON.stringify(voices)}.map((v) => ({ ...v, voiceURI: v.name, default: false }));
+  let current = ${delayMs} > 0 ? [] : all;
+  const handlers = new Set();
   const spoken = [];
   window.__spoken = spoken;
   window.SpeechSynthesisUtterance = function (text) { this.text = text; };
   Object.defineProperty(window, "speechSynthesis", { configurable: true, value: {
-    getVoices: () => voices, speak: (u) => { spoken.push({ text: u.text, voice: u.voice && u.voice.name }); setTimeout(() => u.onend && u.onend(), 50); },
-    cancel: () => {}, addEventListener: () => {}, removeEventListener: () => {},
+    getVoices: () => current, speak: (u) => { spoken.push({ text: u.text, voice: u.voice && u.voice.name }); setTimeout(() => u.onend && u.onend(), 50); },
+    cancel: () => {}, addEventListener: (t, h) => { if (t === "voiceschanged") handlers.add(h); }, removeEventListener: (t, h) => handlers.delete(h),
   } });
+  if (${delayMs} > 0) setTimeout(() => { current = all; for (const h of handlers) h(); }, ${delayMs});
 })()`;
 
 let scriptId = null;
-async function withVoices(voices) {
+async function withVoices(voices, delayMs = 0) {
   if (scriptId) await b.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId });
-  scriptId = (await b.send("Page.addScriptToEvaluateOnNewDocument", { source: stub(voices) })).result.identifier;
+  scriptId = (await b.send("Page.addScriptToEvaluateOnNewDocument", { source: stub(voices, delayMs) })).result.identifier;
 }
 
 try {
@@ -47,6 +51,13 @@ try {
   const problems = await b.evaluate(PAGE_CHECKS);
   check("điện thoại không tràn", problems.length === 0, JSON.stringify(problems));
   await b.shot(`${OUT}/nghe-co-giong.png`);
+
+  // Giọng tới muộn (như Chrome/Android thật): mọi nút Nghe đều phải hiện, không chỉ ô chọn giọng.
+  await withVoices([{ name: "Daniel", lang: "en-GB", localService: true }], 1500);
+  await b.go(`${BASE}/khoa-hoc/${WITH_ANSWER}/hoc-thu/1`);
+  await hydrated();
+  const late = await waitFor(async () => (await buttons("Nghe")) >= 4, 8000);
+  check("giọng nạp muộn → mọi nút Nghe đều hiện", late, String(await buttons("Nghe")));
 
   await withVoices([{ name: "Remote US", lang: "en-US", localService: false }]);
   await b.go(`${BASE}/khoa-hoc/${WITH_ANSWER}/hoc-thu/1`);

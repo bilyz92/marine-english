@@ -127,6 +127,13 @@ describe("nhập gói nội dung trên web", () => {
     expect(blocked.status).toBe(409);
     expect(await blocked.json()).toMatchObject({ error: "needs_confirm", courses: ["engine_cadet_tanker"] });
     expect((await apply(owner, bytes, "content-mini.json", p.receipt, { confirmLive: "1" })).status).toBe(200);
+
+    // Chỉ đổi tên khóa đang bán cũng cần xác nhận.
+    changed.courses[0].title.vi = "Tên mới của khóa";
+    const renamed = Buffer.from(JSON.stringify(changed));
+    const r = await preview(owner, renamed, "content-mini.json");
+    expect(r.courses.find((c) => c.slug === "engine_cadet_tanker")).toMatchObject({ newVersion: false, live: true });
+    expect((await apply(owner, renamed, "content-mini.json", r.receipt)).status).toBe(409);
   });
 
   it("gói hai bộ mà bộ sau lỗi → không ghi gì; lỗi ghi audit → không ghi gì", async () => {

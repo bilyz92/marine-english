@@ -82,7 +82,8 @@ export async function importUpload(
           if (error instanceof ContentImportError) throw new HttpError(400, error.message);
           throw error;
         }
-        const courses = report.courses.map((c) => ({ ...c, live: c.existed && c.status === "published" && c.newVersion }));
+        // Khóa đang bán đổi nội dung hoặc đổi tên đều cần chủ xác nhận.
+        const courses = report.courses.map((c) => ({ ...c, live: c.existed && c.status === "published" && (c.newVersion || c.titleChanged) }));
         const result: ImportView = {
           file: fileName,
           sha256: pkg.sha256,
@@ -112,6 +113,8 @@ export async function importUpload(
     } catch (error) {
       if (error instanceof DryRun) return { ...error.view, receipt: issueReceipt(ctx.adminId, pkg.sha256, error.view.courses) };
       if (sqlState(error) === "55P03") throw new ContentConflict("busy");
+      // Giao dịch quá 60 s (Prisma P2028): đã rollback, không ghi gì.
+      if ((error as { code?: unknown })?.code === "P2028") throw new HttpError(503, "timeout");
       throw error;
     }
   } finally {

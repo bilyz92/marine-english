@@ -31,6 +31,8 @@ export type CourseReport = {
   versionBefore: string | null;
   versionAfter: string;
   newVersion: boolean;
+  /** Khóa có sẵn mà tên đổi theo gói. */
+  titleChanged: boolean;
 };
 export type ImportReport = { courses: CourseReport[]; newCourseVersions: number; newLessonVersions: number };
 
@@ -122,8 +124,8 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
         return { externalId, ...v };
       });
       const sourceHash = sha256(JSON.stringify(members.map((m) => [m.externalId, m.hash])));
-      const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null }>(
-        `SELECT id::text AS id, status, current_version_id::text AS current_version_id FROM courses WHERE slug = $1 FOR UPDATE`,
+      const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null; title_vi: string; title_en: string }>(
+        `SELECT id::text AS id, status, current_version_id::text AS current_version_id, title_vi, title_en FROM courses WHERE slug = $1 FOR UPDATE`,
         [course.id],
       );
       const [c] = await sql.query<{ id: string; status: string }>(
@@ -158,6 +160,7 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
         titleVi: course.title.vi,
         lessons: members.length,
         existed: !!before,
+        titleChanged: !!before && (before.title_vi !== course.title.vi || before.title_en !== course.title.en),
         status: c!.status,
         versionBefore: before?.current_version_id ?? null,
         versionAfter: versionId,

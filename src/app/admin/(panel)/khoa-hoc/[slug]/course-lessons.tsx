@@ -9,24 +9,25 @@ import styles from "../../admin.module.css";
 
 type Row = { position: number; externalId: string; questionEn: string; questionVi: string; isFreeTrial: boolean; hasAnswer: boolean };
 type Listing = { course: { slug: string; titleVi: string; status: string; currentVersionId: string | null }; lessons: Row[] };
-type Pair = { en: string; vi: string };
+type Pair = { id?: string; en: string; vi: string };
 type Form = { questionEn: string; questionVi: string; keyPoints: Pair[]; vocabulary: Pair[]; modelAnswerEn: string; modelAnswerVi: string; followUps: Pair[] };
 type Bi = { en?: string; vi?: string };
 
 const EMPTY: Form = { questionEn: "", questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [] };
-const pairOf = (t: Bi | undefined): Pair => ({ en: t?.en ?? "", vi: t?.vi ?? "" });
+const pairOf = (t: Bi | undefined, id?: unknown): Pair => ({ ...(typeof id === "string" ? { id } : {}), en: t?.en ?? "", vi: t?.vi ?? "" });
 
 function formOf(c: Record<string, unknown>): Form {
   const list = (key: string) => ((c[key] as Record<string, unknown>[] | undefined) ?? []);
   return {
     questionEn: pairOf((c.question as { text?: Bi })?.text).en,
     questionVi: pairOf((c.question as { text?: Bi })?.text).vi,
-    keyPoints: list("key_points").map((k) => pairOf(k.text as Bi)),
+    // Giữ mã từng mục để máy chủ ghép đúng dữ liệu kèm theo khi bỏ hoặc thêm mục.
+    keyPoints: list("key_points").map((k) => pairOf(k.text as Bi, k.id)),
     // Từ vựng có hai dạng: {text:{en,vi}} (Engine Cadet) hoặc {en,vi} (Oiler, Wiper).
     vocabulary: list("vocabulary").map((v) => pairOf((v.text as Bi | undefined) ?? (v as Bi))),
     modelAnswerEn: pairOf((c.model_answer as { text?: Bi })?.text).en,
     modelAnswerVi: pairOf((c.model_answer as { text?: Bi })?.text).vi,
-    followUps: list("follow_up_questions").map((q) => pairOf(q.prompt as Bi)),
+    followUps: list("follow_up_questions").map((q) => pairOf(q.prompt as Bi, q.id)),
   };
 }
 
@@ -36,7 +37,7 @@ function Pairs({ label, items, onChange, addLabel }: { label: string; items: Pai
     <fieldset className={styles.form}>
       <legend className={styles.h2}>{label}</legend>
       {items.map((p, i) => (
-        <div key={i} className={styles.item}>
+        <div key={p.id ?? `new-${i}`} className={styles.item}>
           <Field label={`${label} ${i + 1} · tiếng Anh`}><input className={styles.input} value={p.en} onChange={(e) => set(i, "en", e.target.value)} /></Field>
           <Field label={`${label} ${i + 1} · tiếng Việt`}><input className={styles.input} value={p.vi} onChange={(e) => set(i, "vi", e.target.value)} /></Field>
           <button type="button" className={styles.btn} onClick={() => onChange(items.filter((_, j) => j !== i))}>Bỏ</button>
