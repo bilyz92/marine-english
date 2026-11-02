@@ -146,4 +146,42 @@ describe("nhập nội dung", () => {
       await app.end();
     }
   });
+
+  it("3 mức: gắn bài tập và bảng chỗ trống (theo phạm vi bài) vào nội dung; bộ không có thì không thêm; nhập lại không tạo mới", async () => {
+    const cadet = JSON.parse(readFileSync("docs/Engine_Cadet_Three_Levels_v6/Engine_Cadet_Learning_Data_v6.json", "utf8"));
+    const oiler = JSON.parse(readFileSync("docs/Oiler_Bilingual_Three_Levels_v1/Oiler_Learning_Data_v1.json", "utf8"));
+    await withMigrator((c) => importContent(c, cadet));
+    await withMigrator((c) => importContent(c, oiler));
+    const content = async (id: string) => (await q(`SELECT lv.content FROM lesson_versions lv JOIN lessons l ON l.id = lv.lesson_id WHERE l.external_id = $1 ORDER BY lv.version DESC LIMIT 1`, [id]))[0].content;
+
+    const a001 = await content("A001");
+    const types = a001.exercises.map((e: { id: string; type: string; level_id: string }) => `${e.type}/${e.level_id}`);
+    expect(types.filter((t: string) => t === "context_gap/foundation")).toHaveLength(3);
+    expect(types).toContain("single_choice/developing");
+    expect(a001.exercises.every((e: { lesson_id: string }) => e.lesson_id === "A001")).toBe(true);
+    expect(a001.personalization.bindings).toContainEqual({ placeholder: "name", field: "full_name" });
+    expect(a001.personalization.bindings).toContainEqual({ placeholder: "tên", field: "full_name" });
+    expect(a001.personalization.fields.find((f: { key: string }) => f.key === "full_name")).toMatchObject({ label: { vi: "Họ và tên" } });
+    // Trường dùng trong điều kiện của đáp án thay thế, giữ danh sách lựa chọn; trường số giữ giới hạn.
+    expect(a001.personalization.fields.find((f: { key: string }) => f.key === "education_status")).toMatchObject({ type: "enum", values: ["studying", "graduated"] });
+    const ageLesson = await content("A001");
+    const age = ageLesson.personalization.fields.find((f: { key: string }) => f.key === "age");
+    if (age) expect(age).toMatchObject({ type: "integer", min: 1, max: 120 });
+
+    const intro = await content("OL-A001-INTRO");
+    expect(intro.personalization.bindings.length).toBeGreaterThan(0);
+    for (const b of intro.personalization.bindings as { scope?: string }[]) expect(b.scope === undefined || b.scope === "OL-A001-INTRO").toBe(true);
+    for (const f of intro.personalization.fields as { key: string; label: { vi: string } }[]) expect(f.label.vi).toBeTruthy();
+
+    // Câu phụ liên kết từ bài khác mang theo bài gốc để điền đúng phạm vi.
+    const edu = await content("OL-A001-EDU");
+    const linked = edu.linked_follow_up_questions.find((f: { id: string }) => f.id === "OL-A001.probe.1");
+    expect(linked.origin_scope).toBe("OL-A001-INTRO");
+
+    expect(await withMigrator((c) => importContent(c, cadet))).toMatchObject({ newLessonVersions: 0 });
+    await withMigrator((c) => importContent(c, fixture()));
+    const mini = (await q(`SELECT lv.content FROM lesson_versions lv JOIN lessons l ON l.id = lv.lesson_id WHERE l.external_id = 'T001' ORDER BY lv.version DESC LIMIT 1`))[0].content;
+    expect(mini).not.toHaveProperty("exercises");
+  }, 240_000);
 });
+

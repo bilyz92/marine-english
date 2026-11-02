@@ -1,4 +1,5 @@
 // Điều phối app học trên máy: nhận diện người dùng, đồng bộ, giấy phép, tải bài. Các quyết định nằm ở hàm thuần (sync-queue, downloads, license-state).
+import { clearStudyData } from "@/lib/study/storage";
 import { advanceMaxSeen, deleteOfflineDb, dbDelete, dbGet, dbGetAll, dbPut, enqueueWithSeq, openOfflineDb, type Identity } from "./db";
 import { planDownloads, verifyAsset, type ManifestAsset } from "./downloads";
 import type { LicenseView } from "./access";
@@ -50,7 +51,10 @@ export type IdentityResult = { identity: Identity | null; online: boolean };
 /** Xóa dữ liệu học được bảo vệ của người này trên máy và quên người đó. */
 export async function clearLocal(identity: Identity | null): Promise<void> {
   localStorage.removeItem(IDENTITY_KEY);
-  if (identity) await deleteOfflineDb(identity);
+  if (identity) {
+    clearStudyData(identity.userId);
+    await deleteOfflineDb(identity);
+  }
 }
 
 export async function loadIdentity(): Promise<IdentityResult> {
@@ -68,6 +72,9 @@ export async function loadIdentity(): Promise<IdentityResult> {
   }
   if (!res.ok) return { identity: saved, online: false };
   const identity = (await res.json()) as Identity;
+  // Người khác đăng nhập trên máy này: xóa hồ sơ và bài làm của người trước trước tiên (cùng người, đổi thiết bị thì giữ),
+  // để lỗi khi xóa dữ liệu offline không chặn việc xóa thông tin cá nhân.
+  if (saved && saved.userId !== identity.userId) clearStudyData(saved.userId);
   if (saved && (saved.userId !== identity.userId || saved.deviceId !== identity.deviceId)) await deleteOfflineDb(saved);
   localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
   return { identity, online: true };

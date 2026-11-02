@@ -1,0 +1,38 @@
+/* Giao diện học 3 mức (docs/superpowers/plans/2026-11-03-three-level-study.md). Dùng biến màu của website (tokens.css). */
+.levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.level {
+  min-height: 56px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 8px 10px;
+  border: 1px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.level strong { font-size: 14px; line-height: 1.3; }
+.level span { font-size: 12px; color: var(--color-muted); line-height: 1.3; }
+.levelOn { composes: level; border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary-dark); box-shadow: inset 0 0 0 1px var(--color-primary); }
+.level:focus-visible, .choice:focus-within, .toggle:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+.stepHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.stepCount { font-size: 13px; font-weight: 700; color: var(--color-primary); }
+.bar { height: 6px; border-radius: 999px; background: var(--color-border); overflow: hidden; margin-bottom: 12px; }
+.barFill { height: 100%; background: var(--color-primary); transition: width 0.2s; }
+.answer { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--color-bg-alt); border-left: 3px solid var(--color-primary); }
+.answerLabel { font-size: 12px; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 4px; }
+.toggle { min-height: var(--touch); padding: 8px 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2); font: inherit; font-size: 14px; cursor: pointer; }
+.nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; }
+.nav button { min-height: var(--touch); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 4px 10px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary-dark); font-size: 13px; }
+.textarea { width: 100%; min-height: 96px; padding: 10px 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); font: inherit; font-size: 16px; resize: vertical; background: var(--color-bg); color: var(--color-text); box-sizing: border-box; }
+.alts { margin: 8px 0 0; padding-left: 18px; font-size: 14px; color: var(--color-text-2); }
+.ex { padding: 12px 0; border-top: 1px solid var(--color-line); display: flex; flex-direction: column; gap: 8px; }
+.ex:first-of-type { border-top: 0; }
+.exRow { display: flex; gap: 8px; }
+.exRow input { flex: 1; min-width: 0; min-height: var(--touch); padding: 8px 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); font: inherit; font-size: 16px; }
+.choice { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 10px; cursor: pointer; font-size: 15px; line-height: 1.45; }
+.choice input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+.right { color: var(--color-success); font-size: 14px; font-weight: 600; margin: 0; }
+.wrong { color: var(--color-danger); font-size: 14px; font-weight: 600; margin: 0; }
+.profile { display: flex; flex-direction: column; gap: 10px; }
+.saved { color: var(--color-success); font-size: 14px; margin: 0; }
+@media (max-width: 420px) {
+  .level { padding: 8px; }
+  .level strong { font-size: 13px; }
+}

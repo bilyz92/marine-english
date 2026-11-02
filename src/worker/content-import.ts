@@ -50,8 +50,23 @@ const sha256 = (text: string) => createHash("sha256").update(text).digest("hex")
 /** Hash nội dung bài (dùng chung cho bộ nhập và trình soạn bài trên web). */
 export const contentHash = (content: unknown) => sha256(canonical(content as Json));
 
-function parse(data: unknown): { contentVersion: string; courses: RawCourse[]; lessons: RawLesson[]; activities: RawActivity[] } {
-  const d = data as { publication?: { importable?: unknown }; content_version?: unknown; courses?: unknown; lessons?: unknown; activities?: unknown };
+type Binding = { binding_scope?: string; placeholder: string; profile_field: string };
+type FieldDef = { key: string; label_vi?: string; label?: { vi?: string; en?: string }; type?: string; values?: string[]; min?: number; max?: number };
+type Parsed = {
+  contentVersion: string;
+  courses: RawCourse[];
+  lessons: RawLesson[];
+  activities: RawActivity[];
+  exercises: { lesson_id: string; [key: string]: Json }[];
+  bindings: Binding[];
+  fields: FieldDef[];
+};
+
+function parse(data: unknown): Parsed {
+  const d = data as {
+    publication?: { importable?: unknown }; content_version?: unknown; courses?: unknown; lessons?: unknown; activities?: unknown;
+    learning_exercises?: unknown; placeholder_bindings?: unknown; profile_contract?: { fields?: unknown };
+  };
   if (d?.publication?.importable !== true) throw new ContentImportError("Dữ liệu chưa được đánh dấu nhập được (publication.importable)");
   if (!Array.isArray(d.courses) || !Array.isArray(d.lessons)) throw new ContentImportError("Thiếu courses hoặc lessons");
   const courses = d.courses as RawCourse[];
@@ -67,13 +82,65 @@ function parse(data: unknown): { contentVersion: string; courses: RawCourse[]; l
     courses,
     lessons,
     activities: Array.isArray(d.activities) ? (d.activities as RawActivity[]) : [],
+    exercises: Array.isArray(d.learning_exercises) ? (d.learning_exercises as Parsed["exercises"]) : [],
+    bindings: Array.isArray(d.placeholder_bindings) ? (d.placeholder_bindings as Binding[]) : [],
+    fields: Array.isArray(d.profile_contract?.fields) ? (d.profile_contract!.fields as FieldDef[]) : [],
   };
+}
+
+/** Mọi nhãn ngoặc [..] trong chữ của một giá trị JSON. */
+function placeholdersIn(value: unknown, out = new Set<string>()): Set<string> {
+  if (typeof value === "string") for (const m of value.matchAll(/\[([^\]]+)\]/g)) out.add(m[1]!);
+  else if (Array.isArray(value)) for (const v of value) placeholdersIn(v, out);
+  else if (value && typeof value === "object") for (const v of Object.values(value)) placeholdersIn(v, out);
+  return out;
+}
+
+/** Trường hồ sơ dùng trong điều kiện của đáp án thay thế ({profile_field, equals} hoặc {all: [...]}). */
+function conditionFields(value: unknown, out = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) for (const v of value) conditionFields(v, out);
+  else if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    if (typeof o.profile_field === "string" && "equals" in o) out.add(o.profile_field);
+    for (const v of Object.values(o)) conditionFields(v, out);
+  }
+  return out;
+}
+
+/**
+ * Giao diện 3 mức (docs/superpowers/plans/2026-11-03-three-level-study.md): gắn vào bài các bài tập của bài và bảng
+ * chỗ trống → trường hồ sơ cho đúng các nhãn ngoặc có trong bài. Bộ có binding_scope (Oiler, Wiper) chỉ lấy binding
+ * của chính bài hoặc của bài gốc chứa câu phụ được liên kết vào. Bộ không có các phần này thì bài giữ nguyên.
+ */
+function withStudyData(lesson: RawLesson, p: Parsed, followUpOrigin: Map<string, string>): RawLesson {
+  const exercises = p.exercises.filter((e) => e.lesson_id === lesson.id);
+  const used = placeholdersIn({ ...lesson, exercises });
+  const scopes = new Set([lesson.id, ...((lesson.linked_follow_up_questions as FollowUp[] | undefined) ?? []).map((f) => followUpOrigin.get(f.id)).filter(Boolean) as string[]]);
+  const bindings = p.bindings
+    .filter((b) => used.has(b.placeholder) && (!b.binding_scope || scopes.has(b.binding_scope)))
+    .map((b) => (b.binding_scope ? { scope: b.binding_scope, placeholder: b.placeholder, field: b.profile_field } : { placeholder: b.placeholder, field: b.profile_field }));
+  const keys = new Set([...bindings.map((b) => b.field), ...conditionFields(lesson)]);
+  const fields = p.fields
+    .filter((f) => keys.has(f.key))
+    .map((f) => ({
+      key: f.key,
+      label: { vi: f.label_vi ?? f.label?.vi ?? f.key, ...(f.label?.en ? { en: f.label.en } : {}) },
+      type: f.type ?? "string",
+      ...(Array.isArray(f.values) ? { values: f.values } : {}),
+      ...(typeof f.min === "number" ? { min: f.min } : {}),
+      ...(typeof f.max === "number" ? { max: f.max } : {}),
+    }));
+  const extra: Record<string, Json> = {};
+  if (exercises.length) extra.exercises = exercises;
+  if (bindings.length || fields.length) extra.personalization = { bindings, fields } as unknown as Json;
+  return Object.keys(extra).length ? { ...lesson, ...extra } : lesson;
 }
 
 /** Câu phụ mà bài chỉ tham chiếu (related_follow_up_ids) nhưng lưu ở bài khác: chép vào linked_follow_up_questions. */
 function withLinkedFollowUps(lessons: RawLesson[]): RawLesson[] {
+  // Câu phụ kèm bài gốc (origin_scope): chỗ trống trong câu phụ điền theo phạm vi của bài gốc, không theo bài đang mở.
   const byId = new Map<string, FollowUp>();
-  for (const l of lessons) for (const f of (l.follow_up_questions as FollowUp[] | undefined) ?? []) byId.set(f.id, f);
+  for (const l of lessons) for (const f of (l.follow_up_questions as FollowUp[] | undefined) ?? []) byId.set(f.id, { ...f, origin_scope: l.id });
   return lessons.map((lesson) => {
     const related = lesson.related_follow_up_ids;
     if (!Array.isArray(related) || !related.length) return lesson;
@@ -92,9 +159,13 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
   const parsed = datasets.map(parse);
   const report: ImportReport = { courses: [], newCourseVersions: 0, newLessonVersions: 0 };
   await sql.query(`SELECT 1 AS ok FROM pg_advisory_xact_lock(hashtext('content-import'))`);
-  for (const { contentVersion, courses, lessons, activities } of parsed) {
+  for (const p of parsed) {
+    const { contentVersion, courses, lessons, activities } = p;
+    const followUpOrigin = new Map<string, string>();
+    for (const l of lessons) for (const f of (l.follow_up_questions as FollowUp[] | undefined) ?? []) followUpOrigin.set(f.id, l.id);
     const lessonVersion = new Map<string, { id: string; hash: string }>();
-    for (const lesson of withLinkedFollowUps(lessons)) {
+    for (const linked of withLinkedFollowUps(lessons)) {
+      const lesson = withStudyData(linked, p, followUpOrigin);
       const own = activities.filter((a) => a.lesson_id === lesson.id).sort((a, b) => a.order - b.order);
       const content: Json = { ...lesson, activities: own };
       const hash = contentHash(content);

@@ -4,6 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
+import { LessonStudy } from "@/components/study/lesson-study";
+import { hasLevels, type StudyLesson } from "@/lib/study/levels";
+import { GUEST } from "@/lib/study/storage";
 import ui from "@/components/ui.module.css";
 import { BuyOrLearn } from "../../buy-or-learn";
 import { getTrialLesson } from "@/modules/content/catalog";
@@ -18,7 +21,9 @@ async function Trial({ params }: { params: Promise<{ slug: string; position: str
   if (!lesson) notFound();
   return (
     <>
-      <LessonBody externalId={lesson.externalId} content={lesson.content as LessonContent} />
+      {hasLevels(lesson.content as StudyLesson)
+        ? <LessonStudy externalId={lesson.externalId} lesson={lesson.content as StudyLesson} who={GUEST} />
+        : <LessonBody externalId={lesson.externalId} content={lesson.content as LessonContent} />}
       <div className={ui.row}>
         <BuyOrLearn slug={slug} />
         <Link className={ui.outline} href={`/khoa-hoc/${slug}`}>← Danh sách bài</Link>

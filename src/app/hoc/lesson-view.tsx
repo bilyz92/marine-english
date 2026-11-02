@@ -8,6 +8,8 @@ import {
 import { canOpenLesson } from "@/lib/offline/access";
 import { licenseStatus, nowSeconds } from "@/lib/offline/engine";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
+import { LessonStudy } from "@/components/study/lesson-study";
+import { hasLevels, type StudyLesson } from "@/lib/study/levels";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
 
@@ -111,10 +113,16 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
       <div className={styles.actions}>
         <button className={styles.secondary} onClick={() => go({ khoa: slug })}>← Danh sách bài</button>
       </div>
-      <LessonBody externalId={lesson.externalId} content={content}>
-        {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
-        {audio.length === 0 && <p className={styles.muted}>Bài này chưa có âm thanh.</p>}
-      </LessonBody>
+      {hasLevels(content as StudyLesson) ? (
+        <LessonStudy externalId={lesson.externalId} lesson={content as StudyLesson} who={identity.userId}>
+          {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
+        </LessonStudy>
+      ) : (
+        <LessonBody externalId={lesson.externalId} content={content}>
+          {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
+          {audio.length === 0 && <p className={styles.muted}>Bài này chưa có âm thanh.</p>}
+        </LessonBody>
+      )}
       {!!content.activities?.length && (
         <div className={styles.card}>
           <h2 className={styles.h2}>Hoạt động</h2>

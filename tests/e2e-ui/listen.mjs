@@ -12,7 +12,8 @@ const check = (name, ok, extra = "") => { console.log(ok ? "✓" : "✗", name, 
 const text = () => b.evaluate(`document.body?.innerText ?? ""`);
 const waitFor = async (fn, ms = 30000) => { for (let i = 0; i < ms / 250; i++) { if (await fn()) return true; await sleep(250); } return false; };
 const hydrated = () => waitFor(() => b.evaluate(`(() => { const el = document.querySelector("button"); return !!el && Object.keys(el).some((k) => k.startsWith("__reactProps")); })()`), 30000);
-const buttons = (label) => b.evaluate(`[...document.querySelectorAll("button")].filter((e) => e.textContent.trim() === ${JSON.stringify(label)}).length`);
+// Nút đọc có thể là "Nghe" hoặc "Nghe câu hỏi" (giao diện 3 mức).
+const buttons = (label) => b.evaluate(`[...document.querySelectorAll("button")].filter((e) => e.textContent.trim().startsWith(${JSON.stringify(label)})).length`);
 
 // Giả lập Web Speech: danh sách giọng theo kịch bản, ghi lại câu được đọc.
 // delayMs > 0: như Chrome thật, lúc đầu chưa có giọng, sau đó mới báo "voiceschanged".
@@ -47,7 +48,9 @@ try {
   await sleep(300);
   const spoken = await b.evaluate(`window.__spoken`);
   check("bấm Nghe đọc câu hỏi tiếng Anh bằng giọng cục bộ", spoken.length === 1 && spoken[0].voice === "Daniel" && !/\[/.test(spoken[0].text), JSON.stringify(spoken));
-  check("bài có đáp án → có thẻ Đáp án mẫu", (await text()).includes("Đáp án mẫu"));
+  // Bài 3 mức: thẻ đáp án mẫu ở Mức 2.
+  await b.evaluate(`[...document.querySelectorAll("button")].find((e) => e.textContent.trim().startsWith("Mức 2"))?.click()`);
+  check("bài có đáp án → có thẻ Đáp án mẫu", await waitFor(async () => (await text()).includes("Đáp án mẫu"), 5000));
   const problems = await b.evaluate(PAGE_CHECKS);
   check("điện thoại không tràn", problems.length === 0, JSON.stringify(problems));
   await b.shot(`${OUT}/nghe-co-giong.png`);
@@ -56,7 +59,7 @@ try {
   await withVoices([{ name: "Daniel", lang: "en-GB", localService: true }], 1500);
   await b.go(`${BASE}/khoa-hoc/${WITH_ANSWER}/hoc-thu/1`);
   await hydrated();
-  const late = await waitFor(async () => (await buttons("Nghe")) >= 4, 8000);
+  const late = await waitFor(async () => (await buttons("Nghe")) >= 2, 8000);
   check("giọng nạp muộn → mọi nút Nghe đều hiện", late, String(await buttons("Nghe")));
 
   await withVoices([{ name: "Remote US", lang: "en-US", localService: false }]);
