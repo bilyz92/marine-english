@@ -1,0 +1,28 @@
+.page { min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; background: var(--color-bg-soft); color: var(--color-text); }
+.card { width: 100%; max-width: 400px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-card); padding: 32px 28px; box-shadow: 0 1px 2px rgb(28 22 48 / 0.04), 0 8px 24px rgb(28 22 48 / 0.06); }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.brand img { border-radius: 10px; }
+.brandName { font-weight: 700; font-size: 16px; }
+.badge { margin-left: auto; padding: 4px 10px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary); font-size: 12px; font-weight: 600; }
+.title { font-size: 24px; line-height: 1.25; margin: 0 0 6px; }
+.lead { color: var(--color-muted); margin: 0 0 24px; line-height: 1.5; font-size: 15px; }
+.google { width: 100%; min-height: var(--touch-main); display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font-size: 16px; font-weight: 600; cursor: pointer; }
+.google:hover:not(:disabled) { background: var(--color-bg-alt); }
+.divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--color-muted); font-size: 13px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.label { font-weight: 600; font-size: 14px; }
+.input { min-height: var(--touch-main); padding: 10px 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); font-size: 16px; }
+.input:focus-visible, .google:focus-visible, .primary:focus-visible { outline: 3px solid var(--color-primary-soft); outline-offset: 1px; border-color: var(--color-primary); }
+.primary { width: 100%; min-height: var(--touch-main); padding: 12px; border: 0; border-radius: var(--radius-control); background: var(--color-primary); color: var(--color-bg); font-size: 16px; font-weight: 600; cursor: pointer; }
+.primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+.primary:disabled, .google:disabled { opacity: 0.6; cursor: default; }
+.notice { border: 1px solid var(--color-warning-border); background: var(--color-warning-bg); color: var(--color-warning); border-radius: var(--radius-control); padding: 14px 16px; font-size: 14px; line-height: 1.55; }
+.notice p { margin: 0; }
+.notice p + p { margin-top: 8px; }
+.notice code { font-size: 13px; }
+.success { border: 1px solid var(--color-border); background: var(--color-success-bg); color: var(--color-success); border-radius: var(--radius-control); padding: 14px 16px; font-size: 14px; line-height: 1.55; margin: 0; }
+.error { border-radius: var(--radius-control); background: var(--color-danger-bg); color: var(--color-danger); padding: 10px 12px; font-size: 14px; margin: 0 0 16px; }
+.back { display: inline-block; margin-top: 20px; color: var(--color-muted); font-size: 14px; text-decoration: none; }
+.back:hover { color: var(--color-primary); }
+.hint { margin: 16px 0 0; color: var(--color-muted); font-size: 13px; }

@@ -24,3 +24,8 @@ const unconfigured: OtpSender & AdminLinkSender & NoticeSender = {
 export function emailSender(): OtpSender & AdminLinkSender & NoticeSender {
   return process.env.NODE_ENV === "production" ? unconfigured : devMailbox;
 }
+
+/** Email có tới được người nhận không: production chưa có nhà cung cấp (G7) thì không. */
+export function emailReady(): boolean {
+  return process.env.NODE_ENV !== "production";
+}

@@ -30,3 +30,16 @@ it("biến tùy chọn để trống (Compose truyền chuỗi rỗng) coi như 
   expect(e.CHECKOUT_QR_IMAGE).toBeUndefined();
   expect(e.TELEGRAM_BOT_TOKEN).toBeUndefined();
 });
+
+it("Google để trống = tắt: env chấp nhận, và Compose production không bắt buộc hai biến Google", async () => {
+  vi.stubEnv("GOOGLE_CLIENT_ID", "");
+  vi.stubEnv("GOOGLE_CLIENT_SECRET", "");
+  vi.resetModules();
+  const { env } = await import("@/lib/env");
+  expect(env().GOOGLE_CLIENT_ID).toBe("");
+  const { readFileSync } = await import("node:fs");
+  const compose = readFileSync("docker-compose.prod.yml", "utf8");
+  for (const name of ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]) {
+    expect(compose).toContain(`${name}: \${${name}:-}`);
+  }
+});

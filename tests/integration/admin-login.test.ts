@@ -1,5 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { withTx } from "@/lib/db";
+import { resetEnvForTest } from "@/lib/env";
+import { googleReady } from "@/modules/auth-oidc/google";
 import { consumeAdminLink, issueAdminLink } from "@/modules/auth-admin/email-link";
 import { inviteAdmin } from "@/modules/auth-admin/admins";
 import { devMailbox, FakeEmailSink } from "@/modules/mail/fake-sink";
@@ -205,6 +207,24 @@ describe("Google quản trị", () => {
     const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM admin_identities`);
     expect(rows[0].n).toBe(1);
     expect((await adminRow("moi@x.vn"))!.status).toBe("active");
+  });
+
+  it("chưa điền GOOGLE_CLIENT_ID (để trống) → googleReady false, nút Google trả 503 và không tạo state", async () => {
+    vi.stubEnv("GOOGLE_CLIENT_ID", "");
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "");
+    resetEnvForTest();
+    try {
+      expect(googleReady()).toBe(false);
+      const res = await googleStart(post("/api/auth/admin/google/start", {}));
+      expect(res.status).toBe(503);
+      expect(res.headers.getSetCookie().some((c) => c.startsWith("__Host-me_oidc_admin="))).toBe(false);
+      const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM oidc_states`);
+      expect(rows[0].n).toBe(0);
+    } finally {
+      vi.unstubAllEnvs();
+      resetEnvForTest();
+    }
+    expect(googleReady()).toBe(true);
   });
 
   it("cookie state quản trị không dùng được ở khu vực học viên; cookie state bị xóa sau callback", async () => {

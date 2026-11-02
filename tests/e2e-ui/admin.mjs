@@ -49,7 +49,7 @@ async function adminLogin(email) {
   await b.go("about:blank");
   await b.go(link);
   await hydrated();
-  await click("Đăng nhập");
+  await click("Vào trang quản trị");
   await waitFor(async () => (await b.evaluate("location.pathname")) === "/admin");
   await hydrated();
 }

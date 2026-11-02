@@ -2,7 +2,7 @@ import { z } from "zod";
 import { withTx } from "@/lib/db";
 import { json, parseBody, readBody, requireSameOrigin, route, withCookies } from "@/lib/http";
 import { deviceKeyHashFrom } from "@/modules/auth-learner/devices";
-import { authorizationUrl } from "@/modules/auth-oidc/google";
+import { authorizationUrl, requireGoogle } from "@/modules/auth-oidc/google";
 import { createOidcState } from "@/modules/auth-oidc/oidc-states";
 import { oidcCookie } from "@/modules/sessions/cookies";
 
@@ -10,6 +10,7 @@ const Body = z.object({ deviceKey: z.string(), deviceLabel: z.string().trim().mi
 
 export const POST = route(async (req: Request) => {
   requireSameOrigin(req);
+  requireGoogle();
   const raw = await readBody(req);
   deviceKeyHashFrom(raw);
   const body = parseBody(raw, Body);

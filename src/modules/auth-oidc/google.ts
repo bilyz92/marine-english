@@ -1,5 +1,6 @@
 import * as oauth from "oauth4webapi";
 import { env } from "@/lib/env";
+import { HttpError } from "@/lib/http";
 import type { Realm } from "@/modules/sessions/sessions";
 import type { OidcStateRow } from "./oidc-states";
 
@@ -28,6 +29,16 @@ function authServer(): Promise<oauth.AuthorizationServer> {
     discovered.set(issuer.href, found);
   }
   return found;
+}
+
+/** Đã điền Client ID và Secret của Google chưa. */
+export function googleReady(): boolean {
+  return env().GOOGLE_CLIENT_ID !== "" && env().GOOGLE_CLIENT_SECRET !== "";
+}
+
+/** Gọi trước khi tạo state OIDC: chưa cấu hình Google thì dừng với 503. */
+export function requireGoogle(): void {
+  if (!googleReady()) throw new HttpError(503, "Đăng nhập Google chưa bật");
 }
 
 const client = (): oauth.Client => ({ client_id: env().GOOGLE_CLIENT_ID });

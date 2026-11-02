@@ -103,4 +103,4 @@
 
 ## Trạng thái (02/11/2026)
 
-Xong cả 6 task: `21ecbce` (Task 0–2), `ce0ea84` (Task 3–4), `aeee94d` (Task 5, giao diện), Task 6 (job dọn + tài liệu) ở commit sau đó. Mỗi phần qua Codex APPROVE.
+Xong cả 6 task: `21ecbce` (Task 0–2), `ce0ea84` (Task 3–4), `aeee94d` (Task 5, giao diện), Task 6 (job dọn + tài liệu) ở commit sau đó. Task 0–5 qua Codex APPROVE trước khi commit; Task 6 (`f89b515`) commit khi Codex hết lượt, review bù 02/11 đồng thuận (gợi ý thêm index trên `password_attempts(at)`).

@@ -42,8 +42,9 @@ const schema = z
     // Khóa ký giấy phép học offline (Ed25519, 32 byte, "kid:base64,…"); giữ khóa cũ trong lúc đổi khóa theo giai đoạn.
     LICENSE_SIGNING_KEYS: keyring,
     LICENSE_SIGNING_KID_CURRENT: z.string().min(1),
-    GOOGLE_CLIENT_ID: z.string().min(1),
-    GOOGLE_CLIENT_SECRET: z.string().min(1),
+    // Để trống = chưa bật đăng nhập Google: màn đăng nhập ẩn nút, route bắt đầu trả 503.
+    GOOGLE_CLIENT_ID: z.string().default(""),
+    GOOGLE_CLIENT_SECRET: z.string().default(""),
     GOOGLE_ISSUER: z.url().default("https://accounts.google.com"),
     ZALO_LOGIN_ENABLED: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
     ZNS_DAILY_BUDGET: z.coerce.number().int().nonnegative().default(500),

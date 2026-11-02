@@ -12,7 +12,7 @@ type Mode = "signup" | "login";
 
 const RESEND_SECONDS = 60;
 
-export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: boolean; googleFailed: boolean; next: string }) {
+export function LoginForm({ zaloEnabled, googleFailed, next, google: googleOn, email }: { zaloEnabled: boolean; googleFailed: boolean; next: string; google: boolean; email: boolean }) {
   const router = useRouter();
   // D2: số điện thoại + mật khẩu là cách chính; email (mã 6 số) và Google vẫn dùng được.
   const [method, setMethod] = useState<"phone" | "email">("phone");
@@ -125,13 +125,14 @@ export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: bo
     );
   }
 
-  const methods = (
+  // Cách chưa bật (Google chưa có Client ID, email chưa có nhà cung cấp) thì ẩn, không để khách bấm vào lỗi.
+  const methods = email && (
     <div className={styles.tabs} role="group" aria-label="Cách đăng nhập">
       <button type="button" className={method === "phone" ? styles.tabActive : styles.tab} aria-pressed={method === "phone"} onClick={() => { setMethod("phone"); setError(null); }}>Số điện thoại</button>
       <button type="button" className={method === "email" ? styles.tabActive : styles.tab} aria-pressed={method === "email"} onClick={() => { setMethod("email"); setError(null); }}>Email</button>
     </div>
   );
-  const googleButton = <button type="button" className={styles.secondary} disabled={busy} onClick={google}>Tiếp tục với Google</button>;
+  const googleButton = googleOn && <button type="button" className={styles.secondary} disabled={busy} onClick={google}>Tiếp tục với Google</button>;
 
   if (method === "phone") {
     return (
@@ -139,7 +140,7 @@ export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: bo
         {methods}
         {error && <p className={styles.error} role="alert">{error}</p>}
         <PhoneForm next={next} onDone={(created) => { setMode(created ? "signup" : "login"); setStep("done"); }} />
-        <div className={styles.divider}>hoặc</div>
+        {googleOn && <div className={styles.divider}>hoặc</div>}
         {googleButton}
       </div>
     );
@@ -153,7 +154,7 @@ export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: bo
         <button type="button" className={mode === "login" ? styles.tabActive : styles.tab} onClick={() => setMode("login")}>Đăng nhập</button>
       </div>
       {googleButton}
-      <div className={styles.divider}>hoặc</div>
+      {googleOn && <div className={styles.divider}>hoặc</div>}
       {mode === "signup" && (
         <label className={styles.field}>
           <span className={styles.label}>Tên hiển thị</span>

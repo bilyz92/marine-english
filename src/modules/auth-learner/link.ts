@@ -1,7 +1,7 @@
 import { withTx, type Tx } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import type { GoogleClaims } from "@/modules/auth-oidc/google";
-import { authorizationUrl } from "@/modules/auth-oidc/google";
+import { authorizationUrl, requireGoogle } from "@/modules/auth-oidc/google";
 import { createOidcState, type OidcStateRow } from "@/modules/auth-oidc/oidc-states";
 import type { LearnerCtx } from "@/modules/sessions/guards";
 import { isRecentAuth } from "@/modules/sessions/sessions";
@@ -29,6 +29,7 @@ function contactOfKind(kind: "email" | "phone", contact: string) {
 export async function startLink(ctx: LearnerCtx, input: StartLinkInput): Promise<StartLinkResult> {
   if (!isRecentAuth(ctx.authAt)) return { status: "reauth_required" };
   if (input.kind === "google") {
+    requireGoogle();
     const st = await withTx((tx) => createOidcState(tx, { realm: "learner", intent: "link", userId: ctx.userId }));
     return { status: "redirect", redirectUrl: await authorizationUrl("learner", st), stateCookie: st.cookieValue };
   }
