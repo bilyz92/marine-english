@@ -2,6 +2,7 @@
 //   pnpm cli admin:bootstrap <email>
 //   pnpm cli admin:recover <email> --reason "<lý do>" --confirm <email>
 //   pnpm cli admin:login-link <email>   (in link đăng nhập quản trị 15 phút, dùng một lần; cần SESSION_KEY_ADMIN, APP_ORIGIN; thay email khi chưa có G7)
+//   pnpm cli admin:set-password <email>   (in mật khẩu tạm ngẫu nhiên MỘT lần cho quản trị đang hoạt động; đăng nhập rồi đổi ở mục Mật khẩu)
 //   pnpm cli content:import <tệp.json>
 //   pnpm cli license:public-keys   (in NEXT_PUBLIC_LICENSE_PUBLIC_KEYS từ LICENSE_SIGNING_KEYS, dùng khi build app)
 //   pnpm cli media:add <mã bài> <tệp> [--role audio|image|attachment] [--public]   (MEDIA_ROOT, mặc định ./media)
@@ -9,6 +10,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { hashPassword } from "../modules/auth-learner/password-hash.ts";
 import { importContent } from "./content-import.ts";
 import { addMedia } from "./media-import.ts";
 import { publicKeyringFromSeeds } from "./license-keys.ts";
@@ -125,6 +127,32 @@ export async function issueLoginLink(
   return issued ? `${opts.origin}/admin/dang-nhap#link=${token}` : "not_found";
 }
 
+/**
+ * Mật khẩu tạm cho quản trị đang hoạt động (D3): khi chủ chưa đặt được mật khẩu bằng link, hoặc quên mật khẩu.
+ * Sinh ngẫu nhiên (18 ký tự), chỉ lưu bản băm scrypt, thu hồi mọi phiên quản trị của người đó, ghi nhật ký. Mật khẩu chỉ in ra một lần.
+ */
+export async function setAdminPassword(client: Client, email: string): Promise<{ password: string } | "not_found"> {
+  const canonical = canonicalEmail(email);
+  if (!canonical) return "not_found";
+  const raw = randomBytes(12).toString("base64url").replace(/[-_]/g, "x");
+  const password = `${raw.slice(0, 6)}-${raw.slice(6, 12)}-${raw.slice(12)}`;
+  const hash = await hashPassword(password);
+  const done = await inTransaction<boolean>(client, async () => {
+    const { rows } = await client.query<{ id: string }>(`SELECT id FROM admin_users WHERE email_lower = $1 AND status = 'active' FOR UPDATE`, [canonical]);
+    const admin = rows[0];
+    if (!admin) return false;
+    await client.query(
+      `INSERT INTO admin_passwords (admin_user_id, password_hash) VALUES ($1, $2)
+       ON CONFLICT (admin_user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash, updated_at = now()`,
+      [admin.id, hash],
+    );
+    await client.query(`UPDATE admin_sessions SET revoked_at = now() WHERE admin_user_id = $1 AND revoked_at IS NULL`, [admin.id]);
+    await auditSystem(client, "cli_set_password", admin.id, null);
+    return true;
+  });
+  return done ? { password } : "not_found";
+}
+
 function flag(args: string[], name: string): string {
   const i = args.indexOf(name);
   return i >= 0 ? (args[i + 1] ?? "") : "";
@@ -158,6 +186,13 @@ async function main(argv: string[]): Promise<number> {
       }
       const result = await issueLoginLink(client, email, { adminKey, origin });
       console.log(result === "not_found" ? "Không có quản trị viên đang hoạt động với email này." : `Link đăng nhập (15 phút, dùng một lần):\n${result}`);
+      return result === "not_found" ? 1 : 0;
+    }
+    if (command === "admin:set-password") {
+      const result = await setAdminPassword(client, email);
+      console.log(result === "not_found"
+        ? "Không có quản trị viên đang hoạt động với email này."
+        : `Mật khẩu tạm (chỉ hiện lần này, các phiên cũ đã bị đăng xuất):\n${result.password}\nĐăng nhập rồi đổi ngay ở mục Mật khẩu trong trang quản trị.`);
       return result === "not_found" ? 1 : 0;
     }
     if (command === "admin:recover") {

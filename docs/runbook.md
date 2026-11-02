@@ -165,6 +165,14 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 - Kiểm gói lớn trước khi tải: `node --import ./src/worker/alias-loader.mjs scripts/check-content-packages.ts <tệp…>`.
 - Nút **Nghe** trong bài dùng giọng tiếng Anh có sẵn trên máy học viên (không gửi chữ ra ngoài); máy không có giọng tiếng Anh thì không hiện nút. Chưa có chấm phát âm.
 
+## 6B. Quản trị quên mật khẩu (D3, từ 02/11/2026)
+
+- Quản trị đăng nhập ở `/admin/dang-nhap` bằng email + mật khẩu. Quên mật khẩu hoặc chưa đặt: trên máy chủ chạy
+  `cd ~/marine-english && ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml deploy/cli.sh deploy/prod.env admin:set-password <email>`.
+  Lệnh in mật khẩu tạm **một lần** (không lưu ở đâu, chỉ lưu bản băm), đăng xuất mọi phiên của người đó và ghi nhật ký `cli_set_password`.
+  Đưa mật khẩu tạm qua kênh riêng, người đó đăng nhập rồi đổi ngay ở mục **Mật khẩu**.
+- Hoặc in link đăng nhập (`admin:login-link <email>`), vào bằng link rồi tự đặt mật khẩu ở mục **Mật khẩu**.
+
 ## 7A. Học viên quên mật khẩu (đăng nhập bằng số + mật khẩu)
 
 - Học viên có email đã liên kết: tự làm ở màn đăng nhập, “Quên mật khẩu?”, mã gửi tới email đó.
