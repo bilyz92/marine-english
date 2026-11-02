@@ -60,14 +60,22 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
   const canEdit = can(me, "content.edit");
   const live = data?.course.status === "published";
 
-  async function open(externalId: string | null) {
+  /** Mở form; trả false nếu không tải được bài (khi đó không có form nào để lưu). */
+  async function open(externalId: string | null): Promise<boolean> {
     setProblem(null);
     setSaved(null);
     setConfirmLive(false);
-    if (!externalId) return setEditing({ externalId: null, form: EMPTY });
+    if (!externalId) {
+      setEditing({ externalId: null, form: EMPTY });
+      return true;
+    }
     const r = await adminApi<{ content: Record<string, unknown> }>(`/api/quan-tri/content/courses/${slug}/lessons/${encodeURIComponent(externalId)}`);
-    if (!r.ok) return setProblem(messageFor(r.data.error));
+    if (!r.ok) {
+      setProblem(messageFor(r.data.error));
+      return false;
+    }
     setEditing({ externalId, form: formOf(r.data.content) });
+    return true;
   }
 
   async function save(event: React.FormEvent) {
@@ -79,19 +87,24 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
     const r = editing.externalId
       ? await adminApi<{ externalId: string }>(`/api/quan-tri/content/courses/${slug}/lessons/${encodeURIComponent(editing.externalId)}`, { method: "PUT", body })
       : await adminApi<{ externalId: string }>(`/api/quan-tri/content/courses/${slug}/lessons`, { method: "POST", body });
-    setBusy(false);
     if (!r.ok) {
       if (r.data.error === "stale") {
-        // Bài vừa được sửa ở chỗ khác: tải lại danh sách và nội dung bài mới nhất, không lưu đè bằng form cũ.
-        // Thêm bài (nối cuối khóa) không đè lên ai: giữ nội dung đang gõ, chỉ cập nhật phiên bản khóa rồi bấm lưu lại.
+        // Bài/khóa vừa được sửa ở chỗ khác. Sửa bài: đóng form ngay (không còn nút lưu với nội dung cũ), tải bản mới
+        // nhất rồi mới mở lại; tải lỗi thì không có form. Thêm bài (nối cuối khóa) không đè lên ai: giữ nội dung đang gõ.
+        const id = editing.externalId;
+        if (id) setEditing(null);
         await reload();
-        if (editing.externalId) await open(editing.externalId);
-        return setProblem(editing.externalId
+        const reopened = id ? await open(id) : true;
+        setBusy(false);
+        if (!reopened) return;
+        return setProblem(id
           ? "Bài vừa được sửa ở chỗ khác. Đã tải bản mới nhất, sửa lại rồi lưu."
           : "Khóa vừa được sửa ở chỗ khác. Đã cập nhật, bấm Lưu bài lần nữa để thêm bài.");
       }
+      setBusy(false);
       return setProblem(messageFor(r.data.error));
     }
+    setBusy(false);
     setSaved(editing.externalId ? `Đã lưu bài ${r.data.externalId}.` : `Đã thêm bài ${r.data.externalId}.`);
     setEditing(null);
     await reload();

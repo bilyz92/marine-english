@@ -97,17 +97,20 @@ function mergeById(oldItems: Json[], items: { id?: string; en: string; vi: strin
 }
 
 /**
- * Bỏ tham chiếu tới các mã trong `removed`: mã nằm trong mảng thì bỏ mã đó; mục trong mảng trỏ tới mã đã bỏ qua một
- * trường *_id (thẻ ôn, bước dàn ý của ý đã bỏ) thì bỏ cả mục. Giữ nguyên phần còn lại.
+ * Bỏ mọi tham chiếu tới các mã trong `removed`:
+ * - mã nằm trong mảng: bỏ mã đó;
+ * - mục trong mảng có id là mã đã bỏ, hoặc trỏ tới mã đã bỏ qua một trường khác (thẻ ôn, bước dàn ý…): bỏ cả mục;
+ * - trường đơn của một đối tượng mang mã đã bỏ: bỏ trường đó.
+ * Danh sách ý chính / câu phụ đang soạn không đi qua đây (chúng đã được dựng lại từ form).
  */
 function dropRefs(value: unknown, removed: Set<string>): unknown {
+  const isRemoved = (x: unknown) => typeof x === "string" && removed.has(x);
   const pointsToRemoved = (v: unknown) =>
-    !!v && typeof v === "object" && !Array.isArray(v) &&
-    Object.entries(v).some(([k, x]) => k !== "id" && k.endsWith("_id") && typeof x === "string" && removed.has(x));
-  if (Array.isArray(value)) {
-    return value.filter((v) => !(typeof v === "string" && removed.has(v)) && !pointsToRemoved(v)).map((v) => dropRefs(v, removed));
+    !!v && typeof v === "object" && !Array.isArray(v) && Object.values(v).some(isRemoved);
+  if (Array.isArray(value)) return value.filter((v) => !isRemoved(v) && !pointsToRemoved(v)).map((v) => dropRefs(v, removed));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).filter(([, v]) => !isRemoved(v)).map(([k, v]) => [k, dropRefs(v, removed)]));
   }
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, dropRefs(v, removed)]));
   return value;
 }
 
@@ -122,13 +125,16 @@ export function applyFields(base: Json, id: string, f: z.infer<typeof LessonFiel
     vocabulary: f.vocabulary.filter((v) => v.en).map((v, i) => ({ id: `${id}.vocab.${i + 1}`, text: bilingual(v.en, v.vi) })),
     follow_up_questions: mergeById(old("follow_up_questions"), f.followUps, `${id}.probe`, (q) => ({ prompt: bilingual(q.en, q.vi) }), false),
   };
-  // Mã ý chính / câu phụ đã bỏ: xóa mọi tham chiếu tới nó trong phần còn lại của bài (mục tiêu, đánh giá, cách hỏi, mức…).
-  const before = new Set([...old("key_points"), ...old("follow_up_questions")].map((x) => String(x.id)));
-  const after = new Set([...(next.key_points as Json[]), ...(next.follow_up_questions as Json[])].map((x) => String(x.id)));
-  const removed = new Set([...before].filter((id) => !after.has(id)));
-  if (removed.size) for (const [k, v] of Object.entries(next)) next[k] = dropRefs(v, removed);
   if (f.modelAnswerEn) next.model_answer = { ...(base.model_answer as Json | undefined), id: (base.model_answer as Json | undefined)?.id ?? `${id}.answer`, text: bilingual(f.modelAnswerEn, f.modelAnswerVi) };
   else delete next.model_answer;
+  // Mã ý chính / câu phụ đã bỏ: xóa mọi tham chiếu tới nó trong phần còn lại của bài (mục tiêu, đánh giá, cách hỏi, mức,
+  // đáp án mẫu…). Làm sau cùng để phần dựng lại từ nội dung cũ (đáp án mẫu) cũng được dọn.
+  const before = new Set([...old("key_points"), ...old("follow_up_questions")].map((x) => String(x.id)));
+  const after = new Set([...(next.key_points as Json[]), ...(next.follow_up_questions as Json[])].map((x) => String(x.id)));
+  const removed = new Set([...before].filter((x) => !after.has(x)));
+  if (removed.size) {
+    for (const [k, v] of Object.entries(next)) if (k !== "key_points" && k !== "follow_up_questions") next[k] = dropRefs(v, removed);
+  }
   return next;
 }
 
