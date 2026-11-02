@@ -7,15 +7,16 @@ import styles from "../admin.module.css";
 
 // Chủ tải gói học liệu (.zip/.json) hoặc ngân hàng câu hỏi Word (.docx), xem trước rồi nhập. Khóa mới luôn ở dạng nháp.
 
-type Course = { slug: string; titleVi: string; lessons: number; existed: boolean; status: string; newVersion: boolean; live: boolean };
+type Course = { slug: string; titleVi: string; lessons: number; existed: boolean; status: string; newVersion: boolean; titleChanged: boolean; live: boolean };
 type Preview = { file: string; sources: string[]; skipped: number; courses: Course[]; newLessonVersions: number; needsConfirm: string[]; receipt: string };
 
 const MAX_BYTES = 16 * 1024 * 1024;
 
 function courseState(c: Course): { text: string; tag: string } {
   if (!c.existed) return { text: "Khóa mới (nháp)", tag: styles.tagOk };
-  if (!c.newVersion) return { text: "Không đổi", tag: styles.tag };
-  return c.live ? { text: "Đang bán · nội dung sẽ đổi", tag: styles.tagBad } : { text: "Có nội dung mới", tag: styles.tagWarn };
+  if (!c.newVersion && !c.titleChanged) return { text: "Không đổi", tag: styles.tag };
+  const what = c.newVersion ? "nội dung" : "tên khóa";
+  return c.live ? { text: `Đang bán · ${what} sẽ đổi`, tag: styles.tagBad } : { text: c.newVersion ? "Có nội dung mới" : "Đổi tên khóa", tag: styles.tagWarn };
 }
 
 export default function ContentImportPage() {
@@ -65,7 +66,8 @@ export default function ContentImportPage() {
     setPreview(null);
   }
 
-  const changes = preview?.courses.some((c) => c.newVersion) ?? false;
+  // Đổi tên khóa (không có bài mới) cũng là thay đổi cần nhập.
+  const changes = preview?.courses.some((c) => c.newVersion || c.titleChanged) ?? false;
 
   return (
     <>

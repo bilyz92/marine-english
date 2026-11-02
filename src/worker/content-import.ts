@@ -33,6 +33,8 @@ export type CourseReport = {
   newVersion: boolean;
   /** Khóa có sẵn mà tên đổi theo gói. */
   titleChanged: boolean;
+  /** Tên lúc trước khi nhập (biên nhận xem trước gắn cả tên, để phát hiện tên bị đổi chen giữa). */
+  titleBefore: { vi: string; en: string } | null;
 };
 export type ImportReport = { courses: CourseReport[]; newCourseVersions: number; newLessonVersions: number };
 
@@ -232,6 +234,7 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
         lessons: members.length,
         existed: !!before,
         titleChanged: !!before && (before.title_vi !== course.title.vi || before.title_en !== course.title.en),
+        titleBefore: before ? { vi: before.title_vi, en: before.title_en } : null,
         status: c!.status,
         versionBefore: before?.current_version_id ?? null,
         versionAfter: versionId,

@@ -27,11 +27,11 @@ export const prismaSql = (tx: Tx): Sql => ({
   query: <T>(text: string, params: unknown[] = []) => tx.$queryRawUnsafe<T[]>(text, ...params),
 });
 
-type Receipt = { a: string; h: string; c: [string, string | null, string, boolean][]; x: number };
+type Receipt = { a: string; h: string; c: [string, string | null, string, boolean, string | null, string | null][]; x: number };
 
 const receiptKey = () => Buffer.from(hkdfSync("sha256", Buffer.from(env().SESSION_KEY_ADMIN, "base64"), "", "me:content-import-receipt", 32));
 const sign = (body: string) => createHmac("sha256", receiptKey()).update(body).digest("base64url");
-const courseState = (c: CourseReport): Receipt["c"][number] => [c.slug, c.versionBefore, c.status, c.existed];
+const courseState = (c: CourseReport): Receipt["c"][number] => [c.slug, c.versionBefore, c.status, c.existed, c.titleBefore?.vi ?? null, c.titleBefore?.en ?? null];
 
 function issueReceipt(adminId: string, sha256: string, courses: CourseReport[]): string {
   const body = Buffer.from(JSON.stringify({ a: adminId, h: sha256, c: courses.map(courseState), x: Date.now() + RECEIPT_TTL_MS } satisfies Receipt)).toString("base64url");

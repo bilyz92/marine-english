@@ -81,7 +81,15 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
       : await adminApi<{ externalId: string }>(`/api/quan-tri/content/courses/${slug}/lessons`, { method: "POST", body });
     setBusy(false);
     if (!r.ok) {
-      if (r.data.error === "stale") await reload();
+      if (r.data.error === "stale") {
+        // Bài vừa được sửa ở chỗ khác: tải lại danh sách và nội dung bài mới nhất, không lưu đè bằng form cũ.
+        // Thêm bài (nối cuối khóa) không đè lên ai: giữ nội dung đang gõ, chỉ cập nhật phiên bản khóa rồi bấm lưu lại.
+        await reload();
+        if (editing.externalId) await open(editing.externalId);
+        return setProblem(editing.externalId
+          ? "Bài vừa được sửa ở chỗ khác. Đã tải bản mới nhất, sửa lại rồi lưu."
+          : "Khóa vừa được sửa ở chỗ khác. Đã cập nhật, bấm Lưu bài lần nữa để thêm bài.");
+      }
       return setProblem(messageFor(r.data.error));
     }
     setSaved(editing.externalId ? `Đã lưu bài ${r.data.externalId}.` : `Đã thêm bài ${r.data.externalId}.`);

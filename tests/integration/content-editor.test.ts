@@ -52,7 +52,8 @@ describe("soạn bài trên web", () => {
 
     const lesson = (await (await callAdmin(getLesson, owner, "GET", "/x", undefined, { slug: "engine_cadet_tanker", externalId: "A001" })).json()) as Lesson;
     expect(lesson.content.question.text).toEqual({ en: "Introduce yourself, please.", vi: "Introduce yourself, please. (vi)" });
-    expect(lesson.content.learning_material).toEqual(old.learning_material);
+    // Học liệu 3 mức giữ nguyên, trừ các tham chiếu tới ý chính/câu phụ đã bỏ.
+    expect((lesson.content.learning_material as { question_breakdown: unknown }).question_breakdown).toEqual(old.learning_material.question_breakdown);
     expect(lesson.content.activities).toEqual(old.activities);
     expect(lesson.content.vocabulary).toEqual([{ id: "A001.vocab.1", text: { en: "pump", vi: "bơm" } }]);
 
@@ -169,6 +170,24 @@ describe("soạn bài trên web", () => {
     expect(fus).toHaveLength(1);
     expect(fus[0]!.id).not.toBe("A001.probe.1");
     expect(fus[0]).not.toHaveProperty("model_answer");
+  });
+
+  it("bỏ ý chính hoặc câu phụ: không còn chỗ nào trong bài trỏ tới mã đã bỏ", async () => {
+    await seedContent();
+    const owner = await adminSess("owner");
+    const v = (await listing(owner, "engine_cadet_tanker")).course.currentVersionId;
+    const res = await put(owner, "engine_cadet_tanker", "A001", {
+      expectedVersionId: v,
+      ...fields("Introduce yourself."),
+      keyPoints: [{ id: "A001.kp.2", en: "Second", vi: "" }, { id: "A001.kp.3", en: "Third", vi: "" }],
+      followUps: [],
+    });
+    expect(res.status).toBe(200);
+    const lesson = (await (await callAdmin(getLesson, owner, "GET", "/x", undefined, { slug: "engine_cadet_tanker", externalId: "A001" })).json()) as Lesson;
+    const json = JSON.stringify(lesson.content);
+    expect(json).not.toContain('"A001.kp.1"');
+    expect(json).not.toContain('"A001.probe.1"');
+    expect(json).toContain('"A001.kp.2"');
   });
 });
 

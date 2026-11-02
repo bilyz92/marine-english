@@ -113,6 +113,17 @@ describe("nhập gói nội dung trên web", () => {
     expect(await res.json()).toMatchObject({ error: "stale_preview" });
   });
 
+  it("tên khóa bị đổi chen giữa lúc xem trước và lúc nhập → 409 stale_preview", async () => {
+    const owner = await adminSess("owner");
+    const first = await preview(owner, fixtureBytes(), "content-mini.json");
+    await apply(owner, fixtureBytes(), "content-mini.json", first.receipt);
+    const p = await preview(owner, fixtureBytes(), "content-mini.json");
+    await sqlAsMigrator(`UPDATE courses SET title_vi = 'Tên đổi chen giữa' WHERE slug = 'engine_cadet_tanker'`);
+    const res = await apply(owner, fixtureBytes(), "content-mini.json", p.receipt);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: "stale_preview" });
+  });
+
   it("khóa đang bán: xem trước báo, nhập thật cần confirmLive", async () => {
     const owner = await adminSess("owner");
     const first = await preview(owner, fixtureBytes(), "content-mini.json");

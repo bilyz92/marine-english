@@ -5,7 +5,7 @@
 	# Chủ tải gói nội dung: 16 MB, khớp giới hạn của app; mọi đường dẫn khác 5 MB.
 	@contentImport path /api/quan-tri/content/import
 	request_body @contentImport {
-		max_size 16MB
+		max_size 16MiB
 	}
 	@other not path /api/quan-tri/content/import
 	request_body @other {
