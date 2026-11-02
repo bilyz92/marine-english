@@ -12,7 +12,10 @@ SKIP_BUILD=0; SKIP_MIGRATE=0
 for a in "$@"; do case "$a" in --skip-build) SKIP_BUILD=1 ;; --skip-migrate) SKIP_MIGRATE=1 ;; *) echo "tham số lạ: $a"; exit 2 ;; esac; done
 HERE="$(cd "$(dirname "$0")" && pwd)"
 export IMAGE_TAG="$TAG"
-COMPOSE=(docker compose -f "$HERE/../docker-compose.prod.yml" --env-file "$ENV_FILE")
+# Máy đã có nginx (không chạy Caddy): ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml (đường dẫn tương đối với thư mục gốc dự án).
+COMPOSE=(docker compose -f "$HERE/../docker-compose.prod.yml")
+if [ -n "${ME_COMPOSE_OVERRIDE:-}" ]; then COMPOSE+=(-f "$HERE/../$ME_COMPOSE_OVERRIDE"); fi
+COMPOSE+=(--env-file "$ENV_FILE")
 step() { echo "== $(date +%H:%M:%S) $*"; }
 wait_healthy() { # <container> <giây>
   for _ in $(seq 1 "$2"); do

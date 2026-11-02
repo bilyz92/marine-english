@@ -1,0 +1,17 @@
+# Máy đã có nginx giữ cổng 80/443 (vd. 103.180.134.101, marine-english.heytek.vn): không chạy Caddy, app chỉ nghe 127.0.0.1:3100
+# để nginx chuyển tiếp vào (cấu hình mẫu: deploy/nginx-marine-english.conf). Giới hạn RAM cho máy 1,8 GB chỉ chạy dự án này:
+# chạy thường 1,15 GB tối đa (thực dùng ~0,35 GB), cộng app ứng viên 512 MB lúc deploy vẫn dưới RAM máy; máy có thêm 1,6 GB swap.
+#   docker compose -f docker-compose.prod.yml -f deploy/compose.nginx.yml --env-file deploy/prod.env up -d postgres migrate app worker
+services:
+  postgres:
+    mem_limit: 320m
+  migrate:
+    mem_limit: 256m
+  app:
+    ports:
+      - "127.0.0.1:3100:3000"
+    mem_limit: 512m
+  worker:
+    mem_limit: 320m
+  caddy:
+    profiles: ["caddy"]

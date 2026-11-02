@@ -18,6 +18,32 @@ Một máy chủ, một tệp `docker-compose.prod.yml`:
 
 Dữ liệu nằm ở các volume `pgdata`, `media`, `backups`, `caddy_data`. Khóa sao lưu nằm ở `BACKUP_KEYS_HOST_DIR` trên máy chủ (không trong volume).
 
+## 1A. Máy đang chạy: 103.180.134.101 (marine-english.heytek.vn), từ 02/11/2026
+
+- Máy dùng chung với heytek và crmgo; hai dự án này **đang tạm tắt** theo yêu cầu của chủ dự án để đủ RAM (1,8 GB). Lệnh bật lại: `~/DU-AN-DA-TAT.md` trên máy.
+- nginx của máy giữ cổng 80/443 và chuyển tiếp vào app ở `127.0.0.1:3100` (`/etc/nginx/sites-available/marine-english`, mẫu ở `deploy/nginx-marine-english.conf`);
+  chứng chỉ Let's Encrypt do certbot cấp và tự gia hạn. Không chạy Caddy: luôn kèm `deploy/compose.nginx.yml` (cũng chứa giới hạn RAM cho máy này).
+- Thư mục `~/marine-english`: chỉ có các tệp compose, `deploy/` và `deploy/prod.env` (quyền 600, khóa sinh riêng cho máy này). Không có mã nguồn:
+  image build ở máy phát triển rồi chuyển lên.
+- Cập nhật bản mới. Máy phát triển **không** giữ `prod.env` hay khóa bí mật: build chỉ cần khóa công khai của giấy phép học offline,
+  lấy từ máy chủ (giá trị này công khai).
+
+      set -euo pipefail
+      TAG=$(git rev-parse --short HEAD)
+      PUB=$(ssh ubuntu@103.180.134.101 "grep ^NEXT_PUBLIC_LICENSE_PUBLIC_KEYS= ~/marine-english/deploy/prod.env | cut -d= -f2-")
+      # Thiếu khóa công khai thì app không tin giấy phép học offline nào: dừng, không build.
+      test -n "$PUB" || { echo "Không lấy được khóa công khai"; exit 1; }
+      docker build --target app    --build-arg NEXT_PUBLIC_LICENSE_PUBLIC_KEYS="$PUB" -t marine-english-app:$TAG .
+      docker build --target worker --build-arg NEXT_PUBLIC_LICENSE_PUBLIC_KEYS="$PUB" -t marine-english-worker:$TAG .
+      docker save marine-english-app:$TAG marine-english-worker:$TAG | gzip -1 | ssh ubuntu@103.180.134.101 'gunzip | docker load'
+      scp docker-compose.prod.yml ubuntu@103.180.134.101:marine-english/ && scp deploy/*.yml deploy/*.sh deploy/*.mjs ubuntu@103.180.134.101:marine-english/deploy/
+      ssh ubuntu@103.180.134.101 'cd ~/marine-english && ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml deploy/deploy.sh deploy/prod.env '$TAG' --skip-build'
+
+  Đổi khóa ký giấy phép (`LICENSE_SIGNING_KEYS` trên máy chủ) thì phải build lại với khóa công khai mới.
+- Sao lưu: khóa `b2026a` ở `~/marine-english-backup-keys/` (quyền 600, uid 1000). Bản đầu 02/11/2026, thử khôi phục trên máy phát triển: đạt.
+  **Chưa có nơi lưu ngoài** (`BACKUP_RCLONE_REMOTE` trống): bản sao lưu đang nằm cùng ổ đĩa với dữ liệu.
+- Chưa có: nhà cung cấp email (G7) và mã Google, nên chưa ai đăng nhập được `/quan-tri`; khóa học còn nháp; chưa có thông tin thanh toán (G4); chưa có nơi lưu ngoài cho sao lưu; chưa có Telegram.
+
 ## 2. Cài máy mới từ đầu
 
 1. Cài Docker và Docker Compose. Bật NTP. Tường lửa chỉ mở 80, 443 và SSH (đăng nhập bằng khóa, tắt mật khẩu).
