@@ -1,0 +1,8 @@
+.dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; background: var(--color-bg); color: var(--color-text); }
+.dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+.title { font-size: 20px; margin: 0 0 8px; }
+.subtitle { font-size: 16px; margin: 16px 0 6px; }
+.lead { color: var(--color-muted); line-height: 1.5; margin: 0 0 8px; }
+.warn { padding: 10px 12px; border-radius: var(--radius-control); background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); color: var(--color-warning); line-height: 1.5; }
+.steps { margin: 0; padding-left: 20px; line-height: 1.6; }
+.close { width: 100%; min-height: var(--touch-main); margin-top: 16px; border: 0; border-radius: var(--radius-control); background: var(--color-primary); color: var(--color-bg); font-size: 16px; font-weight: 600; cursor: pointer; }

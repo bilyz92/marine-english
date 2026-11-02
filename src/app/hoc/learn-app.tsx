@@ -11,6 +11,7 @@ import { NEXT_KEY } from "../(site)/dang-nhap/api";
 import { CourseList } from "./course-list";
 import { CourseView } from "./course-view";
 import { LessonView } from "./lesson-view";
+import { InstallApp } from "@/components/install-app";
 import styles from "./learn.module.css";
 
 /** Đổi màn bằng history (không gọi máy chủ), nên vẫn chuyển được khi mất mạng. */
@@ -113,7 +114,10 @@ export function LearnApp() {
     <main className={styles.page}>
       <div className={styles.bar}>
         <button className={styles.brand} onClick={() => go({})}>Marine English</button>
-        <a className={styles.barLink} href="/tai-khoan">{identity.displayName}</a>
+        <span className={styles.barRight}>
+          <InstallApp className={styles.barInstall} label="Tải app" />
+          <a className={styles.barLink} href="/tai-khoan">{identity.displayName}</a>
+        </span>
       </div>
       <div className={styles.wrap}>
         <StatusBanners license={license} offline={offline} pending={pending} />

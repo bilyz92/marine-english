@@ -11,6 +11,11 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#F7F4FD",
     theme_color: "#5B21B6",
     lang: "vi",
-    icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
+    // Android cần icon PNG 192 và 512 để cài; SVG cho trình duyệt hiểu được.
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+    ],
   };
 }

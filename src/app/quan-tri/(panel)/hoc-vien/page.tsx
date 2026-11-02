@@ -45,6 +45,60 @@ function Devices({ learner }: { learner: Learner }) {
   );
 }
 
+/** D2: số + mật khẩu của học viên; chủ đặt mật khẩu tạm theo tiêu chí khôi phục G15 (lý do, bằng chứng, có nhật ký). */
+function PasswordLogin({ learner }: { learner: Learner }) {
+  const me = useAdmin();
+  const login = learner.passwordLogin;
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ reason: "", evidence: "", phone: "" });
+  const [temporary, setTemporary] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const set = (name: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [name]: e.target.value });
+
+  async function reset() {
+    setBusy(true);
+    const r = await adminApi<{ temporaryPassword?: string }>(`/api/quan-tri/learners/${learner.id}/password`, {
+      method: "POST", body: { reason: form.reason, evidence: form.evidence, ...(form.phone.trim() ? { phone: form.phone } : {}) },
+    });
+    setBusy(false);
+    const issue = problemOf(r);
+    if (issue) return setProblem(issue);
+    setOpen(false);
+    setForm({ reason: "", evidence: "", phone: "" });
+    setTemporary(r.data.temporaryPassword ?? null);
+  }
+
+  return (
+    <>
+      <h3 className={styles.h2}>Số điện thoại + mật khẩu</h3>
+      {!login && <p className={styles.muted}>Chưa có.</p>}
+      {login && (
+        <div className={styles.item}>
+          <span>{login.phone}</span>
+          <span className={login.released ? styles.tagBad : styles.tag}>
+            {login.released ? "Đã bị nhả (số được người khác xác minh)" : login.verified ? "Đã xác minh" : "Chưa xác minh"}{login.mustChange ? " · đang dùng mật khẩu tạm" : ""}
+          </span>
+        </div>
+      )}
+      {temporary && (
+        <p className={styles.notice} role="status">
+          Mật khẩu tạm: <strong className={styles.code}>{temporary}</strong>. Chỉ hiện một lần: đọc cho học viên, học viên phải đổi ngay khi đăng nhập.
+        </p>
+      )}
+      {can(me, "learners.password_reset") && learner.status === "active" && (
+        <div className={styles.actions}><button className={styles.btn} onClick={() => { setProblem(null); setTemporary(null); setOpen(true); }}>Đặt mật khẩu tạm</button></div>
+      )}
+      <ActionDialog open={open} title={`Đặt mật khẩu tạm cho ${learner.displayName}`} confirmLabel="Đặt mật khẩu tạm" danger busy={busy} problem={problem} onClose={() => setOpen(false)} onConfirm={() => void reset()}>
+        <p className={styles.muted}>Chỉ làm khi đã xác minh đúng người: mã đơn, giao dịch chuyển khoản đã mua, thông tin hồ sơ. Mọi máy của học viên bị đăng xuất.</p>
+        <Field label="Lý do *"><textarea className={styles.input} required value={form.reason} onChange={set("reason")} /></Field>
+        <Field label="Bằng chứng đã đối chiếu *"><textarea className={styles.input} required value={form.evidence} onChange={set("evidence")} /></Field>
+        <Field label={login && !login.released ? "Số mới (để trống nếu giữ số cũ)" : "Số điện thoại *"}><input className={styles.input} type="tel" value={form.phone} onChange={set("phone")} /></Field>
+      </ActionDialog>
+    </>
+  );
+}
+
 export default function LearnersPage() {
   const [learners, setLearners] = useState<Learner[]>([]);
   return (
@@ -59,6 +113,7 @@ export default function LearnersPage() {
           <h3 className={styles.h2}>Khóa đang có</h3>
           {l.courses.length === 0 && <p className={styles.muted}>Chưa có khóa nào.</p>}
           {l.courses.map((c) => <div key={c.enrollmentId} className={styles.item}><span>{c.title}</span><span className={styles.tag}>{c.source === "order" ? "Đã mua" : "Cấp không thu tiền"}</span></div>)}
+          <PasswordLogin learner={l} />
           <Devices learner={l} />
         </section>
       ))}

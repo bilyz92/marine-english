@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstallApp } from "@/components/install-app";
 import ui from "@/components/ui.module.css";
 import styles from "./site.module.css";
 
@@ -17,6 +18,7 @@ export function SiteHeader() {
           <Link href="/#cach-hoc" className={styles.navLink}>Cách học</Link>
           <Link href="/#hoi-dap" className={styles.navLink}>Hỏi đáp</Link>
           <Link href="/gioi-thieu" className={styles.navLink}>Về tôi</Link>
+          <InstallApp className={styles.navInstall} label="Tải app" />
           <Link href="/dang-nhap" className={styles.navLink}>Đăng nhập</Link>
           <Link href="/khoa-hoc" className={styles.navCta}>Học thử miễn phí</Link>
         </nav>

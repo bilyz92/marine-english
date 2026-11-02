@@ -30,8 +30,10 @@ try {
 
   // 2. Đăng nhập bằng mã qua đúng giao diện.
   const email = `mua${Date.now()}@x.vn`;
-  check("form đăng nhập hiện", await waitFor(() => b.evaluate(`document.querySelector("input[type=email]") !== null`), 40000));
+  check("form đăng nhập hiện, mặc định số điện thoại", await waitFor(() => b.evaluate(`document.querySelector("input[type=tel]") !== null`), 40000));
   await hydrated();
+  await click("Email");
+  check("chuyển sang đăng nhập bằng email", await waitFor(() => b.evaluate(`document.querySelector("input[type=email]") !== null`)));
   await setValue("input[maxlength='100']", "Người mua thử");
   await setValue("input[type=email]", email);
   await click("Gửi mã xác minh");
@@ -98,8 +100,10 @@ try {
   await waitFor(() => b.evaluate(`document.querySelector("textarea") !== null`));
   const set = (selector, value) => b.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement : HTMLInputElement; Object.getOwnPropertyDescriptor(proto.prototype, "value").set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event("input", { bubbles: true })); })()`);
   await set("textarea", "thử hoàn tiền");
-  const inputs = await b.evaluate(`[...document.querySelectorAll("form input")].length`);
-  await b.evaluate(`(() => { const els = [...document.querySelectorAll("form input")]; const vals = ["Vietcombank", "0011223344", "NGUYEN VAN THU"]; els.forEach((el, i) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); }); })()`);
+  // Form hoàn tiền là form có ô lý do (textarea); trang còn form đổi mật khẩu.
+  const refundForm = `[...document.querySelectorAll("form")].find((f) => f.querySelector("textarea"))`;
+  const inputs = await b.evaluate(`${refundForm}.querySelectorAll("input").length`);
+  await b.evaluate(`(() => { const els = [...${refundForm}.querySelectorAll("input")]; const vals = ["Vietcombank", "0011223344", "NGUYEN VAN THU"]; els.forEach((el, i) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, vals[i]); el.dispatchEvent(new Event("input", { bubbles: true })); }); })()`);
   check("form hoàn tiền có 3 ô tài khoản", inputs === 3, String(inputs));
   await click("Gửi yêu cầu hoàn tiền");
   check("gửi yêu cầu hoàn tiền xong", await waitFor(async () => (await text()).includes("Đã gửi yêu cầu hoàn tiền")));

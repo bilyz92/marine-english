@@ -8,6 +8,7 @@ export type Learner = {
   id: string; displayName: string; rank: string | null; status: string; mergedIntoId: string | null;
   identities: { kind: string; value: string }[];
   courses: { enrollmentId: string; courseId: string; title: string; source: string }[];
+  passwordLogin: { phone: string; verified: boolean; released: boolean; mustChange: boolean } | null;
 };
 
 export const KIND_LABEL: Record<string, string> = { email: "Email", phone: "Điện thoại", google: "Google" };

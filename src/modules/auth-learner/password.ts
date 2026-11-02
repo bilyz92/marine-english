@@ -413,3 +413,11 @@ export async function adminResetPassword(
   }
   return result;
 }
+
+/** Cho trang Tài khoản của tôi: số đang dùng để đăng nhập bằng mật khẩu (chính học viên xem nên hiện đủ số). */
+export async function myPasswordLogin(userId: string): Promise<{ phone: string; verified: boolean; released: boolean } | null> {
+  const [row] = await withTx((tx) => tx.$queryRaw<{ phone_canonical: string; verified: boolean; released: boolean }[]>`
+    SELECT phone_canonical, phone_verified_at IS NOT NULL AS verified, released_at IS NOT NULL AS released
+    FROM password_logins WHERE user_id = ${userId}::uuid`);
+  return row ? { phone: row.phone_canonical, verified: row.verified, released: row.released } : null;
+}

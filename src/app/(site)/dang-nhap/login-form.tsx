@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import styles from "./login.module.css";
 import { DEVICES_KEY, NEXT_KEY, postJson, type VerifyResult } from "./api";
 import { deviceLabel, getDeviceKey } from "./device-key";
-
-const RANKS = [
-  "Máy trưởng", "Máy hai", "Máy ba", "Máy tư", "Thợ cả", "Thợ máy",
-  "Thực tập sinh máy", "Bộ phận boong", "Đang học trường hàng hải", "Khác / chưa xác định",
-];
+import { PhoneForm } from "./phone-form";
+import { RANKS } from "./ranks";
 
 type Mode = "signup" | "login";
 
@@ -17,6 +14,8 @@ const RESEND_SECONDS = 60;
 
 export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: boolean; googleFailed: boolean; next: string }) {
   const router = useRouter();
+  // D2: số điện thoại + mật khẩu là cách chính; email (mã 6 số) và Google vẫn dùng được.
+  const [method, setMethod] = useState<"phone" | "email">("phone");
   const [mode, setMode] = useState<Mode>("signup");
   const [step, setStep] = useState<"form" | "code" | "done">("form");
   const [displayName, setDisplayName] = useState("");
@@ -126,13 +125,34 @@ export function LoginForm({ zaloEnabled, googleFailed, next }: { zaloEnabled: bo
     );
   }
 
+  const methods = (
+    <div className={styles.tabs} role="group" aria-label="Cách đăng nhập">
+      <button type="button" className={method === "phone" ? styles.tabActive : styles.tab} aria-pressed={method === "phone"} onClick={() => { setMethod("phone"); setError(null); }}>Số điện thoại</button>
+      <button type="button" className={method === "email" ? styles.tabActive : styles.tab} aria-pressed={method === "email"} onClick={() => { setMethod("email"); setError(null); }}>Email</button>
+    </div>
+  );
+  const googleButton = <button type="button" className={styles.secondary} disabled={busy} onClick={google}>Tiếp tục với Google</button>;
+
+  if (method === "phone") {
+    return (
+      <div>
+        {methods}
+        {error && <p className={styles.error} role="alert">{error}</p>}
+        <PhoneForm next={next} onDone={(created) => { setMode(created ? "signup" : "login"); setStep("done"); }} />
+        <div className={styles.divider}>hoặc</div>
+        {googleButton}
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={sendCode}>
+      {methods}
       <div className={styles.tabs}>
         <button type="button" className={mode === "signup" ? styles.tabActive : styles.tab} onClick={() => setMode("signup")}>Tạo tài khoản</button>
         <button type="button" className={mode === "login" ? styles.tabActive : styles.tab} onClick={() => setMode("login")}>Đăng nhập</button>
       </div>
-      <button type="button" className={styles.secondary} disabled={busy} onClick={google}>Tiếp tục với Google</button>
+      {googleButton}
       <div className={styles.divider}>hoặc</div>
       {mode === "signup" && (
         <label className={styles.field}>

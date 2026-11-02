@@ -12,6 +12,9 @@ const beVietnam = Be_Vietnam_Pro({
 export const metadata: Metadata = {
   title: { default: "Marine English", template: "%s · Marine English" },
   description: "Tiếng Anh cho thuyền viên bộ phận máy.",
+  // iPhone: icon và tên khi “Thêm vào Màn hình chính”, mở như app riêng.
+  icons: { apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Marine English", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = { themeColor: "#5b21b6" };

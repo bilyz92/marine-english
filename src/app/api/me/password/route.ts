@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { json, readJson, route } from "@/lib/http";
-import { changeOwnPassword } from "@/modules/auth-learner/password";
+import { changeOwnPassword, myPasswordLogin } from "@/modules/auth-learner/password";
 import { requireLearner } from "@/modules/sessions/guards";
 
 const Body = z.object({
@@ -10,6 +10,11 @@ const Body = z.object({
 });
 
 const STATUS = { invalid_current: 400, weak: 400, phone_required: 400, invalid_phone: 400, reauth_required: 403, phone_taken: 409, inactive: 409, locked: 429 } as const;
+
+export const GET = route(async (req: Request) => {
+  const ctx = await requireLearner(req);
+  return json({ passwordLogin: await myPasswordLogin(ctx.userId) }, { headers: { "cache-control": "private, no-store" } });
+});
 
 /** Đổi mật khẩu, hoặc thêm số + mật khẩu cho tài khoản email/Google (D2). */
 export const POST = route(async (req: Request) => {

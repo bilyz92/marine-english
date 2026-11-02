@@ -6,6 +6,7 @@ import { learnerCsrfHeader } from "@/lib/client/api";
 import { forgetDeviceKey } from "../(site)/dang-nhap/device-key";
 import styles from "../hoc/learn.module.css";
 import { MyOrders } from "./my-orders";
+import { PasswordSection } from "./password-section";
 
 type Device = { id: string; label: string; lastSeenAt: string | null; current: boolean };
 type IdentityRow = { id: string; kind: string; valueCanonical: string };
@@ -95,6 +96,7 @@ export function Account() {
             </div>
           ))}
         </div>
+        {online && <PasswordSection />}
         <div className={styles.card}>
           <h2 className={styles.h2}>Thiết bị của tôi (tối đa 2)</h2>
           {devices.map((d) => (
