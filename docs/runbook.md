@@ -33,8 +33,8 @@ Dữ liệu nằm ở các volume `pgdata`, `media`, `backups`, `caddy_data`. Kh
       PUB=$(ssh ubuntu@103.180.134.101 "grep ^NEXT_PUBLIC_LICENSE_PUBLIC_KEYS= ~/marine-english/deploy/prod.env | cut -d= -f2-")
       # Thiếu khóa công khai thì app không tin giấy phép học offline nào: dừng, không build.
       test -n "$PUB" || { echo "Không lấy được khóa công khai"; exit 1; }
-      docker build --target app    --build-arg NEXT_PUBLIC_LICENSE_PUBLIC_KEYS="$PUB" -t marine-english-app:$TAG .
-      docker build --target worker --build-arg NEXT_PUBLIC_LICENSE_PUBLIC_KEYS="$PUB" -t marine-english-worker:$TAG .
+      docker buildx build --load --target app    --build-arg NEXT_PUBLIC_LICENSE_PUBLIC_KEYS="$PUB" -t marine-english-app:$TAG .
+      docker buildx build --load --target worker --build-arg NEXT_PUBLIC_LICENSE_PUBLIC_KEYS="$PUB" -t marine-english-worker:$TAG .
       docker save marine-english-app:$TAG marine-english-worker:$TAG | gzip -1 | ssh ubuntu@103.180.134.101 'gunzip | docker load'
       scp docker-compose.prod.yml ubuntu@103.180.134.101:marine-english/ && scp deploy/*.yml deploy/*.sh deploy/*.mjs ubuntu@103.180.134.101:marine-english/deploy/
       ssh ubuntu@103.180.134.101 'cd ~/marine-english && ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml deploy/deploy.sh deploy/prod.env '$TAG' --skip-build'
