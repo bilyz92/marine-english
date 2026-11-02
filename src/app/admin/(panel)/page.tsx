@@ -40,7 +40,7 @@ export default function OverviewPage() {
         <>
           {(data.queueOpen > 0 || data.refundsOpen > 0) && (
             <p className={styles.notice}>
-              <Link href="/quan-tri/so-giao-dich">{data.queueOpen} khoản cần xử lý tay</Link> · <Link href="/quan-tri/hoan-tien">{data.refundsOpen} yêu cầu hoàn tiền</Link>
+              <Link href="/admin/so-giao-dich">{data.queueOpen} khoản cần xử lý tay</Link> · <Link href="/admin/hoan-tien">{data.refundsOpen} yêu cầu hoàn tiền</Link>
             </p>
           )}
           <div className={styles.stats}>

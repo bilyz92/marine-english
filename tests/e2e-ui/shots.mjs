@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { openBrowser, PAGE_CHECKS } from "./lib.mjs";
 
 const [base, out, ...paths] = process.argv.slice(2);
-const PATHS = paths.length ? paths : ["/", "/khoa-hoc", "/gioi-thieu", "/chinh-sach", "/chinh-sach?tab=hoan-tien", "/lien-he", "/dang-nhap", "/quan-tri/dang-nhap"];
+const PATHS = paths.length ? paths : ["/", "/khoa-hoc", "/gioi-thieu", "/chinh-sach", "/chinh-sach?tab=hoan-tien", "/lien-he", "/dang-nhap", "/admin/dang-nhap"];
 mkdirSync(out, { recursive: true });
 const browser = await openBrowser();
 let failed = 0;

@@ -49,7 +49,7 @@ export async function adminApi<T = Record<string, never>>(path: string, init: { 
   }).catch(() => null);
   if (!res) return { ok: false, status: 0, data: { error: "Không kết nối được, kiểm tra mạng." } as never };
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- phiên hết hạn: tải lại toàn trang để bỏ trạng thái cũ.
-  if (res.status === 401) window.location.assign(`/quan-tri/dang-nhap`);
+  if (res.status === 401) window.location.assign(`/admin/dang-nhap`);
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, data };
 }

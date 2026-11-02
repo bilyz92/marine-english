@@ -7,7 +7,7 @@ import { consumeOidcState } from "@/modules/auth-oidc/oidc-states";
 import { clearOidcCookie, oidcCookieName, sessionCookies } from "@/modules/sessions/cookies";
 import { createSession } from "@/modules/sessions/sessions";
 
-const FAILED = "/quan-tri/dang-nhap?loi=google";
+const FAILED = "/admin/dang-nhap?loi=google";
 
 export const GET = route(async (req: Request) => {
   const url = new URL(req.url);
@@ -28,5 +28,5 @@ export const GET = route(async (req: Request) => {
     return s;
   });
   if (!session) return done(FAILED);
-  return done("/quan-tri", sessionCookies("admin", session.token, session.csrf));
+  return done("/admin", sessionCookies("admin", session.token, session.csrf));
 });

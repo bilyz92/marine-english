@@ -20,7 +20,7 @@ describe("classifyPath", () => {
     ["/khoa-hoc/may-chinh", "public"],
     ["/dang-nhap", "public"],
     ["/dang-nhap/ma", "public"],
-    ["/quan-tri/dang-nhap", "public"],
+    ["/admin/dang-nhap", "public"],
     ["/_next/static/x.js", "public"],
     ["/api/public/courses", "public"],
     ["/api/health", "public"],
@@ -31,8 +31,8 @@ describe("classifyPath", () => {
     ["/tai-khoan", "learner"],
     ["/api/learn/sync", "learner"],
     ["/api/me/identities", "learner"],
-    ["/quan-tri", "admin"],
-    ["/quan-tri/don-hang", "admin"],
+    ["/admin", "admin"],
+    ["/admin/don-hang", "admin"],
     ["/api/quan-tri/admins", "admin"],
     ["/api/khong-co", "denied"],
     ["/api", "denied"],
@@ -69,6 +69,20 @@ describe("proxy", () => {
   it("API khu vực riêng thiếu cookie đúng khu vực → 401", async () => {
     expect((await proxy(req("/api/quan-tri/admins", { cookie: "__Host-me_learn=t" }))).status).toBe(401);
     expect((await proxy(req("/api/me/identities", { cookie: "__Host-me_admin=t" }))).status).toBe(401);
+  });
+
+  it("đường dẫn cũ /quan-tri/** chuyển hẳn sang /admin/**, giữ query; API /api/quan-tri không đổi", async () => {
+    for (const [from, to] of [
+      ["/quan-tri", "/admin"],
+      ["/quan-tri/dang-nhap?next=%2Fadmin", "/admin/dang-nhap?next=%2Fadmin"],
+      ["/quan-tri/quan-tri-vien", "/admin/quan-tri-vien"],
+    ]) {
+      const res = await proxy(req(from!));
+      expect(res.status).toBe(308);
+      expect(res.headers.get("location")).toBe(`${ORIGIN}${to}`);
+    }
+    expect((await proxy(req("/quan-tri-x"))).status).toBe(200);
+    expect((await proxy(req("/api/quan-tri/admins"))).status).toBe(401);
   });
 });
 

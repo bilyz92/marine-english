@@ -7,16 +7,16 @@ import { AdminContext, adminApi, type AdminMe } from "./admin-lib";
 import styles from "./admin.module.css";
 
 const NAV: { href: string; label: string; permission: string }[] = [
-  { href: "/quan-tri", label: "Tổng quan", permission: "orders.view" },
-  { href: "/quan-tri/so-giao-dich", label: "Sổ giao dịch", permission: "orders.view" },
-  { href: "/quan-tri/hoan-tien", label: "Hoàn tiền", permission: "orders.view" },
-  { href: "/quan-tri/don-hang", label: "Đơn hàng", permission: "orders.view" },
-  { href: "/quan-tri/hoc-vien", label: "Học viên", permission: "orders.view" },
-  { href: "/quan-tri/khoa-hoc", label: "Khóa học", permission: "orders.view" },
-  { href: "/quan-tri/cap-khoa", label: "Cấp không thu tiền", permission: "grants.create" },
-  { href: "/quan-tri/gop-tai-khoan", label: "Gộp tài khoản", permission: "accounts.merge" },
-  { href: "/quan-tri/quan-tri-vien", label: "Quản trị viên", permission: "admins.manage" },
-  { href: "/quan-tri/jobs", label: "Job", permission: "jobs.run" },
+  { href: "/admin", label: "Tổng quan", permission: "orders.view" },
+  { href: "/admin/so-giao-dich", label: "Sổ giao dịch", permission: "orders.view" },
+  { href: "/admin/hoan-tien", label: "Hoàn tiền", permission: "orders.view" },
+  { href: "/admin/don-hang", label: "Đơn hàng", permission: "orders.view" },
+  { href: "/admin/hoc-vien", label: "Học viên", permission: "orders.view" },
+  { href: "/admin/khoa-hoc", label: "Khóa học", permission: "orders.view" },
+  { href: "/admin/cap-khoa", label: "Cấp không thu tiền", permission: "grants.create" },
+  { href: "/admin/gop-tai-khoan", label: "Gộp tài khoản", permission: "accounts.merge" },
+  { href: "/admin/quan-tri-vien", label: "Quản trị viên", permission: "admins.manage" },
+  { href: "/admin/jobs", label: "Job", permission: "jobs.run" },
 ];
 const BOTTOM = 4;
 
@@ -32,12 +32,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   async function logout() {
     await adminApi("/api/auth/admin/logout", { method: "POST", body: {} });
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- đăng xuất: tải lại toàn trang để bỏ trạng thái cũ.
-    window.location.assign("/quan-tri/dang-nhap");
+    window.location.assign("/admin/dang-nhap");
   }
 
   // Ẩn mục chỉ để gọn; quyền thật do từng API kiểm. Chưa biết vai trò thì chỉ hiện mục chung.
   const items = NAV.filter((n) => me?.permissions.includes(n.permission));
-  const isActive = (href: string) => (href === "/quan-tri" ? pathname === href : pathname.startsWith(href));
+  const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
 
   return (
     <AdminContext.Provider value={me}>

@@ -38,7 +38,7 @@ Luồng thanh toán, đơn hàng, quyền học trong CLAUDE.md (mục “Paymen
   7. Bấm “Lưu”: hiện “Đang lưu…”, khóa nút, rồi mở trang hoặc tab vừa tạo kèm thông báo đã lưu.
 - **Đầu vào và kiểm tra (báo lỗi ngay dưới ô):** thiếu tiêu đề hoặc quá 120 ký tự; đường dẫn không phải http(s);
   thiếu nội dung (trừ Liên kết); thiếu, quá dài hoặc trùng tên tab.
-- **Đầu ra:** mục mới trong danh sách với đường dẫn ổn định (`/quan-tri/noi-dung/<slug>` hoặc `/quan-tri/noi-dung?tab=<slug>`).
+- **Đầu ra:** mục mới trong danh sách với đường dẫn ổn định (`/admin/noi-dung/<slug>` hoặc `/admin/noi-dung?tab=<slug>`).
   Có Sửa (giữ nguyên slug) và Xóa (hỏi xác nhận).
 - **Đọc từ đường dẫn:** bấm “Đọc nội dung” → “Đang đọc…” → **luôn báo không đọc được** (đăng nhập, quyền truy cập
   hoặc web chặn đọc tự động), kèm “Mở trang gốc” và “Chuyển sang dán nội dung”. Không bao giờ hiện nội dung giả.

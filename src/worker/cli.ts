@@ -122,7 +122,7 @@ export async function issueLoginLink(
     await auditSystem(client, "cli_login_link", admin.id, null);
     return true;
   });
-  return issued ? `${opts.origin}/quan-tri/dang-nhap#link=${token}` : "not_found";
+  return issued ? `${opts.origin}/admin/dang-nhap#link=${token}` : "not_found";
 }
 
 function flag(args: string[], name: string): string {

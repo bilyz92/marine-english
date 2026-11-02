@@ -37,7 +37,7 @@ async function webhook(content, amount) {
 }
 
 async function adminLogin(email) {
-  await b.go(`${BASE}/quan-tri/dang-nhap`);
+  await b.go(`${BASE}/admin/dang-nhap`);
   await hydrated();
   await b.evaluate(`fetch("/api/auth/admin/link/send", { method: "POST", headers: { "content-type": "application/json", origin: location.origin }, body: JSON.stringify({ email: ${JSON.stringify(email)} }) })`);
   await sleep(500);
@@ -50,7 +50,7 @@ async function adminLogin(email) {
   await b.go(link);
   await hydrated();
   await click("Đăng nhập");
-  await waitFor(async () => (await b.evaluate("location.pathname")) === "/quan-tri");
+  await waitFor(async () => (await b.evaluate("location.pathname")) === "/admin");
   await hydrated();
 }
 
@@ -96,7 +96,7 @@ try {
     const t = await text();
     return t.includes("Theo khóa học") && !t.includes("không hợp lệ") && (await b.evaluate(`document.querySelector("input[type=date]")?.value`)) === today;
   }));
-  for (const [path, marker] of [["/quan-tri", "Tiền đã nhận"], ["/quan-tri/so-giao-dich", "Cần xử lý tay"], ["/quan-tri/hoan-tien", "Đề nghị hoàn tiền"], ["/quan-tri/don-hang", orderCode], ["/quan-tri/hoc-vien", "Tìm học viên"], ["/quan-tri/khoa-hoc", SLUG], ["/quan-tri/cap-khoa", "Tìm học viên"], ["/quan-tri/gop-tai-khoan", "Tài khoản nguồn"], ["/quan-tri/quan-tri-vien", ownerEmail], ["/quan-tri/jobs", "me.orders.expire"]]) {
+  for (const [path, marker] of [["/admin", "Tiền đã nhận"], ["/admin/so-giao-dich", "Cần xử lý tay"], ["/admin/hoan-tien", "Đề nghị hoàn tiền"], ["/admin/don-hang", orderCode], ["/admin/hoc-vien", "Tìm học viên"], ["/admin/khoa-hoc", SLUG], ["/admin/cap-khoa", "Tìm học viên"], ["/admin/gop-tai-khoan", "Tài khoản nguồn"], ["/admin/quan-tri-vien", ownerEmail], ["/admin/jobs", "me.orders.expire"]]) {
     for (const width of [360, 1280]) {
       await b.width(width);
       await open(path);
@@ -109,7 +109,7 @@ try {
   await b.width(1280);
 
   // Hộp xác nhận: Escape đóng, focus quay về nút.
-  await open("/quan-tri/so-giao-dich");
+  await open("/admin/so-giao-dich");
   await see("Ghép với đơn");
   await b.evaluate(`[...document.querySelectorAll("button")].find((e) => e.textContent.trim() === "Ghép với đơn").focus()`);
   await click("Ghép với đơn");
@@ -135,7 +135,7 @@ try {
   check("đơn thật sự đã thanh toán", paid === "paid", paid);
 
   // Hoàn tiền: đề nghị → duyệt → chuyển → xác nhận.
-  await open("/quan-tri/hoan-tien");
+  await open("/admin/hoan-tien");
   await click("Đề nghị hoàn tiền");
   await waitFor(() => b.evaluate(`document.querySelector("dialog[open]") !== null`));
   await fill("Mã đơn", orderCode);
@@ -163,7 +163,7 @@ try {
   check("đơn hoàn và quyền học bị thu hồi", await waitFor(revoked, 5000));
 
   // Cấp không thu tiền.
-  await open("/quan-tri/cap-khoa");
+  await open("/admin/cap-khoa");
   await fill("Tìm học viên", learnerEmail);
   await click("Tìm");
   await see("Chọn học viên này");
@@ -179,23 +179,23 @@ try {
   check("đã cấp", await see("Đã cấp"));
 
   // Mời hỗ trợ.
-  await open("/quan-tri/quan-tri-vien");
+  await open("/admin/quan-tri-vien");
   await fill("Email", supportEmail);
   await click("Gửi lời mời");
   check("có lời mời", await see(supportEmail));
   await click("Đăng xuất");
-  await waitFor(async () => (await b.evaluate("location.pathname")) === "/quan-tri/dang-nhap");
+  await waitFor(async () => (await b.evaluate("location.pathname")) === "/admin/dang-nhap");
 
   // Hỗ trợ: không thấy mục của chủ, mở trực tiếp vẫn bị chặn.
   await adminLogin(supportEmail);
   check("hỗ trợ vào tổng quan", await see("Tiền đã nhận"));
   const nav = await text();
   check("menu không có mục của chủ", !nav.includes("Quản trị viên") && !nav.includes("Cấp không thu tiền") && !nav.includes("Gộp tài khoản"));
-  await open("/quan-tri/quan-tri-vien");
+  await open("/admin/quan-tri-vien");
   check("mở thẳng trang của chủ → không có quyền", await see("không có quyền"), (await text()).slice(0, 200));
-  await open("/quan-tri/jobs");
+  await open("/admin/jobs");
   check("mở thẳng Job → không có quyền", await see("không có quyền"));
-  await open("/quan-tri/hoc-vien");
+  await open("/admin/hoc-vien");
   await b.width(390);
   await sleep(300);
   check("điện thoại không tràn", (await b.evaluate(PAGE_CHECKS)).length === 0);

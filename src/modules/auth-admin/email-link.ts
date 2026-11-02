@@ -7,7 +7,7 @@ import type { AdminLinkSender } from "@/modules/mail/contracts";
 import { createSession, tokenHash } from "@/modules/sessions/sessions";
 
 // Link đăng nhập quản trị: 15 phút, dùng một lần, chỉ cho email đang active hoặc lời mời còn hạn.
-// Link trỏ tới trang /quan-tri/dang-nhap; người dùng bấm nút mới tiêu thụ (trình quét thư không làm mất link).
+// Link trỏ tới trang /admin/dang-nhap; người dùng bấm nút mới tiêu thụ (trình quét thư không làm mất link).
 
 export async function issueAdminLink(email: string, sender: AdminLinkSender): Promise<void> {
   const canonical = canonicalizeEmail(email);
@@ -36,7 +36,7 @@ export async function issueAdminLink(email: string, sender: AdminLinkSender): Pr
   if (!issued) return;
   try {
     // Token nằm sau dấu # (không gửi lên máy chủ, không vào log truy cập); trang đọc ở trình duyệt rồi xóa khỏi thanh địa chỉ.
-    await sender.sendAdminLink(canonical, `${env().APP_ORIGIN}/quan-tri/dang-nhap#link=${token}`);
+    await sender.sendAdminLink(canonical, `${env().APP_ORIGIN}/admin/dang-nhap#link=${token}`);
   } catch {
     // Phản hồi phải giống trường hợp email không có thật; người dùng gửi lại link.
   }

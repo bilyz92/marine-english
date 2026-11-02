@@ -2,6 +2,8 @@
 
 Trạng thái hiện tại. Mỗi phiên cập nhật đè lên tệp này. Quyết định lâu dài giữ ở CLAUDE.md, luồng ở `docs/data-flows.md`.
 
+- 02/11/2026: trang quản trị chuyển từ `/quan-tri` sang `/admin` theo yêu cầu anh; link cũ `/quan-tri/**` chuyển hướng 308 sang `/admin/**` (`src/proxy.ts`). API quản trị giữ `/api/quan-tri/**`.
+
 ## Phiên 26–29/10/2026
 
 ### Mục tiêu
@@ -155,7 +157,7 @@ Sau đó chủ dự án yêu cầu **chỉ làm cho dự án này**. Phần đó
    - **Tách hai loại tài khoản (chốt 30/10/2026):** học viên ở `users`, quản trị ở `admin_users`; không chung bảng, phiên hay
      cách đăng nhập. Quản trị: không tự đăng ký, anh thêm email vào danh sách cho phép; đăng nhập bằng Google hoặc link qua email
      (nên bật xác minh 2 bước Google); vai trò chủ / hỗ trợ; tài khoản chủ không xóa hay hạ quyền được qua giao diện; phiên riêng
-     tại `/quan-tri`. `admin_audit_log` ghi `admin_users.id`. Quản trị muốn học thì tạo tài khoản học viên riêng, cấp khóa tay có
+     tại `/admin`. `admin_audit_log` ghi `admin_users.id`. Quản trị muốn học thì tạo tài khoản học viên riêng, cấp khóa tay có
      ghi nhật ký. Mã qua Zalo, liên kết tài khoản, giới hạn 2 thiết bị chỉ áp dụng cho học viên.
    - Bảng thiết kế chưa có màn đăng nhập quản trị và màn quản lý danh sách quản trị (thêm email, vai trò).
    - **Nội dung sửa tab Spec đã soạn sẵn:** `docs/spec-v1-changes-2026-10-30.md` (chưa dán vì không có quyền vào tài liệu đặc tả).

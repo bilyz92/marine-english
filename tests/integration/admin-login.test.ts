@@ -166,7 +166,7 @@ describe("Google quản trị", () => {
     const ctx = await ownerCtx();
     await inviteAdmin(ctx, { email: "moi@x.vn", role: "support" });
     const res = await login({ sub: "g-moi", email: "Moi@X.vn", email_verified: true });
-    expect(where(res)).toBe("/quan-tri");
+    expect(where(res)).toBe("/admin");
     expect(await validateSession("admin", adminToken(res)!)).not.toBeNull();
     expect((await adminRow("moi@x.vn"))!.status).toBe("active");
     const again = await login({ sub: "g-moi", email: "doi-email@gmail.com", email_verified: true });
@@ -183,7 +183,7 @@ describe("Google quản trị", () => {
     ]) {
       const res = await login(claims);
       expect(adminToken(res), JSON.stringify(claims)).toBeUndefined();
-      expect(where(res)).toBe("/quan-tri/dang-nhap?loi=google");
+      expect(where(res)).toBe("/admin/dang-nhap?loi=google");
     }
   });
 

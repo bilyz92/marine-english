@@ -7,7 +7,7 @@ async function RuntimeAdminLogin({ searchParams }: { searchParams: Promise<{ loi
   return <AdminLogin googleFailed={loi === "google"} />;
 }
 
-export default function AdminLoginPage({ searchParams }: PageProps<"/quan-tri/dang-nhap">) {
+export default function AdminLoginPage({ searchParams }: PageProps<"/admin/dang-nhap">) {
   return (
     <main className={styles.page}>
       <div className={styles.card}>

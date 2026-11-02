@@ -45,7 +45,7 @@ export function AdminLogin({ googleFailed }: { googleFailed: boolean }) {
     setBusy(true);
     const { data } = await postJson<{ next: string }>("/api/auth/admin/link/consume", { token: link });
     setBusy(false);
-    if (data.next === "done") return router.push("/quan-tri");
+    if (data.next === "done") return router.push("/admin");
     setError("Link đã dùng hoặc đã hết hạn. Gửi link mới.");
   }
 

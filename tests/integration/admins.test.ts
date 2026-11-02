@@ -28,7 +28,7 @@ describe("CLI in link đăng nhập quản trị (thay email khi chưa có G7)",
     const first = await withMigrator((c) => issueLoginLink(c, " Chu@X.vn ", opts()));
     const second = await withMigrator((c) => issueLoginLink(c, "chu@x.vn", opts()));
     if (typeof first !== "string" || typeof second !== "string") throw new Error("không in được link");
-    expect(second).toMatch(new RegExp(`^${process.env.APP_ORIGIN}/quan-tri/dang-nhap#link=[A-Za-z0-9_-]{43}$`));
+    expect(second).toMatch(new RegExp(`^${process.env.APP_ORIGIN}/admin/dang-nhap#link=[A-Za-z0-9_-]{43}$`));
     const token = (url: string) => url.split("#link=")[1]!;
     expect(await consumeAdminLink(token(first))).toBeNull();
     expect(await consumeAdminLink(token(second))).not.toBeNull();

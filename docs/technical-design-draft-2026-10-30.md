@@ -88,7 +88,7 @@ Thư mục:
 
 ```
 src/
-  app/                    # (site), (learn), quan-tri/, api/
+  app/                    # (site), (learn), admin/ (trước 02/11/2026 là quan-tri/), api/
   modules/ catalog orders ledger payments-sepay enrollments auth-learner auth-admin sessions offline storage notify jobs audit
   worker/                 # điểm vào worker + CLI (admin:bootstrap…)
 prisma/ (schema + migrations SQL)
@@ -276,7 +276,7 @@ gắn phiên với thiết bị và tách hẳn hai khu vực; Auth.js gắn đ�
 | Nhà cung cấp | `/api/payments/sepay/webhook` | HMAC SePay (§4.2), không phiên |
 | Đăng nhập | `/api/auth/learner/**`, `/api/auth/admin/**` (gửi mã, xác minh, OAuth callback) | theo luồng, có CSRF/state |
 | Học viên | `/api/learn/**`, `/api/me/**`, trang học | phiên học viên + thiết bị hợp lệ |
-| Quản trị | `/quan-tri/**`, `/api/quan-tri/**` | phiên quản trị + quyền theo ma trận |
+| Quản trị | `/admin/**`, `/api/quan-tri/**` | phiên quản trị + quyền theo ma trận |
 | Nội bộ | không có route HTTP; job chạy trong worker | — |
 
 ### 5.2 Phiên
