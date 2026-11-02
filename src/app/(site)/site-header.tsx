@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { InstallApp } from "@/components/install-app";
+import { AccountLink } from "@/components/learner-nav";
 import ui from "@/components/ui.module.css";
 import styles from "./site.module.css";
 
@@ -19,7 +20,7 @@ export function SiteHeader() {
           <Link href="/#hoi-dap" className={styles.navLink}>Hỏi đáp</Link>
           <Link href="/gioi-thieu" className={styles.navLink}>Về tôi</Link>
           <InstallApp className={styles.navInstall} label="Tải app" />
-          <Link href="/dang-nhap" className={styles.navLink}>Đăng nhập</Link>
+          <AccountLink className={styles.navLink} />
           <Link href="/khoa-hoc" className={styles.navCta}>Học thử miễn phí</Link>
         </nav>
       </div>

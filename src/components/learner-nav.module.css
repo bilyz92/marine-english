@@ -1,0 +1,17 @@
+/* Chỉ trên điện thoại: thanh menu cố định dưới đáy khi học viên đã đăng nhập. */
+.nav, .spacer { display: none; }
+@media (max-width: 760px) {
+  .spacer { display: block; height: calc(64px + env(safe-area-inset-bottom)); }
+  .nav {
+    display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom); background: var(--color-bg); border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 16px rgb(28 22 48 / 0.06);
+  }
+}
+.item {
+  min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 2px;
+  color: var(--color-muted); font-size: 11.5px; font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none;
+}
+.item svg { flex: none; }
+.active { composes: item; color: var(--color-primary); }
+.item:focus-visible, .active:focus-visible { outline: 3px solid var(--color-primary-soft); outline-offset: -3px; }

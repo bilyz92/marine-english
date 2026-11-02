@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import ui from "@/components/ui.module.css";
 import { listPublishedCourses } from "@/modules/content/catalog";
-import { CourseCard } from "../course-card";
+import { CourseSearch } from "./course-search";
 
 export const metadata: Metadata = { title: "Khóa học" };
 
@@ -11,12 +11,7 @@ async function Courses() {
   await connection();
   const courses = await listPublishedCourses();
   if (courses.length === 0) return <p className={ui.notice}>Các khóa học sắp ra mắt.</p>;
-  return (
-    <>
-      <p className={ui.muted}>{courses.length} khóa đang mở bán</p>
-      <div className={ui.grid}>{courses.map((c) => <CourseCard key={c.slug} course={c} />)}</div>
-    </>
-  );
+  return <CourseSearch courses={courses} />;
 }
 
 export default function CatalogPage() {

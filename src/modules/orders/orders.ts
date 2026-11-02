@@ -144,6 +144,23 @@ export async function recentOrdersForCourse(ctx: LearnerCtx, courseSlug: string)
   };
 }
 
+/** Lịch sử thanh toán (menu điện thoại): mọi đơn của học viên (cả nhóm tài khoản đã gộp), mới nhất trước. */
+export async function paymentHistory(ctx: LearnerCtx) {
+  const group = await mergeGroupIds(null, ctx.userId);
+  // Số giây còn được chuyển khoản tính bằng giờ máy chủ (giờ điện thoại trên tàu có thể sai).
+  const rows = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; paid_at: Date | null; expires_at: Date; slug: string; title_vi: string; payable_s: number }[]>`
+    SELECT o.code, o.status, o.amount_due_vnd, o.created_at, o.paid_at, o.expires_at, c.slug, c.title_vi,
+           CASE WHEN o.status = 'pending' THEN greatest(0, floor(extract(epoch FROM o.expires_at - now())))::int ELSE 0 END AS payable_s
+    FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
+    WHERE o.user_id = ANY(${group}::uuid[])
+    ORDER BY o.created_at DESC
+    LIMIT 100`;
+  return rows.map((r) => ({
+    code: r.code, status: r.status, amountVnd: r.amount_due_vnd, createdAt: r.created_at, paidAt: r.paid_at, slug: r.slug, course: r.title_vi,
+    payableForSeconds: r.payable_s,
+  }));
+}
+
 /** pending → expired khi đã quá hạn. P4 gọi mỗi phút. */
 export async function expireOrders(): Promise<number> {
   return prisma().$executeRaw`
