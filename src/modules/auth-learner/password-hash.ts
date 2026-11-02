@@ -31,11 +31,11 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return timingSafeEqual(key, expected);
 }
 
-/** Băm giả để số không có tài khoản cũng tốn thời gian như số có tài khoản (không lộ qua thời gian trả lời). */
-let dummy: Promise<string> | undefined;
+/** Băm giả để tài khoản không có cũng tốn đúng một lần băm như tài khoản có (không lộ qua thời gian trả lời).
+ *  Chuỗi băm tính sẵn (của "dummy-password-for-timing"), để lần gọi đầu không tốn gấp đôi. */
+const DUMMY_HASH = "scrypt$15$8$1$h6Aki6R308GkDDg6UT87UQ==$ngwbUQpzR/QnmPCSDPJJZOHu9KrluNdpo+A26IboJmY=";
 export async function burnPasswordCheck(password: string): Promise<void> {
-  dummy ??= hashPassword("dummy-password-for-timing");
-  await verifyPassword(password, await dummy);
+  await verifyPassword(password, DUMMY_HASH);
 }
 
 const COMMON = new Set(["12345678", "123456789", "1234567890", "password", "matkhau123", "matkhau", "11111111", "00000000", "88888888", "abc12345", "qwerty123", "12345678a"]);

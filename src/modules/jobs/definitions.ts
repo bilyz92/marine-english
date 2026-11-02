@@ -127,8 +127,8 @@ export const JOBS: ScheduledJob[] = [
     schedule: { dailyAt: "04:10" },
     timeoutMs: 5 * MINUTE,
     run: async () => {
-      const [row] = await prisma().$queryRaw<{ n: number }[]>`SELECT prune_password_attempts() AS n`;
-      return { deleted: row!.n };
+      const [row] = await prisma().$queryRaw<{ n: number; admin: number }[]>`SELECT prune_password_attempts() AS n, prune_admin_login_attempts() AS admin`;
+      return { deleted: row!.n, adminDeleted: row!.admin };
     },
   },
 ];

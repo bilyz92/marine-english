@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AdminContext, adminApi, type AdminMe } from "./admin-lib";
+import { AdminContext, AdminReloadContext, adminApi, type AdminMe } from "./admin-lib";
 import styles from "./admin.module.css";
 
 const NAV: { href: string; label: string; permission: string }[] = [
@@ -18,6 +18,8 @@ const NAV: { href: string; label: string; permission: string }[] = [
   { href: "/admin/gop-tai-khoan", label: "Gộp tài khoản", permission: "accounts.merge" },
   { href: "/admin/quan-tri-vien", label: "Quản trị viên", permission: "admins.manage" },
   { href: "/admin/jobs", label: "Job", permission: "jobs.run" },
+  // Mọi quản trị đều đặt được mật khẩu của chính mình (D3).
+  { href: "/admin/mat-khau", label: "Mật khẩu", permission: "orders.view" },
 ];
 const BOTTOM = 4;
 
@@ -26,9 +28,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [showMore, setShowMore] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => {
-    void adminApi<AdminMe>("/api/quan-tri/me").then((r) => { if (r.ok) setMe(r.data); });
-  }, []);
+  const loadMe = () => void adminApi<AdminMe>("/api/quan-tri/me").then((r) => { if (r.ok) setMe(r.data); });
+  useEffect(loadMe, []);
 
   async function logout() {
     await adminApi("/api/auth/admin/logout", { method: "POST", body: {} });
@@ -42,6 +43,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AdminContext.Provider value={me}>
+      <AdminReloadContext.Provider value={loadMe}>
       <div className={styles.shell}>
         <nav aria-label="Menu quản trị" className={styles.side}>
           <span className={styles.brand}>Marine English</span>
@@ -51,7 +53,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <button className={styles.btn} onClick={() => void logout()}>Đăng xuất</button>
           </div>
         </nav>
-        <main className={styles.main}>{children}</main>
+        <main className={styles.main}>
+          {me && !me.hasPassword && !pathname.startsWith("/admin/mat-khau") && (
+            <p className={styles.notice} role="status">Chưa đặt mật khẩu: <Link href="/admin/mat-khau">đặt mật khẩu</Link> để lần sau đăng nhập bằng email + mật khẩu, không cần xin link.</p>
+          )}
+          {children}
+        </main>
         {showMore && (
           <nav aria-label="Mục khác" className={styles.more}>
             {items.slice(BOTTOM).map((n) => <Link key={n.href} href={n.href} className={styles.navLink} onClick={() => setShowMore(false)}>{n.label}</Link>)}
@@ -63,6 +70,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <button className={styles.bottomLink} aria-expanded={showMore} onClick={() => setShowMore(!showMore)}>Thêm</button>
         </nav>
       </div>
+      </AdminReloadContext.Provider>
     </AdminContext.Provider>
   );
 }

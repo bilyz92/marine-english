@@ -178,7 +178,7 @@ describe("dọn lượt thử quá 30 ngày (G12a)", () => {
       ('login', '10.1.1.1', '+84912345678', false, now() - interval '29 days')`);
     const job = JOBS.find((j) => j.name === "me.auth.prune-password-attempts")!;
     expect(job.schedule).toEqual({ dailyAt: "04:10" });
-    expect(await job.run({} as never)).toEqual({ deleted: 2 });
+    expect(await job.run({} as never)).toEqual({ deleted: 2, adminDeleted: 0 });
     const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM password_attempts`);
     expect(rows[0].n).toBe(1);
   });
