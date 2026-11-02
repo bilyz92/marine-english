@@ -121,4 +121,14 @@ export const JOBS: ScheduledJob[] = [
       return { deleted: row!.n };
     },
   },
+  {
+    // D2 / G12a: lượt thử mật khẩu giữ 30 ngày.
+    name: "me.auth.prune-password-attempts",
+    schedule: { dailyAt: "04:10" },
+    timeoutMs: 5 * MINUTE,
+    run: async () => {
+      const [row] = await prisma().$queryRaw<{ n: number }[]>`SELECT prune_password_attempts() AS n`;
+      return { deleted: row!.n };
+    },
+  },
 ];

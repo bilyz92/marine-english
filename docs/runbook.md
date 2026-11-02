@@ -126,6 +126,16 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 
 **Không nhận được tin nào cả** cũng là dấu hiệu: worker hoặc Telegram có thể đã chết. Dịch vụ theo dõi bên ngoài (G8) gọi `/api/health` và `/api/health/worker` để báo trong trường hợp này.
 
+## 7A. Học viên quên mật khẩu (đăng nhập bằng số + mật khẩu)
+
+- Học viên có email đã liên kết: tự làm ở màn đăng nhập, “Quên mật khẩu?”, mã gửi tới email đó.
+- Không có email, hoặc mất số: chỉ **chủ** làm, ở Quản trị → Học viên → “Đặt mật khẩu tạm” (cần đăng nhập quản trị trong 10 phút gần đây).
+  Trước khi bấm, đối chiếu đúng người theo G15: mã đơn, giao dịch chuyển khoản đã mua, thông tin hồ sơ. Ghi lý do và bằng chứng (bắt buộc).
+  Mật khẩu tạm chỉ hiện một lần: đọc cho học viên; học viên phải đặt mật khẩu mới ở lần đăng nhập đầu. Mọi máy của học viên bị đăng xuất.
+  Đổi số cho học viên: nhập số mới trong cùng hộp thoại (số không được thuộc tài khoản khác).
+- Trang học viên ghi “Đã bị nhả” khi người khác đã xác minh số đó: học viên không còn đăng nhập được bằng số này, cần gắn số mới như trên.
+- Job `me.auth.prune-password-attempts` (04:10 hằng ngày) xóa lượt thử mật khẩu quá 30 ngày.
+
 ## 8. Trước khi ra mắt (G8)
 
 - [ ] Chọn VPS, đặt giới hạn CPU/RAM trong `docker-compose.prod.yml` theo cấu hình thật.

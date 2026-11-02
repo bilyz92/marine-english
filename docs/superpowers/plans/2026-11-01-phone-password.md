@@ -100,3 +100,7 @@
 - Mật khẩu tạm và băm không lọt vào nhật ký, outbox, phản hồi lỗi.
 - Đặt lại qua email chỉ đúng học viên sở hữu số; thu hồi phiên cũ.
 - Đăng nhập bằng mật khẩu vẫn qua giới hạn 2 máy.
+
+## Trạng thái (02/11/2026)
+
+Xong cả 6 task: `21ecbce` (Task 0–2), `ce0ea84` (Task 3–4), `aeee94d` (Task 5, giao diện), Task 6 (job dọn + tài liệu) ở commit sau đó. Mỗi phần qua Codex APPROVE.

@@ -6,6 +6,7 @@ import { createUserWithIdentity } from "@/modules/auth-learner/identities";
 import { claimVerifiedPhone } from "@/modules/auth-learner/password";
 import { cookieValue, newDeviceKey, ORIGIN } from "../helpers/learner";
 import { sqlAsMigrator } from "../helpers/otp";
+import { JOBS } from "@/modules/jobs/definitions";
 
 // D2: đăng ký và đăng nhập bằng số điện thoại + mật khẩu (docs/superpowers/plans/2026-11-01-phone-password.md).
 
@@ -166,6 +167,20 @@ describe("đăng nhập bằng số + mật khẩu", () => {
     expect(rows[0].n).toBe(0);
     expect((await login("0912345678", PW)).body).toEqual({ next: "invalid" });
     expect((await login("0912345678", "Mat khau moi 2026")).body).toEqual({ next: "done" });
+  });
+});
+
+describe("dọn lượt thử quá 30 ngày (G12a)", () => {
+  it("job me.auth.prune-password-attempts chỉ xóa dòng quá 30 ngày", async () => {
+    await sqlAsMigrator(`INSERT INTO password_attempts (kind, ip, phone_canonical, ok, at) VALUES
+      ('login', '10.1.1.1', '+84912345678', false, now() - interval '31 days'),
+      ('register', '10.1.1.1', '+84912345678', true, now() - interval '40 days'),
+      ('login', '10.1.1.1', '+84912345678', false, now() - interval '29 days')`);
+    const job = JOBS.find((j) => j.name === "me.auth.prune-password-attempts")!;
+    expect(job.schedule).toEqual({ dailyAt: "04:10" });
+    expect(await job.run({} as never)).toEqual({ deleted: 2 });
+    const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM password_attempts`);
+    expect(rows[0].n).toBe(1);
   });
 });
 
