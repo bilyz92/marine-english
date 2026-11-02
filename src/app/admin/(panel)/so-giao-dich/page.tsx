@@ -94,7 +94,7 @@ export default function LedgerPage() {
                 {r.reason === "unverified"
                   ? isOwner && <button className={styles.btn} onClick={() => open({ kind: "verify", rows: [r] })}>Xác minh</button>
                   : <button className={styles.btn} onClick={() => open({ kind: "match", rows: [r] }, { orderCode: r.candidateOrderCode ?? "" })}>Ghép với đơn</button>}
-                {r.reason !== "unverified" && can(me, "refunds.request") && <button className={styles.btn} onClick={() => open({ kind: "refund", rows: [r] })}>Hoàn lại khoản này</button>}
+                {r.reason !== "unverified" && can(me, "refunds.request") && me?.features?.refunds && <button className={styles.btn} onClick={() => open({ kind: "refund", rows: [r] })}>Hoàn lại khoản này</button>}
                 {isOwner && <button className={styles.btn} onClick={() => open({ kind: "dispose", rows: [r] }, { kind: "ignored" })}>Bỏ qua / trùng</button>}
               </div>
             </div>

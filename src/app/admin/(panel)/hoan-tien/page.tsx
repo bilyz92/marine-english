@@ -26,7 +26,15 @@ const KIND: Record<string, string> = { full: "Toàn phần", excess: "Phần th�
 const isCorrection = (r: Refund) => r.payoutAccountNo !== null || r.requestedByUser !== null;
 const NEXT: Record<string, Step[]> = { requested: ["approve", "cancel"], approved: ["send", "cancel"], sent: ["confirm", "fail"] };
 
+/** Hoàn tiền đang ẩn (src/lib/features.ts): mở thẳng đường dẫn chỉ thấy thông báo. */
 export default function RefundsPage() {
+  const me = useAdmin();
+  if (!me) return <p className={styles.muted}>Đang tải…</p>;
+  if (me.features?.refunds !== true) return <p className={styles.notice}>Chức năng hoàn tiền đang tắt.</p>;
+  return <RefundsPanel />;
+}
+
+function RefundsPanel() {
   const me = useAdmin();
   const { data, reload, ...state } = useLoad<{ refunds: Refund[] }>("/api/quan-tri/refunds");
   const [dialog, setDialog] = useState<Dialog | null>(null);

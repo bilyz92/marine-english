@@ -17,7 +17,8 @@ const MESSAGE: Record<Exclude<Problem, null>, string> = {
   failed: "Không tạo được đơn, thử lại sau.",
 };
 
-export function BuyForm({ slug, titleVi, priceVnd }: { slug: string; titleVi: string; priceVnd: number }) {
+/** refundPolicy: công tắc hoàn tiền đọc ở máy chủ (biến môi trường không có trong mã trình duyệt). */
+export function BuyForm({ slug, titleVi, priceVnd, refundPolicy }: { slug: string; titleVi: string; priceVnd: number; refundPolicy: boolean }) {
   const [name, setName] = useState<string | null>(null);
   const [recent, setRecent] = useState<{ enrolled: boolean; unresolved: { code: string }[] } | null>(null);
   const [accepted, setAccepted] = useState(false);
@@ -80,7 +81,7 @@ export function BuyForm({ slug, titleVi, priceVnd }: { slug: string; titleVi: st
       <label style={{ display: "flex", gap: 10, alignItems: "flex-start", minHeight: 44 }}>
         <input type="checkbox" checked={accepted} aria-invalid={problem === "terms"} style={{ width: 22, height: 22, flex: "none" }}
           onChange={(e) => { setAccepted(e.target.checked); setProblem(null); }} />
-        <span>Tôi đồng ý <Link href="/chinh-sach?tab=dieu-khoan">điều khoản</Link> và <Link href="/chinh-sach?tab=hoan-tien">chính sách hoàn tiền</Link>.</span>
+        <span>Tôi đồng ý <Link href="/chinh-sach?tab=dieu-khoan">điều khoản</Link>{refundPolicy && <> và <Link href="/chinh-sach?tab=hoan-tien">chính sách hoàn tiền</Link></>}.</span>
       </label>
       {problem && <p className={ui.error} role="alert">{MESSAGE[problem]}</p>}
       {problem === "enrolled"

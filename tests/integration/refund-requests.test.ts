@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { GET as myRefunds, POST as requestMyRefund } from "@/app/api/me/refunds/route";
 import { GET as overviewRoute } from "@/app/api/quan-tri/overview/route";
@@ -12,6 +12,9 @@ import { paidCourseSetup, report, TEST_PAYOUT } from "../helpers/ledger";
 import { learnerRequest, testLearner, type TestLearner } from "../helpers/learner-ctx";
 import { sqlAsMigrator } from "../helpers/otp";
 import { publish } from "../helpers/content";
+
+// Hoàn tiền đang ẩn trên giao diện (src/lib/features.ts); các test này kiểm mã hoàn tiền khi bật lại.
+vi.mock("@/lib/features", () => ({ REFUNDS_UI: true }));
 
 async function paid() {
   const s = await paidCourseSetup();

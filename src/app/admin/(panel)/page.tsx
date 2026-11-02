@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { formatVnd } from "@/lib/format";
-import { Field, fmtTime, LoadState, ORDER_STATUS, QUEUE_REASON, useLoad } from "./admin-lib";
+import { Field, fmtTime, LoadState, ORDER_STATUS, QUEUE_REASON, useAdmin, useLoad } from "./admin-lib";
 import styles from "./admin.module.css";
 
 type Overview = {
@@ -16,6 +16,7 @@ type Overview = {
 const RANGES = [{ days: 1, label: "Hôm nay" }, { days: 7, label: "7 ngày" }, { days: 30, label: "30 ngày" }];
 
 export default function OverviewPage() {
+  const me = useAdmin();
   const [days, setDays] = useState<number | null>(1);
   // Khoảng tự chọn (FR-20): ngày Việt Nam, gồm cả hai đầu; chỉ áp khi đủ hai ngày.
   const [custom, setCustom] = useState({ from: "", to: "" });
@@ -38,9 +39,10 @@ export default function OverviewPage() {
       <LoadState {...state} />
       {data && (
         <>
-          {(data.queueOpen > 0 || data.refundsOpen > 0) && (
+          {(data.queueOpen > 0 || (me?.features?.refunds && data.refundsOpen > 0)) && (
             <p className={styles.notice}>
-              <Link href="/admin/so-giao-dich">{data.queueOpen} khoản cần xử lý tay</Link> · <Link href="/admin/hoan-tien">{data.refundsOpen} yêu cầu hoàn tiền</Link>
+              <Link href="/admin/so-giao-dich">{data.queueOpen} khoản cần xử lý tay</Link>
+              {me?.features?.refunds && <> · <Link href="/admin/hoan-tien">{data.refundsOpen} yêu cầu hoàn tiền</Link></>}
             </p>
           )}
           <div className={styles.stats}>

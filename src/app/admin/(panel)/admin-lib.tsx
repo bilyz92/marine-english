@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import styles from "./admin.module.css";
 
-export type AdminMe = { email: string; role: string; permissions: string[]; hasPassword?: boolean };
+export type AdminMe = { email: string; role: string; permissions: string[]; hasPassword?: boolean; features?: { refunds: boolean } };
 export const AdminContext = createContext<AdminMe | null>(null);
 export const useAdmin = () => useContext(AdminContext);
 /** Tải lại thông tin quản trị đang đăng nhập (ví dụ sau khi đặt mật khẩu). */

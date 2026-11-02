@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { REFUNDS_UI } from "@/lib/features";
 import ui from "@/components/ui.module.css";
 import styles from "./site.module.css";
 
@@ -11,7 +12,7 @@ export function SiteFooter() {
         <nav aria-label="Liên kết cuối trang" className={styles.footerNav}>
           <Link href="/chinh-sach?tab=bao-mat">Chính sách bảo mật</Link>
           <Link href="/chinh-sach?tab=dieu-khoan">Điều khoản sử dụng</Link>
-          <Link href="/chinh-sach?tab=hoan-tien">Chính sách hoàn tiền</Link>
+          {REFUNDS_UI && <Link href="/chinh-sach?tab=hoan-tien">Chính sách hoàn tiền</Link>}
           <Link href="/lien-he">Liên hệ</Link>
         </nav>
       </div>

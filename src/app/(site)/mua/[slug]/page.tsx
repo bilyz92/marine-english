@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import ui from "@/components/ui.module.css";
 import { getPublishedCourse } from "@/modules/content/catalog";
 import { paymentInfo } from "@/modules/orders/payment-info";
+import { REFUNDS_UI } from "@/lib/features";
 import { BuyForm } from "./buy-form";
 
 export const metadata: Metadata = { title: "Thông tin người mua", robots: { index: false } };
@@ -15,7 +16,7 @@ async function Buy({ params }: { params: Promise<{ slug: string }> }) {
   const course = await getPublishedCourse(slug);
   if (!course) notFound();
   if (!paymentInfo()) return <p className={ui.notice}>Chưa mở thanh toán cho khóa học này. Vui lòng quay lại sau.</p>;
-  return <BuyForm slug={course.slug} titleVi={course.titleVi} priceVnd={course.priceVnd} />;
+  return <BuyForm slug={course.slug} titleVi={course.titleVi} priceVnd={course.priceVnd} refundPolicy={REFUNDS_UI} />;
 }
 
 export default function BuyPage({ params }: PageProps<"/mua/[slug]">) {

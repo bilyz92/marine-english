@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { REFUNDS_UI } from "@/lib/features";
 import { json, route } from "@/lib/http";
 import { permissionsFor } from "@/modules/auth-admin/authorize";
 import { adminHasPassword } from "@/modules/auth-admin/password";
@@ -8,5 +9,5 @@ import { requireAdmin } from "@/modules/sessions/guards";
 export const GET = route(async (req: Request) => {
   const ctx = await requireAdmin(req);
   const admin = await prisma().adminUser.findUniqueOrThrow({ where: { id: ctx.adminId }, select: { emailLower: true } });
-  return json({ email: admin.emailLower, role: ctx.role, permissions: permissionsFor(ctx), hasPassword: await adminHasPassword(ctx.adminId) });
+  return json({ email: admin.emailLower, role: ctx.role, permissions: permissionsFor(ctx), hasPassword: await adminHasPassword(ctx.adminId), features: { refunds: REFUNDS_UI } });
 });

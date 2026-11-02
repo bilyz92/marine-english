@@ -1,16 +1,19 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { REFUNDS_UI } from "@/lib/features";
 import ui from "@/components/ui.module.css";
 import styles from "./policies.module.css";
 
 export const metadata: Metadata = { title: "Chính sách" };
 
-const TABS = [
+const ALL_TABS = [
   { id: "bao-mat", label: "Bảo mật" },
   { id: "hoan-tien", label: "Hoàn tiền" },
   { id: "dieu-khoan", label: "Điều khoản" },
 ] as const;
+// Hoàn tiền đang ẩn (src/lib/features.ts).
+const TABS = ALL_TABS.filter((t) => REFUNDS_UI || t.id !== "hoan-tien");
 
 // Văn bản pháp lý, thời hạn lưu, mức hoàn tiền chờ chủ dự án duyệt: chỉ đăng phần là sự thật về hệ thống, còn lại “Đang cập nhật”.
 function Pending() {
@@ -72,7 +75,7 @@ async function Content({ searchParams }: { searchParams: Promise<{ tab?: string 
         ))}
       </nav>
       {active === "bao-mat" && <Privacy />}
-      {active === "hoan-tien" && <Refund />}
+      {REFUNDS_UI && active === "hoan-tien" && <Refund />}
       {active === "dieu-khoan" && <Terms />}
     </>
   );

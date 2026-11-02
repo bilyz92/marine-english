@@ -5,6 +5,7 @@ Chụp bằng Chrome không giao diện qua `tests/e2e-ui/` trên máy chủ dev
 Chạy lại:
 
 - `node tests/e2e-ui/shots.mjs <địa chỉ> <thư mục>`: trang công khai ở 360, 390, 1280 px.
+- Hoàn tiền đang ẩn (02/11/2026, `src/lib/features.ts`): hai bài `purchase.mjs` và `admin.mjs` có kiểm luồng hoàn tiền, nên chạy dev server với `ME_REFUNDS_UI=true` (`ME_REFUNDS_UI=true pnpm next dev --webpack -p <cổng>`). Dev server không có biến này thì trang ẩn hoàn tiền như production.
 - `node tests/e2e-ui/purchase.mjs <địa chỉ> <mã khóa> <thư mục>`: mua trọn đường, webhook có chữ ký giả lập (22 điểm kiểm).
 - `node tests/e2e-ui/admin.mjs <địa chỉ> <mã khóa> <thư mục>`: vận hành quản trị bằng vai trò chủ và hỗ trợ (64 điểm kiểm).
 

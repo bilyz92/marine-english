@@ -67,12 +67,16 @@ export function MyOrders() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  // Hoàn tiền đang ẩn thì máy chủ báo requestsOpen=false: không hiện nút yêu cầu hoàn tiền.
+  const [requestsOpen, setRequestsOpen] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/me/refunds", { cache: "no-store" }).catch(() => null);
     if (!res?.ok) return setError(true);
     setError(false);
-    setOrders(((await res.json()) as { orders: Order[] }).orders);
+    const data = (await res.json()) as { orders: Order[]; requestsOpen?: boolean };
+    setOrders(data.orders);
+    setRequestsOpen(data.requestsOpen === true);
   }, []);
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);
@@ -86,7 +90,7 @@ export function MyOrders() {
       {!orders && !error && <p className={styles.muted}>Đang tải…</p>}
       {orders?.length === 0 && <p className={styles.muted}>Chưa có đơn nào đã thanh toán.</p>}
       {orders?.map((o) => {
-        const canRequest = o.status === "paid" && (!o.refund || ["failed", "cancelled"].includes(o.refund.status));
+        const canRequest = requestsOpen && o.status === "paid" && (!o.refund || ["failed", "cancelled"].includes(o.refund.status));
         return (
           <div key={o.code} className={styles.item}>
             <p className={styles.en}>{o.course}</p>

@@ -38,7 +38,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   // Ẩn mục chỉ để gọn; quyền thật do từng API kiểm. Chưa biết vai trò thì chỉ hiện mục chung.
-  const items = NAV.filter((n) => me?.permissions.includes(n.permission));
+  // Hoàn tiền đang ẩn (src/lib/features.ts) thì bỏ mục khỏi menu.
+  const items = NAV.filter((n) => me?.permissions.includes(n.permission) && (n.href !== "/admin/hoan-tien" || me?.features?.refunds));
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
 
   return (
