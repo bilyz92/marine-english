@@ -6,16 +6,18 @@ import { mergeGroupIds } from "@/modules/enrollments/access";
 
 type Db = Tx | ReturnType<typeof prisma>;
 
-export type EntitledCourse = { courseId: string; slug: string; versionId: string };
+export type EntitledCourse = { courseId: string; slug: string; versionId: string; /** Chỉ có quyền mở tạm (giấy phép offline 3 ngày). */ provisional: boolean };
 
 export async function entitledCourses(userId: string, db: Db = prisma()): Promise<EntitledCourse[]> {
   const group = await mergeGroupIds(db, userId);
-  const rows = await db.$queryRaw<{ id: string; slug: string; current_version_id: string }[]>`
-    SELECT DISTINCT c.id, c.slug, c.current_version_id
+  // provisional: mọi quyền còn hiệu lực của khóa đều là mở tạm (chưa có đơn đã trả hay quà tặng).
+  const rows = await db.$queryRaw<{ id: string; slug: string; current_version_id: string; provisional: boolean }[]>`
+    SELECT c.id, c.slug, c.current_version_id, bool_and(e.source = 'provisional') AS provisional
     FROM enrollments e JOIN courses c ON c.id = e.course_id
     WHERE e.user_id = ANY(${group}::uuid[]) AND e.revoked_at IS NULL AND c.current_version_id IS NOT NULL
+    GROUP BY c.id, c.slug, c.current_version_id
     ORDER BY c.slug`;
-  return rows.map((r) => ({ courseId: r.id, slug: r.slug, versionId: r.current_version_id }));
+  return rows.map((r) => ({ courseId: r.id, slug: r.slug, versionId: r.current_version_id, provisional: r.provisional }));
 }
 
 /** Có đọc được phiên bản bài này không: thuộc khóa có quyền (mọi phiên bản của khóa), hoặc là bài học thử đang mở. */

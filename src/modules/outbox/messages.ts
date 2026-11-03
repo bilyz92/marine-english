@@ -93,6 +93,11 @@ const EMAIL: Record<string, (p: Payload) => { subject: string; body: string }> =
     subject: `Yêu cầu hoàn tiền đơn ${p.orderCode} không được chấp nhận`,
     body: `Marine English đã xem yêu cầu hoàn tiền đơn ${p.orderCode} và không chấp nhận. Lý do: ${p.reason}. Khóa học vẫn mở như cũ.`,
   }),
+  transfer_claim_rejected: (p) => ({
+    subject: `Khóa học của đơn ${p.orderCode} tạm khóa: tiền chưa được xác nhận`,
+    body: `Marine English chưa thấy khoản chuyển cho đơn ${p.orderCode} nên khóa học đã tạm khóa. Tiền chưa được xác nhận. Lý do: ${p.reason}\n\n`
+      + `Nếu anh/chị đã chuyển khoản, mở ${p.payUrl} và gửi ảnh chụp màn hình giao dịch. Chủ khóa học sẽ kiểm tra và mở lại khóa học khi thấy tiền.`,
+  }),
   order_refunded: (p) => ({
     subject: `Đơn ${p.orderCode} đã hoàn tiền`,
     body: `Marine English đã hoàn ${vnd(p.amountVnd)} cho đơn ${p.orderCode}. Khóa học của đơn này đã đóng; tiến độ học vẫn được giữ nếu anh/chị mua lại.`,

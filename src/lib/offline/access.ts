@@ -27,7 +27,10 @@ export function canOpenLesson(input: {
   // Đã khóa thì giữ khóa tới lần đồng bộ sau; trạng thái chưa xác minh được cũng từ chối.
   if (!license || !c || license.state === "none" || license.state === "unverifiable" || license.state === "locked") return false;
   if (c.sub !== identity.userId || c.did !== identity.deviceId) return false;
-  if (!c.courses.some((x) => x.id === input.courseId && x.versionId === input.versionId)) return false;
+  const course = c.courses.find((x) => x.id === input.courseId && x.versionId === input.versionId);
+  if (!course) return false;
+  // Khóa mở tạm: hết hạn riêng là khóa, theo mốc giờ lớn nhất đã thấy (chỉnh lùi đồng hồ không kéo dài).
+  if (course.until !== undefined && Math.max(input.now, license.maxSeen) >= course.until) return false;
   // Không tin trạng thái đã tính từ trước: tính lại theo giờ hiện tại.
   const { state } = licenseState({ exp: c.exp, grace: c.grace, deviceNow: input.now, maxSeen: license.maxSeen });
   return state === "ok" || state === "grace";

@@ -18,6 +18,17 @@ describe("giấy phép offline", () => {
     expect(claims).toEqual({ v: 1, sub: "u1", did: "d1", courses: input.courses, iat, exp: iat + 30 * DAY, grace: 7 * DAY });
   });
 
+  it("khóa mở tạm có hạn riêng 3 ngày (until); khóa đã mua không có; until sai kiểu → null", async () => {
+    const now = new Date("2026-11-03T00:00:00Z");
+    const iat = Math.floor(now.getTime() / 1000);
+    const token = issueLicense({ ...input, now, courses: [{ id: "c1", versionId: "v1" }, { id: "c2", versionId: "v2", provisional: true }] });
+    const claims = await verifyLicense(token, publicLicenseKeys());
+    expect(claims!.courses).toEqual([{ id: "c1", versionId: "v1" }, { id: "c2", versionId: "v2", until: iat + 3 * DAY }]);
+    // Có hạn riêng → v2: app cũ (chỉ nhận v1) từ chối thay vì cho học 37 ngày. Không có khóa mở tạm → vẫn v1.
+    expect(claims!.v).toBe(2);
+    expect(decode(parts(issueLicense({ ...input, now }))[1]!).v).toBe(1);
+  });
+
   it("sửa payload, sửa chữ ký, kid lạ, alg khác, sai định dạng → null", async () => {
     const keys = publicLicenseKeys();
     const [h, p, s] = parts(issueLicense(input));
@@ -65,7 +76,9 @@ describe("kiểm cấu trúc claims (Codex P3 #2)", () => {
     const keys = publicLicenseKeys();
     expect(await verifyLicense(forge({ v: 1, sub: "u", did: "d", courses: "tất cả", iat: 1, exp: 2, grace: 1 }), keys)).toBeNull();
     expect(await verifyLicense(forge({ v: 1, sub: "u", did: "d", courses: [], iat: 1, exp: "mãi", grace: 1 }), keys)).toBeNull();
-    expect(await verifyLicense(forge({ v: 2, sub: "u", did: "d", courses: [], iat: 1, exp: 2, grace: 1 }), keys)).toBeNull();
+    expect(await verifyLicense(forge({ v: 2, sub: "u", did: "d", courses: [{ id: "c", versionId: "v", until: "mãi" }], iat: 1, exp: 2, grace: 1 }), keys)).toBeNull();
+    expect(await verifyLicense(forge({ v: 1, sub: "u", did: "d", courses: [{ id: "c", versionId: "v", until: 5 }], iat: 1, exp: 2, grace: 1 }), keys)).toBeNull();
+    expect(await verifyLicense(forge({ v: 3, sub: "u", did: "d", courses: [], iat: 1, exp: 2, grace: 1 }), keys)).toBeNull();
     expect(await verifyLicense(forge({ v: 1, sub: "u", did: "d", courses: [{ id: "c", versionId: "v" }], iat: 1, exp: 2, grace: 1 }), keys)).not.toBeNull();
   });
 

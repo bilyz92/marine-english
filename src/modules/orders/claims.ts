@@ -183,8 +183,14 @@ export async function rejectClaim(ctx: AdminCtx, input: { orderCode: string; rea
           AND p.created_at > coalesce((SELECT max(r.created_at) FROM transfer_claim_rejections r WHERE r.order_id = ${order.id}::uuid), '-infinity')) AS ok`;
       if (!fresh!.ok) return "not_claimed";
     }
-    await tx.$executeRaw`
-      INSERT INTO transfer_claim_rejections (order_id, reason, decided_by) VALUES (${order.id}::uuid, ${reason}, ${ctx.adminId}::uuid)`;
+    const [rejection] = await tx.$queryRaw<{ id: string; user_id: string }[]>`
+      INSERT INTO transfer_claim_rejections (order_id, reason, decided_by) VALUES (${order.id}::uuid, ${reason}, ${ctx.adminId}::uuid)
+      RETURNING id, (SELECT user_id FROM orders WHERE id = ${order.id}::uuid) AS user_id`;
+    // Báo khách qua email (nếu có): lý do và link về trang thanh toán để gửi ảnh chứng minh.
+    await enqueueOutbox(tx, {
+      dedupKey: `transfer_claim_rejected:${rejection!.id}`, kind: "transfer_claim_rejected", channel: "email",
+      payload: { orderCode: order.code, userId: rejection!.user_id, reason, payUrl: new URL(`/thanh-toan/${order.code}`, env().APP_ORIGIN).toString() },
+    });
     await audit(tx, {
       adminId: ctx.adminId, action: "transfer_claim_reject", targetType: "order", targetId: order.id, ip: ctx.ip, reason,
       before: { claim: revoked > 0 ? "open" : "rejected" }, after: { claim: "rejected" }, result: "ok",

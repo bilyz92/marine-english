@@ -4,7 +4,8 @@ export type LicenseClaims = {
   v: number;
   sub: string;
   did: string;
-  courses: { id: string; versionId: string }[];
+  /** until: hạn riêng của khóa mở tạm (giây, không ân hạn); không có thì theo exp + grace. */
+  courses: { id: string; versionId: string; until?: number }[];
   iat: number;
   exp: number;
   grace: number;
@@ -22,11 +23,15 @@ const decodeJson = (part: string): unknown => JSON.parse(new TextDecoder().decod
 const isString = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 const isTime = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
-/** Chỉ nhận claims đúng cấu trúc phiên bản 1; chữ ký đúng mà nội dung lạ vẫn bị từ chối. */
+/** Chỉ nhận claims đúng cấu trúc phiên bản 1 hoặc 2 (2 = có hạn riêng theo khóa); chữ ký đúng mà nội dung lạ vẫn bị từ chối. */
 function asClaims(value: unknown): LicenseClaims | null {
   const c = value as Record<string, unknown> | null;
-  if (!c || c.v !== 1 || !isString(c.sub) || !isString(c.did) || !isTime(c.iat) || !isTime(c.exp) || !isTime(c.grace)) return null;
-  if (!Array.isArray(c.courses) || !c.courses.every((x) => isString((x as { id?: unknown })?.id) && isString((x as { versionId?: unknown })?.versionId))) return null;
+  if (!c || (c.v !== 1 && c.v !== 2) || !isString(c.sub) || !isString(c.did) || !isTime(c.iat) || !isTime(c.exp) || !isTime(c.grace)) return null;
+  if (!Array.isArray(c.courses) || !c.courses.every((x) => {
+    const course = x as { id?: unknown; versionId?: unknown; until?: unknown } | null;
+    // until (hạn riêng của khóa mở tạm) chỉ có ở v2.
+    return isString(course?.id) && isString(course?.versionId) && (course?.until === undefined ? true : c.v === 2 && isTime(course.until));
+  })) return null;
   return c as unknown as LicenseClaims;
 }
 

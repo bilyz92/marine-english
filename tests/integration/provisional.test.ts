@@ -5,6 +5,7 @@ import { POST as claimRoute } from "@/app/api/me/orders/[code]/claim/route";
 import { POST as proofRoute } from "@/app/api/me/orders/[code]/proof/route";
 import { listOrders } from "@/modules/admin/orders";
 import { hasCourseAccess } from "@/modules/enrollments/access";
+import { entitledCourses } from "@/modules/learn/entitlements";
 import { approveTransfer, listProofs, proofFile, rejectClaim } from "@/modules/orders/claims";
 import { createOrder, getCheckoutForLearner, paymentHistory } from "@/modules/orders/orders";
 import { adminCtx, rejected } from "../helpers/admin-ctx";
@@ -76,6 +77,15 @@ describe("khách báo đã chuyển khoản", () => {
     expect(events[0]!.payload).toMatchObject({ orderCode: code, amountVnd: PRICE });
     const view = await getCheckoutForLearner(learner, code);
     expect(view).toMatchObject({ enrolled: true, claim: { status: "open" } });
+  });
+
+  it("khóa mở tạm được đánh dấu để giấy phép offline chỉ 3 ngày; duyệt xong thì hết đánh dấu", async () => {
+    const { learner, code } = await paidCourseSetup();
+    await claim(learner, code);
+    expect((await entitledCourses(learner.userId)).map((c) => c.provisional)).toEqual([true]);
+    const owner = await adminCtx("owner");
+    expect(await approveTransfer(owner, { orderCode: code, bankRef: "", note: "", bankTime: new Date() })).toEqual({ result: "paid" });
+    expect((await entitledCourses(learner.userId)).map((c) => c.provisional)).toEqual([false]);
   });
 
   it("bấm lại → không tạo thêm, không báo lại", async () => {
@@ -182,6 +192,9 @@ describe("chủ đối soát", () => {
     expect(await rejectClaim(owner, { orderCode: code, reason: "Sao kê không có" })).toBe("revoked");
     expect(await hasCourseAccess(learner.userId, await courseOf(orderId))).toBe(false);
     expect(await prisma().adminAuditLog.count({ where: { action: "transfer_claim_reject" } })).toBe(1);
+    // Email báo khách: lý do và link về trang thanh toán của đơn (gửi ảnh chứng minh ở đó).
+    const mail = await prisma().outboxEvent.findFirstOrThrow({ where: { kind: "transfer_claim_rejected", channel: "email" } });
+    expect(mail.payload).toMatchObject({ orderCode: code, userId: learner.userId, reason: "Sao kê không có", payUrl: `${process.env.APP_ORIGIN}/thanh-toan/${code}` });
     const again = await claim(learner, code);
     expect(again.status).toBe(409);
     expect(await again.json()).toMatchObject({ error: "claim_rejected" });

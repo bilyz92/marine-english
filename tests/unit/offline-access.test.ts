@@ -43,3 +43,14 @@ describe("phiên bản nội dung (Codex P3 vòng 3)", () => {
     expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v0", license: ok, identity: who, now: NOW })).toBe(false);
   });
 });
+
+describe("khóa mở tạm (chủ chưa duyệt): hạn riêng 3 ngày, không ân hạn (chủ chọn 03/11/2026)", () => {
+  const prov = { ...ok, claims: { ...claims, courses: [{ id: "c1", versionId: "v1", until: 40 }] } };
+  it("trước hạn riêng → mở; tới hạn riêng → chặn dù giấy phép còn hạn", () => {
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license: prov, identity: who, now: 39 })).toBe(true);
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license: prov, identity: who, now: 40 })).toBe(false);
+  });
+  it("chỉnh lùi đồng hồ không kéo dài hạn riêng", () => {
+    expect(canOpenLesson({ isFreeTrial: false, courseId: "c1", versionId: "v1", license: { ...prov, maxSeen: 45 }, identity: who, now: 20 })).toBe(false);
+  });
+});

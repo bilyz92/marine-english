@@ -85,6 +85,12 @@ const schema = z
     TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
     TELEGRAM_BUSINESS_CHAT_ID: z.string().min(1).optional(),
     TELEGRAM_ERROR_CHAT_ID: z.string().min(1).optional(),
+    // Email (G7, chủ chọn Gmail 03/11/2026): tài khoản Gmail và mật khẩu ứng dụng (16 ký tự, bỏ dấu cách). Thiếu thì email không gửi.
+    SMTP_HOST: z.string().default("smtp.gmail.com"),
+    SMTP_PORT: z.coerce.number().int().positive().default(465),
+    SMTP_USER: z.preprocess((v) => (v === "" ? undefined : v), z.email().optional()),
+    SMTP_PASSWORD: z.preprocess((v) => (v === "" ? undefined : typeof v === "string" ? v.replace(/\s+/g, "") : v), z.string().optional()),
+    EMAIL_FROM_NAME: z.string().default("Marine English"),
     // Nút duyệt trên Telegram: mã bí mật Telegram gửi kèm mỗi webhook (setWebhook secret_token) và
     // danh sách "<id người dùng Telegram>:<email tài khoản chủ>" được bấm. Thiếu mã thì webhook trả 503.
     TELEGRAM_WEBHOOK_SECRET: z.preprocess((v) => (v === "" ? undefined : v), z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, "32–256 ký tự A-Z a-z 0-9 _ -").optional()),

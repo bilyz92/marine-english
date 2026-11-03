@@ -61,6 +61,14 @@ describe("nội dung tin", () => {
     expect(telegramMessage("order_paid", { orderCode: "ME7K3QX9AB", amountVnd: 1 }, { origin: "https://x.vn" }).buttons).toBeUndefined();
   });
 
+  it("khóa lại khóa học mở tạm: email báo khách lý do, tiền chưa được xác nhận, link gửi ảnh chứng minh", () => {
+    const e = emailMessage("transfer_claim_rejected", { orderCode: "ME7K3QX9AB", userId: "u1", reason: "Sao kê chưa thấy", payUrl: "https://x.vn/thanh-toan/ME7K3QX9AB" });
+    expect(e.subject).toContain("ME7K3QX9AB");
+    expect(e.body).toContain("Tiền chưa được xác nhận");
+    expect(e.body).toContain("Sao kê chưa thấy");
+    expect(e.body).toContain("https://x.vn/thanh-toan/ME7K3QX9AB");
+  });
+
   it("loại tin lạ → báo lỗi, không gửi đại", () => {
     expect(() => telegramMessage("la", {})).toThrow();
     expect(() => emailMessage("job_failed", {})).toThrow();

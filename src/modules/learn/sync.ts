@@ -157,7 +157,7 @@ export async function syncEvents(
         results: out,
         license: issueLicense({
           userId: ctx.userId, deviceId: ctx.deviceId, trustedKids: input.trustedKids,
-          courses: courses.map((c) => ({ id: c.courseId, versionId: c.versionId })),
+          courses: courses.map((c) => ({ id: c.courseId, versionId: c.versionId, provisional: c.provisional })),
         }),
         courses: courses.map((c) => ({ id: c.courseId, slug: c.slug, versionId: c.versionId })),
         revokedCourseIds: (input.knownCourseIds ?? []).filter((id) => !held.has(id)),
