@@ -83,7 +83,7 @@ try {
     await sleep(200);
     await idle();
   }
-  check("báo sai mật khẩu", (await text()).includes("Số điện thoại hoặc mật khẩu không đúng"));
+  check("báo sai mật khẩu", await waitFor(async () => (await text()).includes("Số điện thoại hoặc mật khẩu không đúng")), (await text()).slice(0, 400));
   await fill("Mật khẩu", PW);
   await submit("Đăng nhập");
   check("sai 5 lần thì khóa 15 phút", await waitFor(async () => (await text()).includes("Sai quá nhiều lần")));
