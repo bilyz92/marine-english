@@ -87,15 +87,17 @@ export function Account() {
         {!online && <div className={styles.banner}>Đang không có mạng. Thiết bị và cách đăng nhập sẽ hiện khi có mạng.</div>}
         {message && <div className={styles.bannerDanger}>{message}</div>}
         {online && <MyOrders />}
-        <div className={styles.card}>
-          <h2 className={styles.h2}>Cách đăng nhập</h2>
-          {logins.map((l) => (
-            <div key={l.id} className={styles.item}>
-              <p className={styles.en}>{KIND_LABEL[l.kind] ?? l.kind}</p>
-              {l.kind !== "google" && <p className={styles.vi}>{l.valueCanonical}</p>}
-            </div>
-          ))}
-        </div>
+        {logins.length > 0 && (
+          <div className={styles.card}>
+            <h2 className={styles.h2}>Cách đăng nhập</h2>
+            {logins.map((l) => (
+              <div key={l.id} className={styles.item}>
+                <p className={styles.en}>{KIND_LABEL[l.kind] ?? l.kind}</p>
+                {l.kind !== "google" && <p className={styles.vi}>{l.valueCanonical}</p>}
+              </div>
+            ))}
+          </div>
+        )}
         {online && <PasswordSection />}
         <div className={styles.card}>
           <h2 className={styles.h2}>Thiết bị của tôi (tối đa 2)</h2>

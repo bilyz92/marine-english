@@ -44,9 +44,7 @@ try {
   const code = inbox.slice(inbox.indexOf(email)).match(/\b\d{6}\b/)[0];
   await setValue("input[autocomplete='one-time-code']", code);
   await click("Xác minh");
-  check("đăng nhập xong", await waitFor(async () => (await text()).includes("Đã tạo tài khoản")));
-  await click("Tiếp tục");
-  check("quay lại đúng trang mua", await waitFor(async () => (await b.evaluate("location.pathname")) === `/mua/${SLUG}`));
+  check("đăng nhập xong, vào thẳng đúng trang mua", await waitFor(async () => (await b.evaluate("location.pathname")) === `/mua/${SLUG}`, 60000));
   await waitFor(async () => (await text()).includes("Tiếp tục thanh toán"));
   await hydrated();
   await problems("trang mua");

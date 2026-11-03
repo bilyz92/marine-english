@@ -60,7 +60,8 @@ try {
   check("mật khẩu ngắn bị báo", await waitFor(async () => (await text()).includes("Mật khẩu cần ít nhất 8 ký tự")));
   await fill("Mật khẩu", PW);
   await submit("Tạo tài khoản");
-  check("tạo tài khoản xong", await waitFor(async () => (await text()).includes("Đã tạo tài khoản"), 60000), (await text()).slice(0, 300));
+  const leftLogin = () => waitFor(async () => (await b.evaluate("location.pathname")) !== "/dang-nhap", 60000);
+  check("tạo tài khoản xong, vào thẳng trang đích", await leftLogin(), (await text()).slice(0, 300));
   await b.shot(`${OUT}/dang-ky-xong-360.png`);
 
   // 2. Bỏ phiên (xóa cookie) rồi đăng nhập lại bằng số dạng khác.
@@ -69,7 +70,7 @@ try {
   await fill("Số điện thoại", `+84 ${phone.slice(1)}`);
   await fill("Mật khẩu", PW);
   await submit("Đăng nhập");
-  check("đăng nhập lại bằng số dạng +84", await waitFor(async () => (await text()).includes("Đã đăng nhập"), 60000), (await text()).slice(0, 300));
+  check("đăng nhập lại bằng số dạng +84", await leftLogin(), (await text()).slice(0, 300));
 
   // 3. Sai 5 lần → báo khóa.
   await b.send("Network.clearBrowserCookies");

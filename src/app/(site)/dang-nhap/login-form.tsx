@@ -56,8 +56,9 @@ export function LoginForm({ zaloEnabled, googleFailed, next, google: googleOn, e
     setResendIn(RESEND_SECONDS);
   }
 
-  function openLearning() {
-    // Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
+  function finish() {
+    setStep("done");
+    // Vào thẳng trang cần tới, không bắt bấm thêm. Tải lại toàn trang: app học dựng lại dữ liệu offline theo người dùng mới.
     window.location.assign(next);
   }
 
@@ -83,7 +84,7 @@ export function LoginForm({ zaloEnabled, googleFailed, next, google: googleOn, e
     // Đăng nhập bằng mã xong thì về `next` của trang này; bỏ giá trị cũ để /hoc không nhảy sang trang cũ sau này.
     if (data.next === "done") {
       sessionStorage.removeItem(NEXT_KEY);
-      return setStep("done");
+      return finish();
     }
     if (data.next === "choose_device") {
       sessionStorage.setItem(DEVICES_KEY, JSON.stringify(data.devices ?? []));
@@ -97,8 +98,7 @@ export function LoginForm({ zaloEnabled, googleFailed, next, google: googleOn, e
     return (
       <div>
         <h2 className={styles.title}>{mode === "signup" ? "Đã tạo tài khoản" : "Đã đăng nhập"}</h2>
-        <p className={styles.lead}>Quyền lợi đã mở trong tài khoản.</p>
-        <button className={styles.primary} onClick={openLearning}>Tiếp tục</button>
+        <p className={styles.lead}>Đang chuyển trang…</p>
       </div>
     );
   }
@@ -139,7 +139,7 @@ export function LoginForm({ zaloEnabled, googleFailed, next, google: googleOn, e
       <div>
         {methods}
         {error && <p className={styles.error} role="alert">{error}</p>}
-        <PhoneForm next={next} onDone={(created) => { setMode(created ? "signup" : "login"); setStep("done"); }} />
+        <PhoneForm next={next} onDone={(created) => { setMode(created ? "signup" : "login"); finish(); }} />
         {googleOn && <div className={styles.divider}>hoặc</div>}
         {googleButton}
       </div>
