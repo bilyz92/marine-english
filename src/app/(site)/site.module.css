@@ -2,7 +2,21 @@
 .headerRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-top: 12px; padding-bottom: 12px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--color-text); text-decoration: none; font-weight: 800; font-size: 18px; min-height: var(--touch); }
 .logo { width: 40px; height: 40px; border-radius: 10px; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; }
-.nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.nav, .navOpen { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.menuButton, .phoneLogin { display: none; }
+@media (max-width: 760px) {
+  .headerRow { padding-top: 8px; padding-bottom: 8px; gap: 4px; }
+  .brand { margin-right: auto; font-size: 16px; gap: 8px; white-space: nowrap; }
+  .logo { width: 34px; height: 34px; }
+  .nav { display: none; }
+  .navOpen { flex: 0 0 100%; flex-direction: column; align-items: stretch; gap: 0; padding-top: 4px; border-top: 1px solid var(--color-line); }
+  .phoneLogin { display: flex; align-items: center; min-height: var(--touch); padding: 0 8px; color: var(--color-text-2); font-weight: 600; text-decoration: none; }
+  .menuButton {
+    display: flex; align-items: center; justify-content: center; width: var(--touch); min-height: var(--touch); padding: 0; border: 1px solid var(--color-border-input);
+    border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .navOpen .navCta { justify-content: center; margin: 8px 0; }
+}
 .navLink { min-height: var(--touch); padding: 0 12px; display: flex; align-items: center; color: var(--color-text-2); text-decoration: none; font-weight: 500; }
 .navInstall { composes: navLink; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primary); cursor: pointer; }
 .navCta { min-height: var(--touch); padding: 0 18px; border-radius: var(--radius-control); background: var(--color-action); color: #fff; font-weight: 700; text-decoration: none; display: flex; align-items: center; }

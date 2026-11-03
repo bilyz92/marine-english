@@ -57,11 +57,14 @@ export async function clearLocal(identity: Identity | null): Promise<void> {
   }
 }
 
+const NETWORK_TIMEOUT_MS = 10_000;
+
 export async function loadIdentity(): Promise<IdentityResult> {
   const saved = savedIdentity();
   let res: Response;
   try {
-    res = await fetch("/api/me/session");
+    // Mạng tàu có thể treo chứ không báo lỗi: quá giờ thì mở bằng dữ liệu trên máy, không đứng ở màn "Đang mở…".
+    res = await fetch("/api/me/session", { signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) });
   } catch {
     return { identity: saved, online: false };
   }
@@ -189,7 +192,7 @@ async function removeCourseData(db: IDBDatabase, courseId: string): Promise<void
 export async function loadMyCourses(identity: Identity): Promise<MyCourse[]> {
   const db = await openOfflineDb(identity);
   try {
-    const res = await fetch("/api/me/courses");
+    const res = await fetch("/api/me/courses", { signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) });
     if (res.ok) {
       const { courses } = (await res.json()) as { courses: MyCourse[] };
       await dbPut(db, "kv", "myCourses", courses);
@@ -205,7 +208,7 @@ export async function loadManifest(identity: Identity, slug: string): Promise<Ma
   const db = await openOfflineDb(identity);
   const manifests = (await dbGet<Record<string, Manifest>>(db, "kv", "manifests")) ?? {};
   try {
-    const res = await fetch(`/api/learn/courses/${encodeURIComponent(slug)}/manifest`);
+    const res = await fetch(`/api/learn/courses/${encodeURIComponent(slug)}/manifest`, { signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) });
     if (res.ok) {
       const manifest = (await res.json()) as Manifest;
       // Máy đã tải đủ bản cũ: ghi nhớ trước khi thay manifest, để bản mới hiện nút Cập nhật.

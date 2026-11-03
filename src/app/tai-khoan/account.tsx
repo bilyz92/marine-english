@@ -15,6 +15,7 @@ const KIND_LABEL: Record<string, string> = { email: "Email", google: "Google", p
 
 export function Account() {
   const [identity, setIdentity] = useState<Identity | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [online, setOnline] = useState(true);
   const [devices, setDevices] = useState<Device[]>([]);
   const [logins, setLogins] = useState<IdentityRow[]>([]);
@@ -29,6 +30,7 @@ export function Account() {
   useEffect(() => {
     void loadIdentity().then(async ({ identity: who, online: isOnline }) => {
       setIdentity(who);
+      setLoaded(true);
       setOnline(isOnline);
       if (!who) return;
       setLicense(await licenseStatus(who));
@@ -62,6 +64,7 @@ export function Account() {
     window.location.assign("/dang-nhap");
   }
 
+  if (!loaded) return <main className={styles.page}><div className={styles.wrap}><p className={styles.muted}>Đang tải…</p></div></main>;
   if (!identity) {
     return (
       <main className={styles.page}><div className={styles.wrap}><div className={styles.card}>
@@ -73,9 +76,6 @@ export function Account() {
 
   return (
     <main className={styles.page}>
-      <div className={styles.bar}>
-        <a className={styles.brand} href="/hoc">Marine English</a>
-      </div>
       <div className={styles.wrap}>
         <div className={styles.card}>
           <h1 className={styles.h1}>Tài khoản của tôi</h1>

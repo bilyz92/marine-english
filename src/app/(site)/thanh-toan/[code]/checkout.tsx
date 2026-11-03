@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BuySteps } from "@/components/buy-steps";
 import ui from "@/components/ui.module.css";
 import { learnerCsrfHeader } from "@/lib/client/api";
 import { formatVnd } from "@/lib/format";
@@ -150,8 +151,9 @@ function Pending({ order, clockOffsetMs, onExpire }: { order: Order; clockOffset
   const filled = !!payment.qrPayload;
   return (
     <>
+      <BuySteps current={2} />
       <h1 className={ui.h2}>Thanh toán đơn {order.code}</h1>
-      <p className={ui.muted}>{order.courseTitleVi} · Bước 2 / 3: Thông tin → Thanh toán → Vào học</p>
+      <p className={ui.muted}>{order.courseTitleVi}</p>
       <p className={ui.notice}>Đơn hết hạn sau <Countdown expiresAt={order.expiresAt} clockOffsetMs={clockOffsetMs} onDone={onExpire} /></p>
       <section className={styles.pay} aria-label="Chuyển khoản">
         <p className={styles.payTitle}>Dùng app ngân hàng quét mã QR</p>

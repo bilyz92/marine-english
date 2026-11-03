@@ -35,7 +35,7 @@ async function Trial({ params }: { params: Promise<{ slug: string; position: str
 export default function TrialPage({ params }: PageProps<"/khoa-hoc/[slug]/hoc-thu/[position]">) {
   return (
     <main className={ui.section}>
-      <div className={ui.wrap} style={{ maxWidth: 680, display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className={ui.wrap} style={{ maxWidth: 1080, display: "flex", flexDirection: "column", gap: 14 }}>
         <h1 className={ui.h2}>Bài học thử</h1>
         <Suspense fallback={<p className={ui.muted}>Đang mở bài…</p>}><Trial params={params} /></Suspense>
       </div>

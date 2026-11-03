@@ -1,9 +1,6 @@
 /* Trang "Thông tin người mua" theo khung BuyerInfo của UI v1: cột thông tin + cột tóm tắt đơn hàng; điện thoại xếp dọc. */
 .page { background: var(--color-bg-alt); }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
-.steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
-.step { padding: 6px 12px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-text-2); font-size: 14px; font-weight: 600; }
-.stepNow { background: var(--color-primary); color: #fff; }
 .account { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--radius-control); background: var(--color-primary-soft); color: var(--color-primary-dark); }
 .account strong { font-size: 17px; overflow-wrap: anywhere; }
 .summary { position: sticky; top: 16px; }

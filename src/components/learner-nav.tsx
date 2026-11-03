@@ -24,11 +24,8 @@ const ITEMS = [
   { href: "/khoa-hoc?tim=1", label: "Tìm kiếm", d: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4", active: () => false },
 ];
 
-/** Thanh trên cùng của site: đã đăng nhập thì "Tài khoản", chưa thì "Đăng nhập". */
-export function AccountLink({ className }: { className?: string }) {
-  const show = useSyncExternalStore(noSubscription, signedIn, () => false);
-  return show ? <Link href="/tai-khoan" className={className}>Tài khoản</Link> : <Link href="/dang-nhap" className={className}>Đăng nhập</Link>;
-}
+/** Đã đăng nhập chưa (theo cookie, chỉ để chọn menu; quyền thật do máy chủ kiểm). */
+export const useSignedIn = () => useSyncExternalStore(noSubscription, signedIn, () => false);
 
 /** Đang ở trang Khóa học: đưa con trỏ vào ô tìm luôn (điều hướng tới cùng trang không dựng lại ô tìm). */
 function focusSearch(event: React.MouseEvent, pathname: string) {
@@ -41,7 +38,7 @@ function focusSearch(event: React.MouseEvent, pathname: string) {
 
 export function LearnerNav() {
   const pathname = usePathname();
-  const show = useSyncExternalStore(noSubscription, signedIn, () => false);
+  const show = useSignedIn();
   if (!show || pathname.startsWith("/admin")) return null;
   return (
     <>

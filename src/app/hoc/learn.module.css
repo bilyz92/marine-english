@@ -1,8 +1,22 @@
-.page { min-height: 100vh; background: var(--color-bg-soft); color: var(--color-text); padding-bottom: 32px; }
-.bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--color-bg); border-bottom: 1px solid var(--color-border); }
-.brand { font-weight: 700; color: var(--color-primary); background: none; border: 0; padding: 0; font-size: 16px; cursor: pointer; }
+.page { --sticky-top: 65px; --study-bg: var(--color-bg-soft); min-height: 100vh; background: var(--color-bg-soft); color: var(--color-text); padding-bottom: 32px; }
+.bar { position: sticky; top: 0; z-index: 3; background: var(--color-bg); border-bottom: 1px solid var(--color-border); }
+.barInner { max-width: 1200px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font: inherit; font-weight: 800; font-size: 18px; color: var(--color-text); background: none; border: 0; padding: 0; cursor: pointer; }
+.logo { width: 40px; height: 40px; border-radius: 10px; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; }
+.barNav { color: var(--color-text-2); font-size: 15px; font-weight: 500; text-decoration: none; }
+.brandText { white-space: nowrap; }
+@media (max-width: 760px) {
+  .page { --sticky-top: 53px; }
+  .barInner { padding: 8px 16px; }
+  .logo { width: 36px; height: 36px; }
+  .barNav { display: none; }
+  .barRight { white-space: nowrap; min-width: 0; }
+  .barRight .barLink { display: inline-block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+}
+@media (max-width: 480px) { .brandText { display: none; } }
 .barLink { color: var(--color-text-2); font-size: 14px; }
-.wrap { max-width: 640px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.wrapLesson { composes: wrap; max-width: 1080px; }
 .card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; }
 .h1 { font-size: 20px; margin: 0 0 6px; line-height: 1.35; }
 .h2 { font-size: 16px; margin: 0 0 8px; }
@@ -35,7 +49,7 @@
 .input { min-height: var(--touch); padding: 8px 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); font: inherit; font-weight: 400; }
 .refundForm { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 
-.barRight { display: flex; align-items: center; gap: 4px; }
+.barRight { display: flex; align-items: center; gap: 16px; }
 .barInstall { min-height: var(--touch); padding: 0 10px; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primary); cursor: pointer; }
 .speak { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; }
 .voice { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }

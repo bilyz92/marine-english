@@ -19,9 +19,11 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
   const firstTrial = course.trialLessons[0];
   return (
     <div className={styles.layout}>
-      <div className={styles.main}>
+      <div className={styles.head}>
         <h1 className={ui.h1}>{course.titleVi}</h1>
         <p className={ui.lead}>{course.titleEn}</p>
+      </div>
+      <div className={styles.main}>
         <h2 className={ui.h2}>Danh sách bài ({course.lessonCount})</h2>
         <ol className={styles.lessons}>
           {course.lessons.map((l) => (

@@ -55,15 +55,6 @@ function Study({ externalId, lesson, who, children }: { externalId: string; less
 
   return (
     <>
-      <div className={learn.card}>
-        <p className={learn.muted}>Bài {externalId} · Câu hỏi phỏng vấn</p>
-        <VoicePicker />
-        <p className={learn.en}>{lesson.question?.text?.en}</p>
-        {level !== "independent" && lesson.question?.text?.vi && <p className={learn.vi}>{lesson.question.text.vi}</p>}
-        <SpeakButton text={lesson.question?.text?.en} label="Nghe câu hỏi" />
-        {children}
-      </div>
-
       <div className={styles.levels} role="group" aria-label="Mức hỗ trợ tiếng Anh">
         {LEVELS.map((l) => (
           <button key={l.id} type="button" className={l.id === level ? styles.levelOn : styles.level} aria-pressed={l.id === level} onClick={() => chooseLevel(l.id)}>
@@ -73,10 +64,25 @@ function Study({ externalId, lesson, who, children }: { externalId: string; less
         ))}
       </div>
 
+      <div className={styles.layout}>
+      {/* Máy tính: phần học bên trái, câu hỏi và từ vựng bên phải luôn nhìn thấy. Điện thoại: câu hỏi, phần học, rồi từ vựng. */}
+      <aside className={styles.side}>
+        <div className={learn.card}>
+          <p className={learn.muted}>Bài {externalId} · Câu hỏi phỏng vấn</p>
+          <VoicePicker />
+          <p className={learn.en}>{lesson.question?.text?.en}</p>
+          {level !== "independent" && lesson.question?.text?.vi && <p className={learn.vi}>{lesson.question.text.vi}</p>}
+          <SpeakButton text={lesson.question?.text?.en} label="Nghe câu hỏi" />
+          {children}
+        </div>
+        {level === "foundation" && <div className={styles.words}><WordChips phrases={data.phrases} lesson={lesson} /></div>}
+      </aside>
+
+      <div className={styles.main}>
       {fields.length > 0 && <ProfileFields fields={fields} missing={missing} profile={profile} onSave={(p) => { setProfile(p); saveProfile(who, p); }} />}
       {data.task?.vi && <p className={learn.note}>{data.task.vi}</p>}
 
-      {level === "foundation" && <Foundation lesson={lesson} data={data} fill={fill} profile={profile} step={state.step ?? 0} setStep={(s) => update({ step: s })} onNext={() => chooseLevel("developing")} answers={answers} setAnswer={setAnswer} />}
+      {level === "foundation" && <Foundation data={data} fill={fill} profile={profile} step={state.step ?? 0} setStep={(s) => update({ step: s })} onNext={() => chooseLevel("developing")} answers={answers} setAnswer={setAnswer} />}
       {level === "developing" && (
         <Developing data={data} fill={fill} profile={profile} answers={answers} setAnswer={setAnswer} model={lesson.model_answer} recall={lesson.recall_cards} draft={state.drafts?.developing ?? ""} said={!!state.said?.developing}
           setDraft={(t) => update({ drafts: { ...state.drafts, developing: t } })} setSaid={() => update({ said: { ...state.said, developing: true } })} />
@@ -85,6 +91,8 @@ function Study({ externalId, lesson, who, children }: { externalId: string; less
         <Independent lesson={lesson} data={data} fill={fill} profile={profile} draft={state.drafts?.independent ?? ""} said={!!state.said?.independent}
           setDraft={(t) => update({ drafts: { ...state.drafts, independent: t } })} setSaid={() => update({ said: { ...state.said, independent: true } })} />
       )}
+      </div>
+      </div>
     </>
   );
 }
@@ -181,7 +189,7 @@ function Bilingual({ text, speak, vi = true }: { text: Text; speak?: boolean; vi
 type Answers = NonNullable<LessonState["exercises"]>;
 type SetAnswer = (id: string, a: Answers[string]) => void;
 
-function Foundation({ lesson, data, fill, profile, step, setStep, onNext, answers, setAnswer }: { lesson: StudyLesson; data: Data; fill: Fill; profile: Profile; step: number; setStep: (s: number) => void; onNext: () => void; answers: Answers; setAnswer: SetAnswer }) {
+function Foundation({ data, fill, profile, step, setStep, onNext, answers, setAnswer }: { data: Data; fill: Fill; profile: Profile; step: number; setStep: (s: number) => void; onNext: () => void; answers: Answers; setAnswer: SetAnswer }) {
   const [shown, setShown] = useState<string | null>(null);
   const [showVi, setShowVi] = useState(true);
   const total = data.steps.length;
@@ -189,13 +197,6 @@ function Foundation({ lesson, data, fill, profile, step, setStep, onNext, answer
   const current = data.steps[at];
   return (
     <>
-      {data.phrases.length > 0 && (
-        <div className={learn.card}>
-          <h2 className={learn.h2}>Cụm từ hữu ích</h2>
-          <div className={styles.chips}>{data.phrases.map((p, i) => <span key={i} className={styles.chip}>{p.en}{p.vi ? ` · ${p.vi}` : ""}</span>)}</div>
-        </div>
-      )}
-      <Vocabulary lesson={lesson} />
       {current ? (
         <div className={learn.card} aria-live="polite">
           <div className={styles.stepHead}>
@@ -234,14 +235,26 @@ function Foundation({ lesson, data, fill, profile, step, setStep, onNext, answer
   );
 }
 
-/** Từ vựng của bài (Engine Cadet: {text:{en,vi}}; Oiler, Wiper: {en,vi}). */
-function Vocabulary({ lesson }: { lesson: StudyLesson }) {
+/** Cụm từ và từ vựng gọn thành thẻ nhỏ, không đẩy phần học xuống (Engine Cadet: {text:{en,vi}}; Oiler, Wiper: {en,vi}). */
+function WordChips({ phrases, lesson }: { phrases: Data["phrases"]; lesson: StudyLesson }) {
   const words = (lesson.vocabulary ?? []).map((v) => v.text ?? { en: v.en, vi: v.vi }).filter((t) => t.en || t.vi);
-  if (!words.length) return null;
+  if (!phrases.length && !words.length) return null;
   return (
     <div className={learn.card}>
-      <h2 className={learn.h2}>Từ vựng</h2>
-      {words.map((w, i) => <div key={i} className={learn.item}><Bilingual text={w} speak /></div>)}
+      {phrases.length > 0 && (
+        <>
+          <h2 className={learn.h2}>Cụm từ hữu ích</h2>
+          <div className={styles.chips}>{phrases.map((p, i) => <span key={i} className={styles.chip}>{p.en}{p.vi ? ` · ${p.vi}` : ""}</span>)}</div>
+        </>
+      )}
+      {words.length > 0 && (
+        <>
+          <h2 className={`${learn.h2} ${phrases.length ? styles.wordsHead : ""}`}>Từ vựng</h2>
+          <div className={styles.chips}>
+            {words.map((w, i) => <span key={i} className={styles.word}><strong>{w.en}</strong>{w.vi ? ` · ${w.vi}` : ""}<SpeakButton text={w.en} /></span>)}
+          </div>
+        </>
+      )}
     </div>
   );
 }

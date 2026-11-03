@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -11,6 +12,7 @@ import { NEXT_KEY } from "../(site)/dang-nhap/api";
 import { CourseList } from "./course-list";
 import { CourseView } from "./course-view";
 import { LessonView } from "./lesson-view";
+import { BrandMark } from "@/components/brand-mark";
 import { InstallApp } from "@/components/install-app";
 import styles from "./learn.module.css";
 
@@ -113,13 +115,18 @@ export function LearnApp() {
   return (
     <main className={styles.page}>
       <div className={styles.bar}>
-        <button className={styles.brand} onClick={() => go({})}>Marine English</button>
-        <span className={styles.barRight}>
-          <InstallApp className={styles.barInstall} label="Tải app" />
-          <a className={styles.barLink} href="/tai-khoan">{identity.displayName}</a>
-        </span>
+        <div className={styles.barInner}>
+          <button className={styles.brand} onClick={() => go({})}><span className={styles.logo}><BrandMark /></span><span className={styles.brandText}>Marine English</span></button>
+          <span className={styles.barRight}>
+            {/* Điện thoại đã có menu dưới đáy. */}
+            <Link className={styles.barNav} href="/khoa-hoc">Khóa học</Link>
+            <Link className={styles.barNav} href="/tai-khoan/thanh-toan">Thanh toán</Link>
+            <InstallApp className={styles.barInstall} label="Tải app" />
+            <a className={styles.barLink} href="/tai-khoan">{identity.displayName}</a>
+          </span>
+        </div>
       </div>
-      <div className={styles.wrap}>
+      <div className={slug && position > 0 ? styles.wrapLesson : styles.wrap}>
         <StatusBanners license={license} offline={offline} pending={pending} />
         {!slug && <CourseList identity={identity} />}
         {slug && !position && <CourseView identity={identity} slug={slug} license={license} />}

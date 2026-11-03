@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { BuySteps } from "@/components/buy-steps";
 import ui from "@/components/ui.module.css";
 import { getPublishedCourse } from "@/modules/content/catalog";
 import { env } from "@/lib/env";
@@ -35,11 +36,7 @@ export default function BuyPage({ params }: PageProps<"/mua/[slug]">) {
   return (
     <main className={`${ui.section} ${styles.page}`}>
       <div className={ui.wrap} style={{ maxWidth: 1040 }}>
-        <ol className={styles.steps} aria-label="Các bước mua">
-          <li className={`${styles.step} ${styles.stepNow}`} aria-current="step">1 · Thông tin</li>
-          <li className={styles.step}>2 · Quét VietQR</li>
-          <li className={styles.step}>3 · Vào học</li>
-        </ol>
+        <div style={{ marginBottom: 16 }}><BuySteps current={1} /></div>
         <Suspense fallback={<p className={ui.muted}>Đang tải…</p>}><Buy params={params} /></Suspense>
       </div>
     </main>
