@@ -2,6 +2,7 @@ import { env } from "@/lib/env";
 import { json } from "@/lib/http";
 import { ingest } from "@/modules/ledger/ingest";
 import { toBankReport, verifySepaySignature } from "@/modules/ledger/sepay";
+import { sepayEnabled } from "@/modules/orders/payment-info";
 
 // Webhook SePay — TD §4.2. Hạn chót 8 giây; mỗi lần thử: lock_timeout 2 s, statement_timeout 3 s; chỉ thử lại khi còn ≥ 3,5 s.
 const MAX_BODY_BYTES = 65_536;
@@ -10,8 +11,9 @@ const MIN_LEFT_FOR_RETRY_MS = 3_500;
 
 export async function POST(req: Request): Promise<Response> {
   const startedAt = Date.now();
-  const { SEPAY_WEBHOOK_SECRETS: secrets, SEPAY_BANK_CODE, SEPAY_ACCOUNT_NO } = env();
-  if (secrets.length === 0 || !SEPAY_BANK_CODE || !SEPAY_ACCOUNT_NO) {
+  const config = env();
+  const { SEPAY_WEBHOOK_SECRETS: secrets, SEPAY_BANK_CODE, SEPAY_ACCOUNT_NO } = config;
+  if (!sepayEnabled(config) || !SEPAY_BANK_CODE || !SEPAY_ACCOUNT_NO) {
     return json({ error: "Chưa cấu hình SePay" }, { status: 503 });
   }
   if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {

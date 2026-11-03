@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPaymentInfo } from "@/modules/orders/payment-info";
+import { buildPaymentInfo, sepayEnabled } from "@/modules/orders/payment-info";
 
 const full = {
   CHECKOUT_BANK_NAME: "VCB", SEPAY_ACCOUNT_NO: "0123456789", CHECKOUT_ACCOUNT_NAME: "TEN", CHECKOUT_QR_IMAGE: "/media/qr.png", CHECKOUT_TERMS_VERSION: "v1",
@@ -7,10 +7,33 @@ const full = {
 
 describe("buildPaymentInfo", () => {
   it("đủ cấu hình → đủ thông tin", () => {
-    expect(buildPaymentInfo(full)).toEqual({ bankName: "VCB", accountNo: "0123456789", accountName: "TEN", qrImageUrl: "/media/qr.png", termsVersion: "v1" });
+    expect(buildPaymentInfo(full)).toEqual({ bankName: "VCB", accountNo: "0123456789", accountName: "TEN", qrImageUrl: "/media/qr.png", bankBin: null, termsVersion: "v1" });
   });
 
-  it.each(Object.keys(full))("thiếu hoặc rỗng %s → không bán", (name) => {
+  it("có mã BIN ngân hàng thì không cần ảnh QR tĩnh (QR dựng theo từng đơn)", () => {
+    expect(buildPaymentInfo({ ...full, CHECKOUT_QR_IMAGE: undefined, CHECKOUT_BANK_BIN: "970422" })).toEqual({
+      bankName: "VCB", accountNo: "0123456789", accountName: "TEN", qrImageUrl: null, bankBin: "970422", termsVersion: "v1",
+    });
+  });
+
+  it("số tài khoản dài quá giới hạn VietQR (19): không dựng QR theo đơn; có ảnh tĩnh thì dùng ảnh, không thì chưa bán", () => {
+    const long = "1".repeat(25);
+    expect(buildPaymentInfo({ ...full, SEPAY_ACCOUNT_NO: long, CHECKOUT_BANK_BIN: "970422" })).toMatchObject({ bankBin: null, qrImageUrl: "/media/qr.png" });
+    expect(buildPaymentInfo({ ...full, SEPAY_ACCOUNT_NO: long, CHECKOUT_BANK_BIN: "970422", CHECKOUT_QR_IMAGE: undefined })).toBeNull();
+  });
+
+  it("SePay chỉ coi là bật khi đủ khóa ký, mã ngân hàng và số tài khoản (giống điều kiện của webhook)", () => {
+    expect(sepayEnabled({ SEPAY_WEBHOOK_SECRETS: ["s"], SEPAY_BANK_CODE: "MB", SEPAY_ACCOUNT_NO: "0123" })).toBe(true);
+    expect(sepayEnabled({ SEPAY_WEBHOOK_SECRETS: ["s"], SEPAY_BANK_CODE: undefined, SEPAY_ACCOUNT_NO: "0123" })).toBe(false);
+    expect(sepayEnabled({ SEPAY_WEBHOOK_SECRETS: ["s"], SEPAY_BANK_CODE: "MB", SEPAY_ACCOUNT_NO: undefined })).toBe(false);
+    expect(sepayEnabled({ SEPAY_WEBHOOK_SECRETS: [], SEPAY_BANK_CODE: "MB", SEPAY_ACCOUNT_NO: "0123" })).toBe(false);
+  });
+
+  it("không có cả mã BIN lẫn ảnh QR → không bán", () => {
+    expect(buildPaymentInfo({ ...full, CHECKOUT_QR_IMAGE: undefined, CHECKOUT_BANK_BIN: undefined })).toBeNull();
+  });
+
+  it.each(Object.keys(full).filter((k) => k !== "CHECKOUT_QR_IMAGE"))("thiếu hoặc rỗng %s → không bán", (name) => {
     expect(buildPaymentInfo({ ...full, [name]: undefined })).toBeNull();
     expect(buildPaymentInfo({ ...full, [name]: "" })).toBeNull();
   });

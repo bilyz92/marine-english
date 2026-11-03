@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ui from "@/components/ui.module.css";
@@ -18,14 +19,14 @@ type Order = {
   enrolled: boolean;
   needsManual: boolean;
   paymentUnavailable: boolean;
-  payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string } | null;
+  payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string | null; qrPayload: string | null; autoConfirm: boolean } | null;
 };
 
 const POLL_OPEN_MS = 5_000;
 // Đơn đã hết hạn vẫn hỏi tiếp, thưa hơn: tiền chuyển trong hạn có thể báo về muộn và đơn vẫn thành đã thanh toán.
 const POLL_EXPIRED_MS = 30_000;
 
-function CopyRow({ label, value, shown }: { label: string; value: string; shown?: string }) {
+function CopyRow({ label, value, shown, hint, accent }: { label: string; value: string; shown?: string; hint?: string; accent?: boolean }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     await navigator.clipboard?.writeText(value).then(() => {
@@ -35,13 +36,28 @@ function CopyRow({ label, value, shown }: { label: string; value: string; shown?
   }
   return (
     <div className={styles.row}>
-      <div className={styles.rowText}>
-        <span className={ui.muted}>{label}</span>
-        <strong className={styles.value}>{shown ?? value}</strong>
-      </div>
-      <button type="button" className={ui.outline} onClick={() => void copy()} aria-label={`Chép ${label}`}>{copied ? "Đã chép" : "Chép"}</button>
+      <span className={styles.rowLabel}>{label}</span>
+      <span className={styles.rowValue}>
+        <strong className={accent ? styles.accent : undefined}>{shown ?? value}</strong>
+        {hint && <small>{hint}</small>}
+      </span>
+      <button type="button" className={styles.copy} onClick={() => void copy()} aria-label={`Copy ${label}`}>{copied ? "Đã copy" : "Copy"}</button>
     </div>
   );
+}
+
+/** Ảnh QR: dựng từ chuỗi VietQR của đơn (đã điền số tiền, mã đơn) ngay trên máy; không có thì dùng ảnh QR tĩnh. */
+function QrImage({ payload, fallback, alt }: { payload: string | null; fallback: string | null; alt: string }) {
+  const [src, setSrc] = useState<string | null>(payload ? null : fallback);
+  useEffect(() => {
+    if (!payload) return;
+    let alive = true;
+    QRCode.toDataURL(payload, { margin: 1, width: 560, errorCorrectionLevel: "M" }).then((url) => alive && setSrc(url), () => alive && setSrc(fallback));
+    return () => { alive = false; };
+  }, [payload, fallback]);
+  if (!src) return <div className={styles.qrPlaceholder} aria-hidden="true" />;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className={styles.qr} src={src} alt={alt} />;
 }
 
 function Countdown({ expiresAt, clockOffsetMs, onDone }: { expiresAt: string; clockOffsetMs: number; onDone: () => void }) {
@@ -71,32 +87,41 @@ function Countdown({ expiresAt, clockOffsetMs, onDone }: { expiresAt: string; cl
 
 function Pending({ order, clockOffsetMs, onExpire }: { order: Order; clockOffsetMs: number; onExpire: () => void }) {
   const payment = order.payment!;
+  const filled = !!payment.qrPayload;
   return (
     <>
-      <h1 className={ui.h2}>Quét mã để thanh toán</h1>
-      <p className={ui.muted}>Bước 2 / 3: Thông tin → Thanh toán → Vào học</p>
+      <h1 className={ui.h2}>Thanh toán đơn {order.code}</h1>
+      <p className={ui.muted}>{order.courseTitleVi} · Bước 2 / 3: Thông tin → Thanh toán → Vào học</p>
       <p className={ui.notice}>Đơn hết hạn sau <Countdown expiresAt={order.expiresAt} clockOffsetMs={clockOffsetMs} onDone={onExpire} /></p>
-      <div className={ui.card}>
-        <ol className={styles.steps}>
-          <li>Quét mã QR bằng app ngân hàng, hoặc chuyển khoản theo thông tin dưới đây.</li>
-          <li>Nhập đúng số tiền và nội dung là mã đơn.</li>
-          <li>Giữ trang này: khóa học tự mở khi hệ thống nhận được tiền.</li>
-        </ol>
-        {/* Ảnh QR tĩnh của tài khoản nhận tiền, không chứa số tiền hay nội dung. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={styles.qr} src={payment.qrImageUrl} alt={`Mã QR tài khoản ${payment.accountName}`} />
-        <a className={ui.outline} href={payment.qrImageUrl} download>Lưu ảnh QR</a>
-      </div>
-      <div className={ui.card}>
-        <h2 className={ui.h3}>Thông tin chuyển khoản</h2>
-        <CopyRow label="Nội dung chuyển khoản" value={order.code} />
-        <CopyRow label="Số tiền" value={String(order.amountDueVnd)} shown={formatVnd(order.amountDueVnd)} />
-        <CopyRow label="Số tài khoản" value={payment.accountNo} />
-        <div className={styles.row}><div className={styles.rowText}><span className={ui.muted}>Ngân hàng</span><strong>{payment.bankName}</strong></div></div>
-        <div className={styles.row}><div className={styles.rowText}><span className={ui.muted}>Chủ tài khoản</span><strong>{payment.accountName}</strong></div></div>
-        <p className={ui.lead}>Ghi đúng nội dung <strong>{order.code}</strong> để khóa học tự mở.</p>
-      </div>
-      <p className={ui.muted}>{order.courseTitleVi}</p>
+      <section className={styles.pay} aria-label="Chuyển khoản">
+        <p className={styles.payTitle}>Dùng app ngân hàng quét mã QR</p>
+        <div className={styles.qrFrame}>
+          <div className={styles.qrBox}>
+            {/* key: đổi chuỗi QR hoặc ảnh tĩnh thì dựng lại từ đầu, không bao giờ còn hiện QR cũ. */}
+            <QrImage key={`${payment.qrPayload ?? ""}|${payment.qrImageUrl ?? ""}`} payload={payment.qrPayload} fallback={payment.qrImageUrl} alt={`Mã QR chuyển khoản ${formatVnd(order.amountDueVnd)} tới ${payment.accountName}, nội dung ${order.code}`} />
+            <p className={styles.qrCaption}>
+              <strong>{payment.accountName}</strong>
+              <span>{payment.accountNo}</span>
+              {filled && <span>Số tiền: {formatVnd(order.amountDueVnd)}</span>}
+            </p>
+          </div>
+          <p className={styles.qrNote}>{filled ? "Mã QR đã có sẵn số tiền và nội dung" : "Nhập đúng số tiền và nội dung là mã đơn"}</p>
+        </div>
+        <p className={styles.amountLabel}>Số tiền thanh toán</p>
+        <p className={styles.amount}>{formatVnd(order.amountDueVnd)}</p>
+        <div className={styles.table}>
+          <CopyRow label="Ngân hàng" value={payment.bankName} />
+          <CopyRow label="Số tài khoản" value={payment.accountNo} />
+          <CopyRow label="Chủ tài khoản" value={payment.accountName} />
+          <CopyRow label="Nội dung" value={order.code} accent />
+        </div>
+      </section>
+      <p className={styles.after}>
+        Ghi đúng nội dung <strong>{order.code}</strong>.{" "}
+        {payment.autoConfirm
+          ? "Giữ trang này: khóa học tự mở khi hệ thống nhận được tiền."
+          : "Chuyển khoản xong, khóa học mở khi tiền được xác nhận (trong giờ làm việc). Trang này tự cập nhật, hoặc xem lại ở Lịch sử thanh toán."}
+      </p>
     </>
   );
 }

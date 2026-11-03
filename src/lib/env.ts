@@ -78,6 +78,8 @@ const schema = z
     CHECKOUT_BANK_NAME: z.string().optional(),
     CHECKOUT_ACCOUNT_NAME: z.string().optional(),
     CHECKOUT_QR_IMAGE: z.string().regex(/^(\/(?![/\\]).*)?$/, "phải là đường dẫn trong site").optional(),
+    // Mã BIN Napas của ngân hàng nhận tiền (6 số, ví dụ MB 970422): có thì trang thanh toán dựng QR đã điền số tiền và mã đơn.
+    CHECKOUT_BANK_BIN: z.string().regex(/^\d{6}$/, "mã BIN gồm 6 chữ số").optional(),
     CHECKOUT_TERMS_VERSION: z.string().optional(),
     // Telegram cho kinh doanh và nhóm lỗi; thiếu thì tin nằm chờ trong outbox, không mất.
     TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),

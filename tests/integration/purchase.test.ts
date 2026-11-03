@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
+import { resetEnvForTest } from "@/lib/env";
 import { GET as listMine, POST as postOrder } from "@/app/api/me/orders/route";
 import { GET as getOrder } from "@/app/api/me/orders/[code]/route";
 import { ingest } from "@/modules/ledger/ingest";
@@ -102,9 +103,26 @@ describe("trạng thái đơn", () => {
     const { body } = await read(l, code);
     expect(body).toMatchObject({
       status: "pending", amountDueVnd: PRICE, enrolled: false, needsManual: false, paymentUnavailable: false,
-      payment: { bankName: "Ngan hang thu", accountNo: "0123456789", accountName: "TEN THU NGHIEM", qrImageUrl: "/media/qr-thu.png" },
+      payment: { bankName: "Ngan hang thu", accountNo: "0123456789", accountName: "TEN THU NGHIEM", qrImageUrl: "/media/qr-thu.png", qrPayload: null, autoConfirm: true },
     });
     expect(typeof body.serverNow).toBe("string");
+  });
+
+  it("có mã BIN ngân hàng: QR dựng cho đúng đơn, đã điền số tiền và mã đơn", async () => {
+    vi.stubEnv("CHECKOUT_BANK_BIN", "970422");
+    resetEnvForTest();
+    try {
+      const l = await setup();
+      const code = await bought(l);
+      const { body } = await read(l, code);
+      const qr = (body.payment as { qrPayload: string }).qrPayload;
+      expect(qr).toContain("0006970422");
+      expect(qr).toContain(`54${String(String(PRICE).length).padStart(2, "0")}${PRICE}`);
+      expect(qr).toContain(`08${String(code.length).padStart(2, "0")}${code}`);
+    } finally {
+      vi.unstubAllEnvs();
+      resetEnvForTest();
+    }
   });
 
   it("quá hạn hoặc đã hết hạn → không còn thông tin chuyển khoản", async () => {

@@ -4,7 +4,9 @@ import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access
 import { listQueue, orderNeedsManual } from "@/modules/ledger/queue";
 import type { LearnerCtx } from "@/modules/sessions/guards";
 import { newOrderCode } from "./codes";
-import { paymentInfo } from "./payment-info";
+import { env } from "@/lib/env";
+import { paymentInfo, sepayEnabled } from "./payment-info";
+import { vietQrPayload } from "./vietqr";
 
 // Đơn: giá luôn lấy từ courses trên máy chủ, ghi ảnh chụp bất biến; mã đơn ngẫu nhiên, duy nhất nhờ ràng buộc DB.
 
@@ -93,7 +95,7 @@ export async function getOrderForLearner(ctx: LearnerCtx, code: string): Promise
 
 export type CheckoutView = OrderView & {
   /** Thông tin chuyển khoản: chỉ có khi đơn còn trong hạn và đã đủ cấu hình. */
-  payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string } | null;
+  payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string | null; qrPayload: string | null; autoConfirm: boolean } | null;
   /** Đơn còn hạn nhưng cấu hình nhận tiền vừa bị gỡ: không phải hết hạn, chỉ là tạm ngừng nhận tiền. */
   paymentUnavailable: boolean;
   enrolled: boolean;
@@ -101,6 +103,15 @@ export type CheckoutView = OrderView & {
   /** Giờ máy chủ: máy trên tàu có thể lệch giờ, đếm ngược không dựa vào đồng hồ máy. */
   serverNow: Date;
 };
+
+/** Chuỗi VietQR của đơn; dữ liệu không dựng được QR thì trả null (trang dùng ảnh QR tĩnh), không làm hỏng trang. */
+function orderQr(bin: string, accountNo: string, amountVnd: number, code: string): string | null {
+  try {
+    return vietQrPayload({ bin, accountNo, amountVnd, content: code });
+  } catch {
+    return null;
+  }
+}
 
 /** Trạng thái đơn cho trang thanh toán; chỉ đọc, không mở khóa gì. */
 export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Promise<CheckoutView | null> {
@@ -112,7 +123,13 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
   const info = open ? paymentInfo() : null;
   return {
     ...toView(row),
-    payment: info && { bankName: info.bankName, accountNo: info.accountNo, accountName: info.accountName, qrImageUrl: info.qrImageUrl },
+    // Có mã BIN: QR dựng cho đúng đơn này (số tiền và mã đơn đã điền sẵn); không thì ảnh QR tĩnh.
+    payment: info && {
+      bankName: info.bankName, accountNo: info.accountNo, accountName: info.accountName, qrImageUrl: info.qrImageUrl,
+      qrPayload: info.bankBin ? orderQr(info.bankBin, info.accountNo, row.amount_due_vnd, row.code) : null,
+      // Webhook SePay xử lý được thì tiền về là tự mở khóa; chưa thì quản trị xác nhận tay (trang báo đúng như vậy).
+      autoConfirm: sepayEnabled(env()),
+    },
     paymentUnavailable: open && !info,
     enrolled: await hasActiveEnrollment(prisma(), group, row.course_id),
     needsManual: await orderNeedsManual(row.id, row.code),
