@@ -24,6 +24,15 @@ export function planDownloads<L extends ManifestLessonRef>(
   };
 }
 
+export type DownloadPanel = "awaiting_payment" | "download" | "update" | "hidden";
+
+/** Khung tải khóa (chủ chọn 04/11/2026): khóa mở tạm chưa tải được; tải đủ thì ẩn; đã từng tải đủ mà thiếu bản mới (admin sửa bài) thì cập nhật. */
+export function downloadPanel(s: { provisional: boolean; complete: boolean; everDownloaded: boolean }): DownloadPanel {
+  if (s.complete) return "hidden";
+  if (s.provisional) return "awaiting_payment";
+  return s.everDownloaded ? "update" : "download";
+}
+
 export async function verifyAsset(bytes: ArrayBuffer, sha256: string): Promise<"ok" | "hash_mismatch"> {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");

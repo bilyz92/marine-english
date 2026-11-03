@@ -6,6 +6,7 @@ import {
   type DownloadState, type Identity, type LicenseStatus, type Manifest,
 } from "@/lib/offline/engine";
 import { canOpenLesson } from "@/lib/offline/access";
+import { downloadPanel } from "@/lib/offline/downloads";
 import { nowSeconds } from "@/lib/offline/engine";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
@@ -41,6 +42,8 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
   }
 
   const done = manifest.lessons.filter((l) => l.status === "completed").length;
+  // Chưa biết trạng thái trên máy thì chưa hiện nút, tránh nháy nút tải với khóa đã tải đủ.
+  const panel = saved ? downloadPanel({ provisional: manifest.provisional === true, complete: saved.complete, everDownloaded: saved.everDownloaded }) : "hidden";
 
   async function download() {
     if (!manifest) return;
@@ -57,27 +60,29 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
         <h1 className={styles.h1}>{manifest.titleVi}</h1>
         <p className={styles.muted}>Đã học xong {done}/{manifest.lessons.length} bài</p>
       </div>
-      <div className={styles.card}>
-        <h2 className={styles.h2}>Học khi không có mạng</h2>
-        {saved?.complete ? (
-          <p className={styles.muted}>Đã tải xong toàn bộ khóa về máy. Bài học được cả khi tàu mất mạng.</p>
-        ) : (
-          <>
-            <p className={styles.muted}>
-              Cần tải {saved?.missingLessons ?? manifest.lessons.length} bài
-              {saved && saved.missingAssets > 0 ? ` và ${saved.missingAssets} tệp âm thanh (${megabytes(saved.assetBytes)})` : ""}. Nên tải khi có Wi-Fi.
-            </p>
-            {progress ? (
-              <div className={styles.progress} role="progressbar" aria-valuenow={progress.done} aria-valuemax={progress.total}>
-                <div className={styles.progressFill} style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 100}%` }} />
-              </div>
-            ) : (
-              <p><button className={styles.primary} onClick={download}>Tải khóa về máy</button></p>
-            )}
-          </>
-        )}
-        {error && <p className={styles.bannerDanger}>{error}</p>}
-      </div>
+      {panel === "awaiting_payment" && (
+        <div className={styles.card}>
+          <h2 className={styles.h2}>Học khi không có mạng</h2>
+          <p className={styles.muted}>Bạn đang học online. Tải khóa về máy được sau khi đơn được xác nhận đã thanh toán.</p>
+        </div>
+      )}
+      {(panel === "download" || panel === "update") && saved && (
+        <div className={styles.card}>
+          <h2 className={styles.h2}>{panel === "update" ? "Có bài mới cập nhật" : "Học khi không có mạng"}</h2>
+          <p className={styles.muted}>
+            {panel === "update" ? "Cần cập nhật" : "Cần tải"} {saved.missingLessons} bài
+            {saved.missingAssets > 0 ? ` và ${saved.missingAssets} tệp âm thanh (${megabytes(saved.assetBytes)})` : ""}. Nên tải khi có Wi-Fi.
+          </p>
+          {progress ? (
+            <div className={styles.progress} role="progressbar" aria-valuenow={progress.done} aria-valuemax={progress.total}>
+              <div className={styles.progressFill} style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 100}%` }} />
+            </div>
+          ) : (
+            <p><button className={styles.primary} onClick={download}>{panel === "update" ? "Cập nhật" : "Tải khóa về máy"}</button></p>
+          )}
+          {error && <p className={styles.bannerDanger}>{error}</p>}
+        </div>
+      )}
       <ul className={styles.list}>
         {manifest.lessons.map((l) => {
           const blocked = !canOpenLesson({

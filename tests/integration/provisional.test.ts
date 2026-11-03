@@ -6,6 +6,7 @@ import { POST as proofRoute } from "@/app/api/me/orders/[code]/proof/route";
 import { listOrders } from "@/modules/admin/orders";
 import { hasCourseAccess } from "@/modules/enrollments/access";
 import { entitledCourses } from "@/modules/learn/entitlements";
+import { courseManifest, type Manifest } from "@/modules/learn/manifest";
 import { approveTransfer, listProofs, proofFile, rejectClaim } from "@/modules/orders/claims";
 import { createOrder, getCheckoutForLearner, paymentHistory } from "@/modules/orders/orders";
 import { adminCtx, rejected } from "../helpers/admin-ctx";
@@ -83,9 +84,14 @@ describe("khách báo đã chuyển khoản", () => {
     const { learner, code } = await paidCourseSetup();
     await claim(learner, code);
     expect((await entitledCourses(learner.userId)).map((c) => c.provisional)).toEqual([true]);
+    const slug = (await entitledCourses(learner.userId))[0]!.slug;
+    const manifest = async () => (await courseManifest({ ...learner, ip: "10.0.0.1" } as never, slug)) as Manifest;
+    // Chưa xác nhận tiền: app không hiện nút tải về máy.
+    expect((await manifest()).provisional).toBe(true);
     const owner = await adminCtx("owner");
     expect(await approveTransfer(owner, { orderCode: code, bankRef: "", note: "", bankTime: new Date() })).toEqual({ result: "paid" });
     expect((await entitledCourses(learner.userId)).map((c) => c.provisional)).toEqual([false]);
+    expect((await manifest()).provisional).toBe(false);
   });
 
   it("bấm lại → không tạo thêm, không báo lại", async () => {

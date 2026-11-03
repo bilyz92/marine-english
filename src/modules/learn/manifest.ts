@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access";
 import type { LearnerCtx } from "@/modules/sessions/guards";
+import { entitledCourses } from "./entitlements";
 
 // Manifest có phiên bản của một khóa: danh sách bài và tệp để tải về học offline.
 
@@ -9,6 +10,8 @@ export type Manifest = {
   slug: string;
   titleVi: string;
   versionId: string;
+  /** Chỉ có quyền mở tạm (chưa xác nhận tiền): học online, chưa tải về máy. */
+  provisional: boolean;
   lessons: { position: number; lessonVersionId: string; externalId: string; title: string; contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[] }[];
   assets: { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string; visibility: "public" | "protected"; url: string }[];
   totalBytes: number;
@@ -51,6 +54,7 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
     slug,
     titleVi: course.title_vi,
     versionId: course.current_version_id,
+    provisional: (await entitledCourses(ctx.userId, db)).find((c) => c.courseId === course.id)?.provisional ?? false,
     lessons: lessons.map((l) => ({
       position: l.position, lessonVersionId: l.lesson_version_id, externalId: l.external_id,
       title: l.title ?? l.external_id, contentHash: l.content_hash, isFreeTrial: l.is_free_trial,

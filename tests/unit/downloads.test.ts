@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { planDownloads, verifyAsset } from "@/lib/offline/downloads";
+import { downloadPanel, planDownloads, verifyAsset } from "@/lib/offline/downloads";
 
 const manifest = {
   lessons: [
@@ -45,5 +45,23 @@ describe("kiểm tệp tải về", () => {
     const sha = createHash("sha256").update(Buffer.from(bytes)).digest("hex");
     expect(await verifyAsset(bytes, sha)).toBe("ok");
     expect(await verifyAsset(bytes.slice(0, 3), sha)).toBe("hash_mismatch");
+  });
+});
+
+describe("khung tải khóa về máy (chủ chọn 04/11/2026)", () => {
+  it("khóa mở tạm chưa xác nhận tiền → không có nút tải", () => {
+    expect(downloadPanel({ provisional: true, complete: false, everDownloaded: false })).toBe("awaiting_payment");
+  });
+  it("đã thanh toán, chưa tải → nút tải", () => {
+    expect(downloadPanel({ provisional: false, complete: false, everDownloaded: false })).toBe("download");
+  });
+  it("đã tải đủ → ẩn hẳn", () => {
+    expect(downloadPanel({ provisional: false, complete: true, everDownloaded: true })).toBe("hidden");
+  });
+  it("đã tải đủ thì ẩn, kể cả khóa đang mở tạm", () => {
+    expect(downloadPanel({ provisional: true, complete: true, everDownloaded: true })).toBe("hidden");
+  });
+  it("đã từng tải đủ, admin sửa bài nên thiếu bản mới → nút cập nhật", () => {
+    expect(downloadPanel({ provisional: false, complete: false, everDownloaded: true })).toBe("update");
   });
 });

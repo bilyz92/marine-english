@@ -13,7 +13,7 @@ export type ManifestLesson = {
   position: number; lessonVersionId: string; externalId: string; title: string; contentHash: string; isFreeTrial: boolean;
   status: "in_progress" | "completed" | null; completedActivities: string[];
 };
-export type Manifest = { courseId: string; slug: string; titleVi: string; versionId: string; lessons: ManifestLesson[]; assets: ManifestAsset[]; totalBytes: number };
+export type Manifest = { courseId: string; slug: string; titleVi: string; versionId: string; provisional?: boolean; lessons: ManifestLesson[]; assets: ManifestAsset[]; totalBytes: number };
 export type MyCourse = { slug: string; titleVi: string; sources: string[] };
 type StoredLesson = { lessonVersionId: string; contentHash: string; content: unknown };
 type StoredFile = { assetId: string; sha256: string; mime: string; bytes: ArrayBuffer };
@@ -180,6 +180,7 @@ async function removeCourseData(db: IDBDatabase, courseId: string): Promise<void
     delete manifests[m.slug];
   }
   await dbPut(db, "kv", "manifests", manifests);
+  await dbPut(db, "kv", DOWNLOADED_KEY, (await downloadedIds(db)).filter((id) => id !== courseId));
 }
 
 // ===== Khóa và bài =====
@@ -207,6 +208,9 @@ export async function loadManifest(identity: Identity, slug: string): Promise<Ma
     const res = await fetch(`/api/learn/courses/${encodeURIComponent(slug)}/manifest`);
     if (res.ok) {
       const manifest = (await res.json()) as Manifest;
+      // Máy đã tải đủ bản cũ: ghi nhớ trước khi thay manifest, để bản mới hiện nút Cập nhật.
+      const old = manifests[slug];
+      if (old && !(await downloadedIds(db)).includes(old.courseId) && (await downloadPlan(db, old)).complete) await markDownloaded(db, old.courseId);
       manifests[slug] = manifest;
       await dbPut(db, "kv", "manifests", manifests);
       return manifest;
@@ -221,7 +225,9 @@ export async function loadManifest(identity: Identity, slug: string): Promise<Ma
   return manifests[slug] ?? null;
 }
 
-export type DownloadState = { complete: boolean; missingLessons: number; missingAssets: number; assetBytes: number };
+export type DownloadState = { complete: boolean; everDownloaded: boolean; missingLessons: number; missingAssets: number; assetBytes: number };
+
+const DOWNLOADED_KEY = "downloadedCourseIds";
 
 async function downloadPlan(db: IDBDatabase, manifest: Manifest) {
   const lessons = await dbGetAll<StoredLesson>(db, "lessons");
@@ -232,9 +238,23 @@ async function downloadPlan(db: IDBDatabase, manifest: Manifest) {
   });
 }
 
+const downloadedIds = async (db: IDBDatabase) => (await dbGet<string[]>(db, "kv", DOWNLOADED_KEY)) ?? [];
+
+/** Nhớ khóa đã từng tải đủ: về sau thiếu bản mới là do bài được sửa (hiện nút Cập nhật), khác với tải dở. */
+async function markDownloaded(db: IDBDatabase, courseId: string): Promise<void> {
+  const ids = await downloadedIds(db);
+  if (!ids.includes(courseId)) await dbPut(db, "kv", DOWNLOADED_KEY, [...ids, courseId]);
+}
+
 export async function downloadState(identity: Identity, manifest: Manifest): Promise<DownloadState> {
-  const plan = await downloadPlan(await openOfflineDb(identity), manifest);
-  return { complete: plan.complete, missingLessons: plan.lessons.length, missingAssets: plan.assets.length, assetBytes: plan.assetBytes };
+  const db = await openOfflineDb(identity);
+  const plan = await downloadPlan(db, manifest);
+  if (plan.complete) await markDownloaded(db, manifest.courseId);
+  const ids = await downloadedIds(db);
+  return {
+    complete: plan.complete, everDownloaded: ids.includes(manifest.courseId),
+    missingLessons: plan.lessons.length, missingAssets: plan.assets.length, assetBytes: plan.assetBytes,
+  };
 }
 
 /** Tải phần còn thiếu, kiểm sha256 từng tệp; đứt mạng giữa chừng thì lần sau tải tiếp từ phần còn thiếu. */
