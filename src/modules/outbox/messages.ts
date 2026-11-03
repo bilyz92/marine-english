@@ -34,6 +34,14 @@ const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: strin
   order_paid: (p) => ({ chat: "business", text: paidText(p) }),
   refund_requested: (p) => ({ chat: "business", text: `Học viên yêu cầu hoàn tiền đơn ${p.orderCode}: ${vnd(p.amountVnd)}. Xem trang Hoàn tiền.` }),
   order_refunded: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã hoàn tiền: ${vnd(p.amountVnd)}.` }),
+  transfer_claimed: (p) => ({
+    chat: "business",
+    text: `Khách báo đã chuyển khoản đơn ${p.orderCode}: ${vnd(p.amountVnd)}${courseList(p) ? `, khóa ${courseList(p)}` : ""}. Khóa học đã mở tạm; kiểm sao kê rồi Duyệt hoặc Không thấy tiền ở trang Đơn hàng.`,
+  }),
+  transfer_proof: (p) => ({
+    chat: "business",
+    text: `Khách gửi ảnh chứng minh chuyển khoản cho đơn ${p.orderCode} (${vnd(p.amountVnd)}). Xem ở trang Đơn hàng.`,
+  }),
   ledger_queued: (p) => ({
     chat: "business",
     text: `Có khoản chuyển cần xử lý tay: ${vnd(p.amountVnd)}, lý do ${p.reason}${p.orderCode ? `, đơn ${p.orderCode}` : ""}.`,

@@ -7,6 +7,7 @@ import { newOrderCode } from "./codes";
 import { env } from "@/lib/env";
 import { paymentInfo, sepayEnabled } from "./payment-info";
 import { vietQrPayload } from "./vietqr";
+import { claimable, claimView, type ClaimView } from "./claims";
 
 // Đơn: giá luôn lấy từ courses trên máy chủ, ghi ảnh chụp bất biến; mã đơn ngẫu nhiên, duy nhất nhờ ràng buộc DB.
 
@@ -100,6 +101,10 @@ export type CheckoutView = OrderView & {
   paymentUnavailable: boolean;
   enrolled: boolean;
   needsManual: boolean;
+  /** Khách đã bấm "Tôi đã chuyển khoản" chưa và chủ đã duyệt/khóa lại chưa. */
+  claim: ClaimView;
+  /** Còn bấm "Tôi đã chuyển khoản" được (chưa có SePay, đơn chưa quá 24 giờ). */
+  claimable: boolean;
   /** Giờ máy chủ: máy trên tàu có thể lệch giờ, đếm ngược không dựa vào đồng hồ máy. */
   serverNow: Date;
 };
@@ -120,6 +125,7 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
   if (!row) return null;
   const serverNow = new Date();
   const open = row.status === "pending" && row.expires_at > serverNow;
+  const claim = await claimView(prisma(), row.id);
   const info = open ? paymentInfo() : null;
   return {
     ...toView(row),
@@ -133,6 +139,8 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
     paymentUnavailable: open && !info,
     enrolled: await hasActiveEnrollment(prisma(), group, row.course_id),
     needsManual: await orderNeedsManual(row.id, row.code),
+    claim,
+    claimable: await claimable(prisma(), row.id, claim),
     serverNow,
   };
 }
@@ -165,8 +173,12 @@ export async function recentOrdersForCourse(ctx: LearnerCtx, courseSlug: string)
 export async function paymentHistory(ctx: LearnerCtx) {
   const group = await mergeGroupIds(null, ctx.userId);
   // Số giây còn được chuyển khoản tính bằng giờ máy chủ (giờ điện thoại trên tàu có thể sai).
-  const rows = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; paid_at: Date | null; expires_at: Date; slug: string; title_vi: string; payable_s: number }[]>`
+  const rows = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; paid_at: Date | null; expires_at: Date; slug: string; title_vi: string; payable_s: number; claim: "open" | "rejected" | null; reason: string | null }[]>`
     SELECT o.code, o.status, o.amount_due_vnd, o.created_at, o.paid_at, o.expires_at, c.slug, c.title_vi,
+           CASE WHEN EXISTS (SELECT 1 FROM enrollments e WHERE e.claim_order_id = o.id AND e.revoked_at IS NULL) THEN 'open'
+                WHEN o.status IN ('pending', 'expired') AND EXISTS (SELECT 1 FROM enrollments e WHERE e.claim_order_id = o.id) THEN 'rejected'
+           END AS claim,
+           (SELECT r.reason FROM transfer_claim_rejections r WHERE r.order_id = o.id ORDER BY r.created_at DESC LIMIT 1) AS reason,
            CASE WHEN o.status = 'pending' THEN greatest(0, floor(extract(epoch FROM o.expires_at - now())))::int ELSE 0 END AS payable_s
     FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
     WHERE o.user_id = ANY(${group}::uuid[])
@@ -175,6 +187,8 @@ export async function paymentHistory(ctx: LearnerCtx) {
   return rows.map((r) => ({
     code: r.code, status: r.status, amountVnd: r.amount_due_vnd, createdAt: r.created_at, paidAt: r.paid_at, slug: r.slug, course: r.title_vi,
     payableForSeconds: r.payable_s,
+    // Khách đã báo chuyển khoản: "open" đang học tạm chờ chủ xác nhận; "rejected" bị khóa lại, kèm lý do của chủ.
+    claim: r.claim, rejectionReason: r.claim === "rejected" ? r.reason : null,
   }));
 }
 

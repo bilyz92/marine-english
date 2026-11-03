@@ -5,7 +5,9 @@ import QRCode from "qrcode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ui from "@/components/ui.module.css";
+import { learnerCsrfHeader } from "@/lib/client/api";
 import { formatVnd } from "@/lib/format";
+import { TransferProof } from "@/components/transfer-proof";
 import styles from "./checkout.module.css";
 
 type Order = {
@@ -20,6 +22,9 @@ type Order = {
   needsManual: boolean;
   paymentUnavailable: boolean;
   payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string | null; qrPayload: string | null; autoConfirm: boolean } | null;
+  claim: { status: "none" | "open" | "approved" | "rejected"; rejectionReason: string | null; proofs: number };
+  /** Đơn hết hạn nhưng tạo chưa quá 24 giờ, chưa có SePay: vẫn bấm "Tôi đã chuyển khoản" được. */
+  claimable: boolean;
 };
 
 const POLL_OPEN_MS = 5_000;
@@ -85,6 +90,61 @@ function Countdown({ expiresAt, clockOffsetMs, onDone }: { expiresAt: string; cl
   return <strong className={styles.clock}>{String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</strong>;
 }
 
+const CLAIM_ERRORS: Record<string, string> = {
+  claim_limit: "Bạn đang có một khóa chờ xác nhận tiền. Khi khóa đó được xác nhận thì mở tạm được khóa này.",
+  too_late: "Đơn đã tạo quá 24 giờ. Nếu đã chuyển tiền, liên hệ chủ khóa học kèm ảnh chuyển khoản.",
+  claim_rejected: "Đơn này đã bị khóa lại. Gửi ảnh chứng minh để chủ khóa học kiểm tra.",
+};
+
+/** Chưa có SePay (chủ quyết định 03/11/2026): khách bấm báo đã chuyển là học được ngay, chủ đối soát sau. */
+function ClaimButton({ code, onDone }: { code: string; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  async function claim() {
+    setBusy(true);
+    setProblem(null);
+    const res = await fetch(`/api/me/orders/${encodeURIComponent(code)}/claim`, { method: "POST", headers: learnerCsrfHeader() }).catch(() => null);
+    setBusy(false);
+    if (!res) return setProblem("Mất kết nối. Thử lại khi có mạng.");
+    if (!res.ok) {
+      const error = ((await res.json().catch(() => ({}))) as { error?: string }).error ?? "";
+      if (error === "already_paid" || error === "already_enrolled") return onDone();
+      return setProblem(CLAIM_ERRORS[error] ?? "Chưa ghi nhận được. Thử lại sau.");
+    }
+    onDone();
+  }
+  return (
+    <div className={styles.claim}>
+      <button type="button" className={ui.action} disabled={busy} onClick={() => void claim()}>{busy ? "Đang mở khóa…" : "Tôi đã chuyển khoản"}</button>
+      <p className={ui.muted}>Bấm sau khi chuyển xong: khóa học mở ngay để bạn học. Chủ khóa học đối chiếu sao kê sau; không thấy tiền thì khóa học bị khóa lại.</p>
+      {problem && <p className={ui.error} role="alert">{problem}</p>}
+    </div>
+  );
+}
+
+function ClaimState({ order, onChanged }: { order: Order; onChanged: () => void }) {
+  if (order.claim.status === "open") {
+    return (
+      <div className={ui.card} role="status">
+        <h1 className={ui.h2}>Khóa học đã mở</h1>
+        <p className={ui.lead}>Đơn {order.code}: {order.courseTitleVi}. Bạn đã báo chuyển khoản {formatVnd(order.amountDueVnd)}; chủ khóa học sẽ đối chiếu sao kê.</p>
+        {order.enrolled && <Link className={ui.action} href={`/hoc?khoa=${order.courseSlug}`}>Vào học ngay</Link>}
+      </div>
+    );
+  }
+  return (
+    <div className={ui.card} role="alert">
+      <h1 className={ui.h2}>Khóa học tạm khóa</h1>
+      <p className={ui.notice}>
+        Tiền chưa được xác nhận{order.claim.rejectionReason ? `: ${order.claim.rejectionReason}` : "."}
+      </p>
+      <p className={ui.lead}>Đơn {order.code}: {order.courseTitleVi}, {formatVnd(order.amountDueVnd)}. Nếu đã chuyển tiền, gửi ảnh chụp giao dịch để chủ khóa học kiểm tra lại.</p>
+      {order.claim.proofs > 0 && <p className={ui.muted}>Đã gửi {order.claim.proofs} ảnh. Chủ khóa học sẽ xem và mở lại khi thấy tiền.</p>}
+      <TransferProof code={order.code} onSent={onChanged} />
+    </div>
+  );
+}
+
 function Pending({ order, clockOffsetMs, onExpire }: { order: Order; clockOffsetMs: number; onExpire: () => void }) {
   const payment = order.payment!;
   const filled = !!payment.qrPayload;
@@ -120,8 +180,9 @@ function Pending({ order, clockOffsetMs, onExpire }: { order: Order; clockOffset
         Ghi đúng nội dung <strong>{order.code}</strong>.{" "}
         {payment.autoConfirm
           ? "Giữ trang này: khóa học tự mở khi hệ thống nhận được tiền."
-          : "Chuyển khoản xong, khóa học mở khi tiền được xác nhận (trong giờ làm việc). Trang này tự cập nhật, hoặc xem lại ở Lịch sử thanh toán."}
+          : "Chuyển khoản xong, bấm nút bên dưới để vào học ngay."}
       </p>
+      {order.claimable && <ClaimButton code={order.code} onDone={onExpire} />}
     </>
   );
 }
@@ -208,18 +269,20 @@ export function Checkout({ code }: { code: string }) {
           <Link className={ui.outline} href={`/khoa-hoc/${order.courseSlug}`}>Xem khóa học</Link>
         </div>
       )}
-      {!finished && order.payment && <Pending order={order} clockOffsetMs={clockOffsetMs} onExpire={() => void load()} />}
+      {!finished && (order.claim.status === "open" || order.claim.status === "rejected") && <ClaimState order={order} onChanged={() => void load()} />}
+      {!finished && order.claim.status === "none" && order.payment && <Pending order={order} clockOffsetMs={clockOffsetMs} onExpire={() => void load()} />}
       {!finished && order.paymentUnavailable && (
         <div className={ui.card}>
           <h1 className={ui.h2}>Tạm ngừng nhận thanh toán</h1>
           <p className={ui.notice}>Chưa chuyển tiền thì đừng chuyển lúc này. Đã chuyển rồi thì đừng chuyển lại: trang này vẫn theo dõi đơn {order.code}.</p>
         </div>
       )}
-      {!finished && !order.payment && !order.paymentUnavailable && (
+      {!finished && order.claim.status === "none" && !order.payment && !order.paymentUnavailable && (
         <div className={ui.card}>
           <h1 className={ui.h2}>Đơn đã hết hạn</h1>
           <p className={ui.notice}>Đã chuyển tiền rồi? Đừng chuyển lại. Trang này vẫn theo dõi đơn; khoản chuyển sẽ được đối chiếu và mở khóa.</p>
-          <Link className={ui.action} href={`/mua/${order.courseSlug}`}>Tạo đơn mới</Link>
+          {order.claimable && <ClaimButton code={order.code} onDone={() => void load()} />}
+          <Link className={ui.outline} href={`/mua/${order.courseSlug}`}>Tạo đơn mới</Link>
         </div>
       )}
     </>

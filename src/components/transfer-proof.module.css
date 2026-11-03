@@ -1,0 +1,15 @@
+/* Hộp gửi ảnh chứng minh chuyển khoản; cùng kiểu với hộp "Cài app" (install-app.module.css). */
+.open { min-height: var(--touch-main); padding: 8px 16px; border: 1px solid var(--color-primary); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-primary); font: inherit; font-weight: 600; cursor: pointer; }
+.open:focus-visible, .send:focus-visible, .close:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+.dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; background: var(--color-bg); color: var(--color-text); }
+.dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+.title { font-size: 20px; margin: 0 0 8px; }
+.lead { color: var(--color-muted); line-height: 1.5; margin: 0 0 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 14px; color: var(--color-text-2); }
+.field textarea { padding: 8px 10px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); font: inherit; resize: vertical; }
+.error { margin: 0 0 8px; color: var(--color-danger); }
+.ok { padding: 10px 12px; border-radius: var(--radius-control); background: var(--color-success-bg); color: var(--color-success); line-height: 1.5; }
+.actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.send { min-height: var(--touch-main); border: 0; border-radius: var(--radius-control); background: var(--color-primary); color: var(--color-bg); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.send:disabled { opacity: 0.6; cursor: default; }
+.close { min-height: var(--touch-main); border: 1px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg-alt); color: var(--color-text-2); font: inherit; cursor: pointer; }

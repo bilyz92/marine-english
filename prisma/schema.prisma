@@ -390,7 +390,8 @@ model Order {
   classifications     BankTransactionClassification[]
   allocations         PaymentAllocation[]
   refunds             Refund[]
-  enrollments         Enrollment[]
+  enrollments         Enrollment[]                    @relation("EnrollmentOrder")
+  claimEnrollments    Enrollment[]                    @relation("EnrollmentClaim")
 
   @@index([userId])
   @@map("orders")
@@ -574,12 +575,15 @@ model Enrollment {
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   revokedAt     DateTime?  @map("revoked_at") @db.Timestamptz(6)
   revokedReason String?    @map("revoked_reason")
+  claimOrderId  String?    @map("claim_order_id") @db.Uuid
   user          User       @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   course        Course     @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  order         Order?     @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  order         Order?     @relation("EnrollmentOrder", fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  claimOrder    Order?     @relation("EnrollmentClaim", fields: [claimOrderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   granter       AdminUser? @relation("GrantedBy", fields: [grantedBy], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@unique([orderId, courseId], map: "enrollments_order_course_key")
+  @@unique([claimOrderId, courseId], map: "enrollments_claim_order_course_key")
   @@index([userId, courseId], map: "enrollments_user_course_idx")
   @@map("enrollments")
 }

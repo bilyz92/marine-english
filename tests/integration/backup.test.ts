@@ -8,6 +8,7 @@ import { acquireLease, type Lease } from "@/modules/jobs/lease";
 import { backup, type BackupConfig, type Manifest } from "@/modules/ops/backup";
 import type { RunTool, Step } from "@/modules/ops/run-tool";
 import { withSearchPath } from "../helpers/db";
+import { paidCourseSetup } from "../helpers/ledger";
 import { sqlAsMigrator } from "../helpers/otp";
 
 const PASSPHRASE = { k1: "mat-khau-sao-luu-k1", k2: "mat-khau-sao-luu-k2" };
@@ -97,6 +98,18 @@ describe("sao lưu", () => {
     expect(dumpCall[0]!.args.some((a) => a.startsWith("--snapshot="))).toBe(true);
     expect(dumpCall[1]!.cmd).toBe("gpg");
     expect(tmpLeft()).toEqual([]);
+  });
+
+  it("ảnh chứng minh chuyển khoản (D4) nằm trong bản sao lưu như tệp được bảo vệ", async () => {
+    const { learner, orderId } = await paidCourseSetup();
+    const hash = sha("anh-chuyen-khoan");
+    mkdirSync(join(config.mediaRoot, "protected"), { recursive: true });
+    writeFileSync(join(config.mediaRoot, "protected", `${hash}.jpg`), "anh-chuyen-khoan");
+    await sqlAsMigrator(`INSERT INTO transfer_proofs (order_id, user_id, message, storage_key, sha256, mime, bytes) VALUES ($1, $2, '', $3, $4, 'image/jpeg', 16)`,
+      [orderId, learner.userId, `${hash}.jpg`, hash]);
+    await run();
+    expect(manifest(sets()[0]!).media).toEqual([{ sha256: hash, kid: "k1", visibility: "protected", storageKey: `${hash}.jpg` }]);
+    expect(blobs()).toEqual([`${hash}.k1.gpg`]);
   });
 
   it("lần sau không mã hóa lại tệp đã có; hai lần dùng thư mục tạm khác nhau", async () => {

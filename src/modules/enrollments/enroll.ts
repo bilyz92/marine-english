@@ -24,6 +24,10 @@ export async function settleOrder(
     SELECT o.user_id, i.course_id, 'order', o.id FROM orders o JOIN order_items i ON i.order_id = o.id
     WHERE o.id = ${input.orderId}::uuid
     ON CONFLICT (order_id, course_id) DO NOTHING`;
+  // Quyền mở tạm (khách báo đã chuyển) của đơn này nhường chỗ cho quyền theo đơn.
+  await tx.$executeRaw`
+    UPDATE enrollments SET revoked_at = now(), revoked_reason = 'paid'
+    WHERE claim_order_id = ${input.orderId}::uuid AND revoked_at IS NULL`;
   const courses = await tx.$queryRaw<{ title_vi: string }[]>`
     SELECT c.title_vi FROM order_items i JOIN courses c ON c.id = i.course_id WHERE i.order_id = ${input.orderId}::uuid ORDER BY c.title_vi`;
   // US-08 / US-04: tin có tên khóa và giờ thanh toán; email có link vào app. Không đưa danh tính khách vào tin (NFR-10).

@@ -121,6 +121,12 @@ for (const entry of manifest.media) {
 }
 const { rows: assets } = await db.query("SELECT visibility, storage_key FROM media_assets");
 for (const a of assets) if (!existsSync(join(args["media-root"], a.visibility, a.storage_key))) fail(`thiếu tệp cho media_assets ${a.storage_key}`);
+// Ảnh chứng minh chuyển khoản (có từ migration 20261103120000; bản sao lưu cũ chưa có bảng này).
+const { rows: [{ has_proofs }] } = await db.query("SELECT to_regclass('transfer_proofs') IS NOT NULL AS has_proofs");
+if (has_proofs) {
+  const { rows: proofs } = await db.query("SELECT storage_key FROM transfer_proofs");
+  for (const p of proofs) if (!existsSync(join(args["media-root"], "protected", p.storage_key))) fail(`thiếu tệp cho transfer_proofs ${p.storage_key}`);
+}
 log(`media khớp: ${manifest.media.length} tệp`);
 await db.end();
 

@@ -39,6 +39,7 @@ cung cấp (G4 SePay, G6 Zalo, G7 email) và **không** ra mắt. Bảng và log
 
 | D2 | Học viên đăng ký và đăng nhập bằng **số điện thoại + mật khẩu**, thêm vào bên cạnh email và Google | Chủ dự án | — | **Quyết 01/11/2026** |
 | D3 | Quản trị đăng nhập bằng **email + mật khẩu**, không tự tạo tài khoản; Google và link email giữ nguyên | Chủ dự án | — | **Quyết 02/11/2026** |
+| D4 | Chưa có SePay: khách bấm **"Tôi đã chuyển khoản" là học ngay** (mở tạm, không hết hạn); chủ **Duyệt** một bước hoặc **Không thấy tiền** (khóa lại, kèm lý do, khách gửi ảnh chứng minh) | Chủ dự án | — | **Quyết 03/11/2026** |
 
 D2 (01/11/2026, chủ dự án chọn trong phiên làm việc): số điện thoại **chưa xác minh** khi đăng ký (chưa có SMS, mã Zalo chờ G6), lưu riêng ở
 `password_logins`, không bao giờ coi là danh tính đã xác minh (`user_identities`). Quên mật khẩu: mã tới email đã liên kết; đặt lại tay theo
@@ -52,6 +53,13 @@ người mới vẫn do chủ mời, đăng nhập lần đầu bằng link (ema
 trong 10 phút gần đây, hủy mọi phiên quản trị khác. Quên mật khẩu: xin link đăng nhập (chủ hoặc lệnh máy chủ) rồi đặt lại. Sai 5 lần/email hoặc
 20 lần/IP trong 15 phút thì khóa tạm; câu trả lời không lộ email có trong danh sách hay không. Băm scrypt như D2; lượt thử giữ 30 ngày, job dọn.
 Kế hoạch: `docs/superpowers/plans/2026-11-02-admin-password.md`.
+
+D4 (03/11/2026, chủ dự án chọn trong phiên làm việc, biết rủi ro người không trả tiền vẫn học được tới khi chủ đối soát): ngoại lệ có chủ đích với
+§2 "chỉ giao dịch đã xác minh mới mở khóa", chỉ áp dụng khi SePay chưa bật. Quyền mở tạm là `enrollments.source = 'provisional'` gắn
+`claim_order_id`, không đổi trạng thái đơn; mỗi tài khoản một quyền mở tạm chưa duyệt; đơn tạo quá 24 giờ thì không báo được. "Duyệt" chỉ chủ: ghi
+dòng sổ nhập tay do chủ tự xác minh (`owner_direct`, ngoại lệ với quy tắc hai người vì hiện chỉ có một quản trị), phân bổ và đơn → đã thanh toán như
+§2. "Không thấy tiền" chỉ chủ: thu hồi quyền mở tạm, lý do lưu ở `transfer_claim_rejections`; khách gửi tối đa 5 ảnh (`transfer_proofs`, tệp được
+bảo vệ, chỉ quản trị xem). Giấy phép offline gồm cả khóa mở tạm. Mã: `src/modules/orders/claims.ts`.
 
 Mỗi cổng khi đóng ghi: ngày, lựa chọn, lý do, bằng chứng (ảnh webhook thử, ảnh mẫu ZNS được duyệt, bản khôi phục thử…).
 

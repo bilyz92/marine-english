@@ -68,7 +68,11 @@ async function dumpDatabase(config: BackupConfig, keyFile: string, output: strin
       ? ((await client.query("SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name DESC LIMIT 1")).rows[0]?.migration_name ?? null)
       : null;
     const { rows: assets } = await client.query<{ sha256: string; visibility: "public" | "protected"; storage_key: string }>(
-      "SELECT sha256, visibility, storage_key FROM media_assets ORDER BY sha256");
+      // Ảnh chứng minh chuyển khoản (D4) cũng là tệp được bảo vệ dưới MEDIA_ROOT: sao lưu cùng media bài học.
+      `SELECT DISTINCT ON (visibility, storage_key) sha256, visibility, storage_key FROM (
+         SELECT sha256, visibility, storage_key FROM media_assets
+         UNION ALL SELECT sha256, 'protected', storage_key FROM transfer_proofs
+       ) f ORDER BY visibility, storage_key`);
     // pg_dump nối thẳng vào gpg: bản dump chưa mã hóa không bao giờ nằm trên đĩa.
     await run([{ cmd: "pg_dump", args: ["--format=custom", `--snapshot=${snapshot}`, "--no-password"], env: pgEnv(config.databaseUrl) }, encrypt(keyFile, "-", output)], { signal });
     await client.query("COMMIT");

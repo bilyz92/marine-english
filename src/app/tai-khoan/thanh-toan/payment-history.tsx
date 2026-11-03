@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { TransferProof } from "@/components/transfer-proof";
 import { formatVnd } from "@/lib/format";
 import styles from "../../hoc/learn.module.css";
 
 // Lịch sử thanh toán (menu điện thoại): mọi đơn của học viên, mới nhất trước. Đơn còn chờ và chưa hết hạn có nút xem cách chuyển khoản.
 
-type Payment = { code: string; course: string; slug: string; amountVnd: number; status: string; createdAt: string; paidAt: string | null; payableForSeconds: number };
+type Payment = {
+  code: string; course: string; slug: string; amountVnd: number; status: string; createdAt: string; paidAt: string | null; payableForSeconds: number;
+  claim: "open" | "rejected" | null; rejectionReason: string | null;
+};
 
 const STATUS: Record<string, string> = { pending: "Chờ thanh toán", paid: "Đã thanh toán", expired: "Hết hạn", refunded: "Đã hoàn tiền" };
 const vnTime = (iso: string) => new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
@@ -60,7 +64,14 @@ export function PaymentHistory() {
               <p className={styles.muted}>
                 {STATUS[status] ?? status} · {p.paidAt ? `thanh toán lúc ${vnTime(p.paidAt)}` : `tạo lúc ${vnTime(p.createdAt)}`}
               </p>
-              {open && <p><a className={styles.barLink} href={`/thanh-toan/${p.code}`}>Xem cách chuyển khoản</a></p>}
+              {p.claim === "open" && <p className={styles.muted}>Đã báo chuyển khoản: khóa học đang mở, chờ chủ khóa học xác nhận tiền.</p>}
+              {p.claim === "rejected" && (
+                <div role="alert">
+                  <p className={styles.vi}>Khóa học tạm khóa. Tiền chưa được xác nhận{p.rejectionReason ? `: ${p.rejectionReason}` : "."}</p>
+                  <TransferProof code={p.code} />
+                </div>
+              )}
+              {open && !p.claim && <p><a className={styles.barLink} href={`/thanh-toan/${p.code}`}>Xem cách chuyển khoản</a></p>}
             </div>
           );
         })}
