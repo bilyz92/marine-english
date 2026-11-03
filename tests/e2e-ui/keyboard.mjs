@@ -73,8 +73,8 @@ try {
   check("menu trên cùng đi trước nội dung", order.indexOf("Marine English") !== -1 && order.indexOf("Marine English") < order.length - 1, JSON.stringify(order));
   await key(" ", "Space", 32);
   check("Space tích ô đồng ý", await b.evaluate(`document.querySelector("input[type=checkbox]").checked`));
-  const toBuy = await tabUntil((f) => f.name.includes("Sang thanh toán"), 10);
-  check("Tab tiếp tới nút Sang thanh toán", Boolean(toBuy.found), JSON.stringify(toBuy.seen.map((f) => f.name)));
+  const toBuy = await tabUntil((f) => f.name.includes("Tiếp tục thanh toán"), 10);
+  check("Tab tiếp tới nút Tiếp tục thanh toán", Boolean(toBuy.found), JSON.stringify(toBuy.seen.map((f) => f.name)));
   await key("Enter", "Enter", 13);
   check("Enter sang trang thanh toán", await waitFor(async () => (await b.evaluate("location.pathname")).startsWith("/thanh-toan/ME")));
 

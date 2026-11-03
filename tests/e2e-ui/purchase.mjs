@@ -47,17 +47,17 @@ try {
   check("đăng nhập xong", await waitFor(async () => (await text()).includes("Đã tạo tài khoản")));
   await click("Tiếp tục");
   check("quay lại đúng trang mua", await waitFor(async () => (await b.evaluate("location.pathname")) === `/mua/${SLUG}`));
-  await waitFor(async () => (await text()).includes("Sang thanh toán"));
+  await waitFor(async () => (await text()).includes("Tiếp tục thanh toán"));
   await hydrated();
   await problems("trang mua");
   await b.shot(`${OUT}/mua-390.png`);
 
   // 3. Chưa tích điều khoản → báo lỗi, không tạo đơn.
-  await click("Sang thanh toán");
+  await click("Tiếp tục thanh toán");
   check("chưa đồng ý → báo lỗi", await waitFor(async () => (await text()).includes("Cần đồng ý điều khoản")));
   check("ô điều khoản không tích sẵn", !(await b.evaluate(`document.querySelector("input[type=checkbox]").checked`)));
   await b.evaluate(`document.querySelector("input[type=checkbox]").click()`);
-  await click("Sang thanh toán");
+  await click("Tiếp tục thanh toán");
   check("sang trang thanh toán", await waitFor(async () => (await b.evaluate("location.pathname")).startsWith("/thanh-toan/ME")));
   await waitFor(async () => (await text()).includes("Thông tin chuyển khoản"));
   const orderCode = (await b.evaluate("location.pathname")).split("/").pop();
@@ -70,10 +70,10 @@ try {
   // 4. Đóng trang rồi mở lại → đúng đơn; bấm mua lại → không có đơn thứ hai.
   await b.go(`${BASE}/khoa-hoc`);
   await b.go(`${BASE}/mua/${SLUG}`);
-  await waitFor(async () => (await text()).includes("Sang thanh toán"));
+  await waitFor(async () => (await text()).includes("Tiếp tục thanh toán"));
   await hydrated();
   await b.evaluate(`document.querySelector("input[type=checkbox]").click()`);
-  await click("Sang thanh toán");
+  await click("Tiếp tục thanh toán");
   await waitFor(async () => (await b.evaluate("location.pathname")).startsWith("/thanh-toan/"));
   check("mua lại → đúng đơn cũ", (await b.evaluate("location.pathname")).endsWith(orderCode));
 

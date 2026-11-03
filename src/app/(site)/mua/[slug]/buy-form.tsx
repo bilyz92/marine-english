@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { learnerCsrfHeader } from "@/lib/client/api";
 import { formatVnd } from "@/lib/format";
 import ui from "@/components/ui.module.css";
+import styles from "./buy.module.css";
 
 type Problem = "terms" | "enrolled" | "not_for_sale" | "unavailable" | "failed" | null;
 
@@ -18,7 +19,10 @@ const MESSAGE: Record<Exclude<Problem, null>, string> = {
 };
 
 /** refundPolicy: công tắc hoàn tiền đọc ở máy chủ (biến môi trường không có trong mã trình duyệt). */
-export function BuyForm({ slug, titleVi, priceVnd, refundPolicy }: { slug: string; titleVi: string; priceVnd: number; refundPolicy: boolean }) {
+/** autoConfirm: SePay đang bật (tiền về tự mở khóa); tắt thì khách bấm "Tôi đã chuyển khoản" là học ngay. */
+export function BuyForm({ slug, titleVi, priceVnd, lessonCount, refundPolicy, autoConfirm }: {
+  slug: string; titleVi: string; priceVnd: number; lessonCount: number; refundPolicy: boolean; autoConfirm: boolean;
+}) {
   const [name, setName] = useState<string | null>(null);
   const [recent, setRecent] = useState<{ enrolled: boolean; unresolved: { code: string }[] } | null>(null);
   const [accepted, setAccepted] = useState(false);
@@ -60,6 +64,7 @@ export function BuyForm({ slug, titleVi, priceVnd, refundPolicy }: { slug: strin
   if (recent?.enrolled) {
     return (
       <div className={ui.card}>
+        <h1 className={ui.h2}>Thông tin người mua</h1>
         <p className={ui.lead}>Bạn đã có khóa {titleVi}.</p>
         <Link className={ui.primary} href={`/hoc?khoa=${slug}`}>Vào học</Link>
       </div>
@@ -67,26 +72,44 @@ export function BuyForm({ slug, titleVi, priceVnd, refundPolicy }: { slug: strin
   }
 
   return (
-    <form onSubmit={submit} className={ui.card}>
-      {recent && recent.unresolved.length > 0 && (
-        <div className={ui.notice} role="status">
-          <p>Đã chuyển tiền cho đơn trước rồi? Đừng chuyển lại. Xem trạng thái đơn:</p>
-          {recent.unresolved.map((o) => <p key={o.code}><Link href={`/thanh-toan/${o.code}`}>{o.code}</Link></p>)}
+    <div className={styles.layout}>
+      <form onSubmit={submit} className={ui.card}>
+        <h1 className={ui.h2}>Thông tin người mua</h1>
+        <p className={ui.lead}>Đơn được gắn với tài khoản đang đăng nhập, nên khóa học mở đúng cho bạn.</p>
+        {recent && recent.unresolved.length > 0 && (
+          <div className={ui.notice} role="status">
+            <p>Đã chuyển tiền cho đơn trước rồi? Đừng chuyển lại. Xem trạng thái đơn:</p>
+            {recent.unresolved.map((o) => <p key={o.code}><Link href={`/thanh-toan/${o.code}`}>{o.code}</Link></p>)}
+          </div>
+        )}
+        <div className={styles.account}>
+          <span>Tài khoản mua</span>
+          <strong>{name ?? "…"}</strong>
         </div>
-      )}
-      {name && <p className={ui.lead}>Tài khoản: <strong>{name}</strong></p>}
-      <h2 className={ui.h3}>{titleVi}</h2>
-      <span className={ui.price}>{formatVnd(priceVnd)}</span>
-      <p className={ui.muted}>Giá do hệ thống tính. Đơn giữ trong 15 phút.</p>
-      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", minHeight: 44 }}>
-        <input type="checkbox" checked={accepted} aria-invalid={problem === "terms"} style={{ width: 22, height: 22, flex: "none" }}
-          onChange={(e) => { setAccepted(e.target.checked); setProblem(null); }} />
-        <span>Tôi đồng ý <Link href="/chinh-sach?tab=dieu-khoan">điều khoản</Link>{refundPolicy && <> và <Link href="/chinh-sach?tab=hoan-tien">chính sách hoàn tiền</Link></>}.</span>
-      </label>
-      {problem && <p className={ui.error} role="alert">{MESSAGE[problem]}</p>}
-      {problem === "enrolled"
-        ? <Link className={ui.primary} href={`/hoc?khoa=${slug}`}>Vào học</Link>
-        : <button className={ui.action} disabled={busy}>{busy ? "Đang tạo đơn…" : "Sang thanh toán"}</button>}
-    </form>
+        <label className={styles.terms}>
+          <input type="checkbox" checked={accepted} aria-invalid={problem === "terms"}
+            onChange={(e) => { setAccepted(e.target.checked); setProblem(null); }} />
+          <span>Tôi đồng ý <Link href="/chinh-sach?tab=dieu-khoan">điều khoản sử dụng</Link>{refundPolicy && <> và <Link href="/chinh-sach?tab=hoan-tien">chính sách hoàn tiền</Link></>}.</span>
+        </label>
+        {problem && <p className={ui.error} role="alert">{MESSAGE[problem]}</p>}
+        {problem === "enrolled"
+          ? <Link className={ui.primary} href={`/hoc?khoa=${slug}`}>Vào học</Link>
+          : <button className={ui.action} disabled={busy}>{busy ? "Đang tạo đơn…" : "Tiếp tục thanh toán"}</button>}
+      </form>
+      <aside className={`${ui.card} ${styles.summary}`} aria-label="Đơn hàng">
+        <h2 className={ui.h3}>Đơn hàng</h2>
+        <p className={ui.lead} style={{ margin: 0 }}><strong>{titleVi}</strong></p>
+        <p className={ui.muted} style={{ margin: 0 }}>{lessonCount} bài</p>
+        <div className={styles.total}>
+          <span>Tổng thanh toán</span>
+          <span className={ui.price}>{formatVnd(priceVnd)}</span>
+        </div>
+        <ul className={styles.points}>
+          <li>Thanh toán bằng VietQR, mọi ngân hàng Việt Nam.</li>
+          <li>{autoConfirm ? "Khóa học mở ngay khi hệ thống nhận được tiền." : "Chuyển khoản xong, bấm \"Tôi đã chuyển khoản\" là học được ngay."}</li>
+          <li>Mã QR giữ trong 15 phút.</li>
+        </ul>
+      </aside>
+    </div>
   );
 }
