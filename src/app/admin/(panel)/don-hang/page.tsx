@@ -6,7 +6,7 @@ import { formatVnd } from "@/lib/format";
 import { ActionDialog, adminApi, Field, fmtTime, LoadState, messageFor, ORDER_STATUS, useAdmin, useLoad } from "../admin-lib";
 import styles from "../admin.module.css";
 
-// Chủ quyết định 03/11/2026 (chưa có SePay): khách báo đã chuyển là học ngay; chủ đối soát ở đây: Duyệt hoặc Không thấy tiền.
+// Chủ quyết định 03/11/2026 (chưa có SePay): khách báo đã chuyển là học ngay; chủ đối soát ở đây: Đã nhận hoặc Chưa nhận.
 
 type Order = {
   code: string; status: string; amountVnd: number; createdAt: string; paidAt: string | null; course: string; learner: string;
@@ -150,8 +150,8 @@ function Orders() {
                 </div>
                 {(o.claim || o.proofs > 0 || (owner && unpaid)) && (
                   <div className={styles.actions}>
-                    {owner && unpaid && <button type="button" className={styles.btnMain} onClick={() => start("approve", o)}>Duyệt</button>}
-                    {owner && (o.claim === "open" || (o.claim === "rejected" && o.needsReview)) && <button type="button" className={styles.btnDanger} onClick={() => start("reject", o)}>Không thấy tiền</button>}
+                    {owner && unpaid && <button type="button" className={styles.btnMain} onClick={() => start("approve", o)}>Đã nhận</button>}
+                    {owner && (o.claim === "open" || (o.claim === "rejected" && o.needsReview)) && <button type="button" className={styles.btnDanger} onClick={() => start("reject", o)}>Chưa nhận</button>}
                     {(o.claim === "rejected" || o.proofs > 0) && (
                       <button type="button" className={styles.btn} aria-expanded={open === o.code} onClick={() => setOpen(open === o.code ? null : o.code)}>
                         {open === o.code ? "Ẩn ảnh" : `Ảnh khách gửi (${o.proofs})`}
@@ -170,8 +170,8 @@ function Orders() {
 
       <ActionDialog
         open={action !== null}
-        title={action?.kind === "approve" ? `Duyệt đơn ${action.order.code}` : `Không thấy tiền đơn ${action?.order.code ?? ""}`}
-        confirmLabel={action?.kind === "approve" ? "Duyệt: đã thấy tiền" : "Khóa lại khóa học"}
+        title={action?.kind === "approve" ? `Đã nhận tiền đơn ${action.order.code}` : `Chưa nhận tiền đơn ${action?.order.code ?? ""}`}
+        confirmLabel={action?.kind === "approve" ? "Đã nhận: mở hẳn khóa học" : "Chưa nhận: khóa lại khóa học"}
         danger={action?.kind === "reject"}
         busy={busy}
         problem={actionProblem}

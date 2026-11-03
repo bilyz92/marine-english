@@ -6,7 +6,7 @@ import { inlineKeyboard, telegramCall, type TelegramButton } from "@/modules/out
 import type { AdminCtx } from "@/modules/sessions/guards";
 import { approveTransfer, rejectClaim } from "./claims";
 
-// Chủ chọn 03/11/2026: duyệt hoặc khóa lại ngay trên Telegram. Bấm "Đã thấy tiền"/"Không thấy tiền" chỉ hỏi lại;
+// Chủ chọn 03/11/2026: duyệt hoặc khóa lại ngay trên Telegram. Bấm "Đã nhận"/"Chưa nhận" chỉ hỏi lại;
 // "Chắc chắn" mới làm, qua đúng approveTransfer/rejectClaim như trang quản trị (chỉ chủ, có nhật ký).
 // Giờ chuyển ghi là lúc bấm (chủ đã chấp nhận); muốn đúng giờ sao kê thì duyệt trên web.
 
@@ -87,7 +87,7 @@ export async function handleCallback(q: CallbackQuery, ip: string): Promise<void
     const first: TelegramButton[] = step === "x"
       ? reviewButtons(code)
       : [
-          step === "a" ? { text: `Chắc chắn đã thấy tiền ${code}`, callback: `A:${code}` } : { text: `Chắc chắn khóa lại ${code}`, callback: `R:${code}` },
+          step === "a" ? { text: `Chắc chắn đã nhận tiền ${code}`, callback: `A:${code}` } : { text: `Chắc chắn chưa nhận, khóa lại ${code}`, callback: `R:${code}` },
           { text: "Thôi", callback: `x:${code}` },
         ];
     const buttons = [first, ...orderLink(code, env().APP_ORIGIN)];

@@ -71,10 +71,10 @@ try {
   await b.evaluate(`(() => { const s = document.querySelector("select"); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(s, "claimed"); s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
   check("lọc Chờ đối soát thấy đơn, nhãn Mở tạm", (await see(code)) && (await see("Mở tạm · chờ đối soát")));
   await b.shot(`${OUT}/3-admin-cho-doi-soat.png`);
-  await click("Không thấy tiền");
+  await click("Chưa nhận");
   await see("Lý do (khách sẽ thấy)");
   await setTextarea(REASON);
-  await click("Khóa lại khóa học", `document.querySelector("dialog[open]")`);
+  await click("Chưa nhận: khóa lại khóa học", `document.querySelector("dialog[open]")`);
   check("khóa lại xong", await see(`Đã khóa lại đơn ${code}`));
 
   // 3. Khách thấy khóa học bị khóa, lý do, gửi ảnh chứng minh.
@@ -106,7 +106,7 @@ try {
   await click("Ảnh khách gửi (1)");
   check("ảnh hiện ra", await waitFor(() => b.evaluate(`[...document.querySelectorAll("figure img")].some((i) => i.complete && i.naturalWidth > 0)`)));
   await b.shot(`${OUT}/6-admin-xem-anh.png`);
-  await click("Duyệt");
+  await click("Đã nhận");
   await see("Mã giao dịch trên sao kê");
   check("ô giờ chuyển trên sao kê để trống, bắt buộc", await b.evaluate(`(() => { const i = document.querySelector("dialog[open] input[type=datetime-local]"); return !!i && i.required && i.value === ""; })()`));
   await b.evaluate(`(() => {
@@ -114,7 +114,7 @@ try {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, i.max);
     i.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
-  await click("Duyệt: đã thấy tiền", `document.querySelector("dialog[open]")`);
+  await click("Đã nhận: mở hẳn khóa học", `document.querySelector("dialog[open]")`);
   check("duyệt xong", await see(`Đã duyệt đơn ${code}`));
   await b.width(390, 1000);
   await b.go(`${BASE}/thanh-toan/${code}`);

@@ -49,12 +49,12 @@ describe("nội dung tin", () => {
     expect(text).not.toContain("0123456789");
   });
 
-  it("khách báo đã chuyển / gửi ảnh: có nút Đã thấy tiền, Không thấy tiền và link mở thẳng đơn trên web", () => {
+  it("khách báo đã chuyển / gửi ảnh: có nút Đã nhận, Chưa nhận và link mở thẳng đơn trên web", () => {
     for (const kind of ["transfer_claimed", "transfer_proof"]) {
       const t = telegramMessage(kind, { orderCode: "ME7K3QX9AB", amountVnd: 199000 }, { origin: "https://x.vn" });
       expect(t.chat).toBe("business");
       expect(t.buttons).toEqual([
-        [{ text: "✅ Đã thấy tiền", callback: "a:ME7K3QX9AB" }, { text: "❌ Không thấy tiền", callback: "r:ME7K3QX9AB" }],
+        [{ text: "✅ Đã nhận", callback: "a:ME7K3QX9AB" }, { text: "❌ Chưa nhận", callback: "r:ME7K3QX9AB" }],
         [{ text: "Mở đơn trên web", url: "https://x.vn/admin/don-hang?q=ME7K3QX9AB" }],
       ]);
     }

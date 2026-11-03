@@ -4,9 +4,9 @@ type Payload = Record<string, unknown>;
 type Ctx = { origin?: string };
 type TelegramMsg = { chat: TelegramChat; text: string; buttons?: TelegramButton[][] };
 
-/** Nút "Đã thấy tiền" / "Không thấy tiền" (bot hỏi xác nhận trước khi làm), kèm link mở thẳng đơn trên trang quản trị. */
+/** Nút "Đã nhận" / "Chưa nhận" (chủ chọn tên 03/11/2026) (bot hỏi xác nhận trước khi làm), kèm link mở thẳng đơn trên trang quản trị. */
 export function reviewButtons(code: string): TelegramButton[] {
-  return [{ text: "✅ Đã thấy tiền", callback: `a:${code}` }, { text: "❌ Không thấy tiền", callback: `r:${code}` }];
+  return [{ text: "✅ Đã nhận", callback: `a:${code}` }, { text: "❌ Chưa nhận", callback: `r:${code}` }];
 }
 export const orderLink = (code: string, origin?: string): TelegramButton[][] =>
   origin ? [[{ text: "Mở đơn trên web", url: `${origin}/admin/don-hang?q=${encodeURIComponent(code)}` }]] : [];
@@ -46,7 +46,7 @@ const TELEGRAM: Record<string, (p: Payload, ctx: Ctx) => TelegramMsg> = {
   order_refunded: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã hoàn tiền: ${vnd(p.amountVnd)}.` }),
   transfer_claimed: (p, ctx) => ({
     chat: "business",
-    text: `Khách báo đã chuyển khoản đơn ${p.orderCode}: ${vnd(p.amountVnd)}${courseList(p) ? `, khóa ${courseList(p)}` : ""}. Khóa học đã mở tạm; kiểm sao kê rồi bấm Đã thấy tiền hoặc Không thấy tiền.`,
+    text: `Khách báo đã chuyển khoản đơn ${p.orderCode}: ${vnd(p.amountVnd)}${courseList(p) ? `, khóa ${courseList(p)}` : ""}. Khóa học đã mở tạm; kiểm sao kê rồi bấm Đã nhận hoặc Chưa nhận.`,
     buttons: review(p, ctx),
   }),
   transfer_proof: (p, ctx) => ({
