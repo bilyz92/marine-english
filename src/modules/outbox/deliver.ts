@@ -1,3 +1,4 @@
+import { env } from "@/lib/env";
 import { prisma, withTx } from "@/lib/db";
 import { emailSender, EmailNotConfiguredError } from "@/modules/mail/email-sender";
 import { emailMessage, telegramMessage } from "./messages";
@@ -99,8 +100,8 @@ async function learnerEmail(userId: string): Promise<string | null> {
 /** Gửi một tin; trả "no_email" nếu học viên không có địa chỉ để gửi. */
 async function send(event: Claimed, senders: Senders): Promise<"sent" | "no_email"> {
   if (event.channel === "telegram") {
-    const { chat, text } = telegramMessage(event.kind, event.payload);
-    await senders.telegram.send(chat, text);
+    const { chat, text, buttons } = telegramMessage(event.kind, event.payload, { origin: env().APP_ORIGIN });
+    await senders.telegram.send(chat, text, buttons);
     return "sent";
   }
   const { subject, body } = emailMessage(event.kind, event.payload);

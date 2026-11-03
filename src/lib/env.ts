@@ -85,6 +85,24 @@ const schema = z
     TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
     TELEGRAM_BUSINESS_CHAT_ID: z.string().min(1).optional(),
     TELEGRAM_ERROR_CHAT_ID: z.string().min(1).optional(),
+    // Nút duyệt trên Telegram: mã bí mật Telegram gửi kèm mỗi webhook (setWebhook secret_token) và
+    // danh sách "<id người dùng Telegram>:<email tài khoản chủ>" được bấm. Thiếu mã thì webhook trả 503.
+    TELEGRAM_WEBHOOK_SECRET: z.preprocess((v) => (v === "" ? undefined : v), z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, "32–256 ký tự A-Z a-z 0-9 _ -").optional()),
+    TELEGRAM_APPROVERS: z
+      .string()
+      .default("")
+      .transform((v, ctx) => {
+        const map = new Map<string, string>();
+        for (const part of v.split(",").map((x) => x.trim()).filter(Boolean)) {
+          const m = /^(\d{1,20}):(\S+@\S+)$/.exec(part);
+          if (!m) {
+            ctx.addIssue({ code: "custom", message: "dạng <id Telegram>:<email>" });
+            return z.NEVER;
+          }
+          map.set(m[1]!, m[2]!.toLowerCase());
+        }
+        return map;
+      }),
   })
   .refine((e) => e.SESSION_ENC_KEYS.has(e.SESSION_ENC_KEY_CURRENT), {
     path: ["SESSION_ENC_KEY_CURRENT"],

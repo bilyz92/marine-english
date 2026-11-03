@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { formatVnd } from "@/lib/format";
 import { ActionDialog, adminApi, Field, fmtTime, LoadState, messageFor, ORDER_STATUS, useAdmin, useLoad } from "../admin-lib";
 import styles from "../admin.module.css";
@@ -54,11 +55,17 @@ function ProofList({ code }: { code: string }) {
 }
 
 export default function OrdersPage() {
+  return <Suspense><Orders /></Suspense>;
+}
+
+function Orders() {
+  // Link trong tin Telegram mở thẳng đơn: /admin/don-hang?q=<mã>.
+  const initialQ = useSearchParams().get("q")?.trim() ?? "";
   const me = useAdmin();
   const owner = me?.role === "owner";
   const [status, setStatus] = useState("");
-  const [input, setInput] = useState("");
-  const [q, setQ] = useState("");
+  const [input, setInput] = useState(initialQ);
+  const [q, setQ] = useState(initialQ);
   const [more, setMore] = useState<{ orders: Order[]; cursor: string | null } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);

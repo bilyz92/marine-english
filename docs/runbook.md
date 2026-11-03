@@ -189,6 +189,9 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 - [ ] Tên miền trỏ về máy chủ; HTTPS chạy.
 - [ ] Tường lửa 80/443 + SSH bằng khóa; NTP; cập nhật bảo mật tự động; cảnh báo RAM/CPU của nhà cung cấp VPS.
 - [ ] Cấu hình Telegram (`TELEGRAM_*`), **gửi thử một cảnh báo tới nhóm lỗi** và xác nhận có người nhận khi chủ ở biển.
+- [ ] Nút duyệt trên Telegram (03/11/2026): đặt `TELEGRAM_WEBHOOK_SECRET` (`openssl rand -hex 32`) và `TELEGRAM_APPROVERS=<id Telegram của chủ>:<email tài khoản chủ>` trong `prod.env`, khởi động lại `app`, rồi đăng ký webhook một lần:
+  `curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d url=https://<tên miền>/api/telegram/webhook -d secret_token=$TELEGRAM_WEBHOOK_SECRET -d 'allowed_updates=["callback_query"]'`.
+  Id Telegram của chủ: chủ nhắn bot một tin, rồi xem `getUpdates` trước khi đăng ký webhook (đăng ký xong thì `getUpdates` không trả nữa). Chỉ người trong danh sách, bấm trong nhóm `TELEGRAM_BUSINESS_CHAT_ID`, và email đó đang là chủ hoạt động mới duyệt được; bấm hai lần (chọn rồi "Chắc chắn"). Giờ chuyển ghi là lúc bấm.
 - [ ] Nơi lưu ngoài (`BACKUP_RCLONE_REMOTE` + cấu hình rclone), chạy một lần sao lưu có `offsite: true`.
 - [ ] Dịch vụ theo dõi bên ngoài gọi `/api/health` và `/api/health/worker`.
 - [ ] Bản lưu ngoài máy của tệp env và khóa (mục 6).

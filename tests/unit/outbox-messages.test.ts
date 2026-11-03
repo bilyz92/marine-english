@@ -49,6 +49,18 @@ describe("nội dung tin", () => {
     expect(text).not.toContain("0123456789");
   });
 
+  it("khách báo đã chuyển / gửi ảnh: có nút Đã thấy tiền, Không thấy tiền và link mở thẳng đơn trên web", () => {
+    for (const kind of ["transfer_claimed", "transfer_proof"]) {
+      const t = telegramMessage(kind, { orderCode: "ME7K3QX9AB", amountVnd: 199000 }, { origin: "https://x.vn" });
+      expect(t.chat).toBe("business");
+      expect(t.buttons).toEqual([
+        [{ text: "✅ Đã thấy tiền", callback: "a:ME7K3QX9AB" }, { text: "❌ Không thấy tiền", callback: "r:ME7K3QX9AB" }],
+        [{ text: "Mở đơn trên web", url: "https://x.vn/admin/don-hang?q=ME7K3QX9AB" }],
+      ]);
+    }
+    expect(telegramMessage("order_paid", { orderCode: "ME7K3QX9AB", amountVnd: 1 }, { origin: "https://x.vn" }).buttons).toBeUndefined();
+  });
+
   it("loại tin lạ → báo lỗi, không gửi đại", () => {
     expect(() => telegramMessage("la", {})).toThrow();
     expect(() => emailMessage("job_failed", {})).toThrow();
@@ -71,6 +83,16 @@ describe("telegramSender", () => {
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://api.telegram.org/botBIMAT/sendMessage");
     expect(JSON.parse(init.body as string)).toEqual({ chat_id: "-2", text: "lỗi" });
+  });
+
+  it("có nút → gửi kèm bàn phím inline (nút bấm và nút link)", async () => {
+    const fetchFn = vi.fn(async () => new Response("{}", { status: 200 }));
+    await telegramSender(cfg, fetchFn).send("business", "x", [[{ text: "A", callback: "a:ME1" }, { text: "W", url: "https://x.vn/a" }]]);
+    const [, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      chat_id: "-1", text: "x",
+      reply_markup: { inline_keyboard: [[{ text: "A", callback_data: "a:ME1" }, { text: "W", url: "https://x.vn/a" }]] },
+    });
   });
 
   it("lỗi mạng hoặc HTTP không làm lộ token trong thông báo lỗi", async () => {

@@ -1,6 +1,16 @@
-import type { TelegramChat } from "./telegram";
+import type { TelegramButton, TelegramChat } from "./telegram";
 
 type Payload = Record<string, unknown>;
+type Ctx = { origin?: string };
+type TelegramMsg = { chat: TelegramChat; text: string; buttons?: TelegramButton[][] };
+
+/** Nút "Đã thấy tiền" / "Không thấy tiền" (bot hỏi xác nhận trước khi làm), kèm link mở thẳng đơn trên trang quản trị. */
+export function reviewButtons(code: string): TelegramButton[] {
+  return [{ text: "✅ Đã thấy tiền", callback: `a:${code}` }, { text: "❌ Không thấy tiền", callback: `r:${code}` }];
+}
+export const orderLink = (code: string, origin?: string): TelegramButton[][] =>
+  origin ? [[{ text: "Mở đơn trên web", url: `${origin}/admin/don-hang?q=${encodeURIComponent(code)}` }]] : [];
+const review = (p: Payload, ctx: Ctx) => [reviewButtons(String(p.orderCode)), ...orderLink(String(p.orderCode), ctx.origin)];
 
 const vnd = (value: unknown) => `${Number(value).toLocaleString("vi-VN")}đ`;
 const courseList = (p: Payload) => (Array.isArray(p.courses) && p.courses.length ? p.courses.join(", ") : null);
@@ -30,17 +40,19 @@ function opsAlertText(p: Payload): string {
 }
 
 // Chỉ dùng các trường liệt kê ở đây: không đưa nội dung chuyển khoản, số tài khoản, mã OTP hay token vào tin.
-const TELEGRAM: Record<string, (p: Payload) => { chat: TelegramChat; text: string }> = {
+const TELEGRAM: Record<string, (p: Payload, ctx: Ctx) => TelegramMsg> = {
   order_paid: (p) => ({ chat: "business", text: paidText(p) }),
   refund_requested: (p) => ({ chat: "business", text: `Học viên yêu cầu hoàn tiền đơn ${p.orderCode}: ${vnd(p.amountVnd)}. Xem trang Hoàn tiền.` }),
   order_refunded: (p) => ({ chat: "business", text: `Đơn ${p.orderCode} đã hoàn tiền: ${vnd(p.amountVnd)}.` }),
-  transfer_claimed: (p) => ({
+  transfer_claimed: (p, ctx) => ({
     chat: "business",
-    text: `Khách báo đã chuyển khoản đơn ${p.orderCode}: ${vnd(p.amountVnd)}${courseList(p) ? `, khóa ${courseList(p)}` : ""}. Khóa học đã mở tạm; kiểm sao kê rồi Duyệt hoặc Không thấy tiền ở trang Đơn hàng.`,
+    text: `Khách báo đã chuyển khoản đơn ${p.orderCode}: ${vnd(p.amountVnd)}${courseList(p) ? `, khóa ${courseList(p)}` : ""}. Khóa học đã mở tạm; kiểm sao kê rồi bấm Đã thấy tiền hoặc Không thấy tiền.`,
+    buttons: review(p, ctx),
   }),
-  transfer_proof: (p) => ({
+  transfer_proof: (p, ctx) => ({
     chat: "business",
-    text: `Khách gửi ảnh chứng minh chuyển khoản cho đơn ${p.orderCode} (${vnd(p.amountVnd)}). Xem ở trang Đơn hàng.`,
+    text: `Khách gửi ảnh chứng minh chuyển khoản cho đơn ${p.orderCode} (${vnd(p.amountVnd)}). Xem ảnh ở trang Đơn hàng.`,
+    buttons: review(p, ctx),
   }),
   ledger_queued: (p) => ({
     chat: "business",
@@ -87,11 +99,11 @@ const EMAIL: Record<string, (p: Payload) => { subject: string; body: string }> =
   }),
 };
 
-function render<T>(table: Record<string, (p: Payload) => T>, kind: string, payload: Payload): T {
+function render<T>(table: Record<string, (p: Payload, ctx: Ctx) => T>, kind: string, payload: Payload, ctx: Ctx = {}): T {
   const build = table[kind];
   if (!build) throw new Error(`unknown_kind:${kind}`);
-  return build(payload);
+  return build(payload, ctx);
 }
 
-export const telegramMessage = (kind: string, payload: Payload) => render(TELEGRAM, kind, payload);
+export const telegramMessage = (kind: string, payload: Payload, ctx: Ctx = {}) => render(TELEGRAM, kind, payload, ctx);
 export const emailMessage = (kind: string, payload: Payload) => render(EMAIL, kind, payload);
