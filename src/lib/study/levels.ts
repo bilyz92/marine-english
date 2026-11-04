@@ -102,3 +102,10 @@ export function missingFor(lesson: StudyLesson, level: LevelId, step: number, pr
   }
   return p.fields.filter((f) => keys.has(f.key));
 }
+
+/** Hoạt động cùng loại chỉ hiện một lần (dữ liệu bài có mục trùng, chủ chọn 04/11/2026); giữ đủ id để tiến độ vẫn ghi từng hoạt động. */
+export function groupActivities(activities: { id: string; order: number; type: string }[] | undefined): { type: string; ids: string[] }[] {
+  const groups = new Map<string, string[]>();
+  for (const a of [...(activities ?? [])].sort((x, y) => x.order - y.order)) groups.set(a.type, [...(groups.get(a.type) ?? []), a.id]);
+  return [...groups].map(([type, ids]) => ({ type, ids }));
+}

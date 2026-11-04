@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { checkExercise } from "@/lib/study/exercise";
-import { defaultLevel, levelData, type StudyLesson } from "@/lib/study/levels";
+import { defaultLevel, groupActivities, levelData, type StudyLesson } from "@/lib/study/levels";
 import { personalize } from "@/lib/study/personalize";
 
 // docs/superpowers/plans/2026-11-03-three-level-study.md, bước 2.
@@ -163,5 +163,18 @@ describe("trường còn thiếu theo phần đang hiện", async () => {
   });
   it("Mức 2 cần các trường của câu trả lời mẫu", () => {
     expect(missingFor(l, "developing", 0, {}).map((f) => f.key)).toEqual(expect.arrayContaining(["full_name", "university", "training_experience"]));
+  });
+});
+
+describe("danh sách hoạt động (chủ chọn 04/11/2026)", () => {
+  it("mục cùng loại chỉ hiện một lần, giữ thứ tự, gom đủ id để bấm một lần là xong cả nhóm", () => {
+    const groups = groupActivities([
+      { id: "a3", type: "listen", order: 3 }, { id: "a1", type: "listen", order: 1 },
+      { id: "a2", type: "speak", order: 2 }, { id: "a4", type: "speak", order: 4 },
+    ]);
+    expect(groups).toEqual([{ type: "listen", ids: ["a1", "a3"] }, { type: "speak", ids: ["a2", "a4"] }]);
+  });
+  it("không có hoạt động → rỗng", () => {
+    expect(groupActivities(undefined)).toEqual([]);
   });
 });

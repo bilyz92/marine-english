@@ -84,7 +84,7 @@ function Study({ externalId, lesson, who, children }: { externalId: string; less
 
       {level === "foundation" && <Foundation data={data} fill={fill} profile={profile} step={state.step ?? 0} setStep={(s) => update({ step: s })} onNext={() => chooseLevel("developing")} answers={answers} setAnswer={setAnswer} />}
       {level === "developing" && (
-        <Developing data={data} fill={fill} profile={profile} answers={answers} setAnswer={setAnswer} model={lesson.model_answer} recall={lesson.recall_cards} draft={state.drafts?.developing ?? ""} said={!!state.said?.developing}
+        <Developing data={data} fill={fill} profile={profile} answers={answers} setAnswer={setAnswer} model={lesson.model_answer} draft={state.drafts?.developing ?? ""} said={!!state.said?.developing}
           setDraft={(t) => update({ drafts: { ...state.drafts, developing: t } })} setSaid={() => update({ said: { ...state.said, developing: true } })} />
       )}
       {level === "independent" && (
@@ -259,24 +259,6 @@ function WordChips({ phrases, lesson }: { phrases: Data["phrases"]; lesson: Stud
   );
 }
 
-function RecallCards({ cards, fill }: { cards: StudyLesson["recall_cards"]; fill: Fill }) {
-  const [shown, setShown] = useState<Set<string>>(new Set());
-  if (!cards?.length) return null;
-  return (
-    <div className={learn.card}>
-      <h2 className={learn.h2}>Thẻ ôn</h2>
-      {cards.map((c) => (
-        <div key={c.id} className={learn.item}>
-          <Bilingual text={fill(c.front)} />
-          {shown.has(c.id) ? <Bilingual text={fill(c.back)} /> : (
-            <p><button type="button" className={styles.toggle} onClick={() => setShown(new Set(shown).add(c.id))}>Xem ý trả lời</button></p>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Attempt({ draft, setDraft, said, setSaid }: { draft: string; setDraft: (t: string) => void; said: boolean; setSaid: () => void }) {
   return (
     <div className={learn.card}>
@@ -318,11 +300,10 @@ function KeyPoints({ points, fill }: { points: Data["keyPoints"]; fill: Fill }) 
   );
 }
 
-function Developing({ data, fill, profile, answers, setAnswer, model, recall, draft, said, setDraft, setSaid }: { data: Data; fill: Fill; profile: Profile; answers: Answers; setAnswer: SetAnswer; model: StudyLesson["model_answer"]; recall: StudyLesson["recall_cards"]; draft: string; said: boolean; setDraft: (t: string) => void; setSaid: () => void }) {
+function Developing({ data, fill, profile, answers, setAnswer, model, draft, said, setDraft, setSaid }: { data: Data; fill: Fill; profile: Profile; answers: Answers; setAnswer: SetAnswer; model: StudyLesson["model_answer"]; draft: string; said: boolean; setDraft: (t: string) => void; setSaid: () => void }) {
   return (
     <>
       <KeyPoints points={data.keyPoints} fill={fill} />
-      <RecallCards cards={recall} fill={fill} />
       <Attempt draft={draft} setDraft={setDraft} said={said} setSaid={setSaid} />
       <ModelAnswer model={model} fill={fill} profile={profile} ready={said || !!draft.trim()} />
       {data.exercises.length > 0 && <Exercises items={data.exercises} fill={fill} answers={answers} setAnswer={setAnswer} />}

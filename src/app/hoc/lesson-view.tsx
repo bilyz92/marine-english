@@ -9,7 +9,7 @@ import { canOpenLesson } from "@/lib/offline/access";
 import { licenseStatus, nowSeconds } from "@/lib/offline/engine";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import { LessonStudy } from "@/components/study/lesson-study";
-import { hasLevels, type StudyLesson } from "@/lib/study/levels";
+import { groupActivities, hasLevels, type StudyLesson } from "@/lib/study/levels";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
 
@@ -94,10 +94,11 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
     return <div className={styles.card}><p className={styles.muted}>Bài này chưa được tải về máy. Khi có mạng, mở lại bài hoặc bấm “Tải khóa về máy” ở trang khóa.</p></div>;
   }
 
-  async function toggleActivity(id: string) {
-    if (doneActivities.has(id)) return;
-    setDoneActivities(new Set(doneActivities).add(id));
-    await recordEvent(identity, "activity_completed", lesson.lessonVersionId, { activityId: id });
+  async function completeActivities(ids: string[]) {
+    const fresh = ids.filter((id) => !doneActivities.has(id));
+    if (!fresh.length) return;
+    setDoneActivities(new Set([...doneActivities, ...fresh]));
+    for (const id of fresh) await recordEvent(identity, "activity_completed", lesson.lessonVersionId, { activityId: id });
     onEvent();
   }
 
@@ -126,12 +127,15 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
       {!!content.activities?.length && (
         <div className={styles.card}>
           <h2 className={styles.h2}>Hoạt động</h2>
-          {[...content.activities].sort((a, b) => a.order - b.order).map((a) => (
-            <label key={a.id} className={styles.check}>
-              <input type="checkbox" checked={doneActivities.has(a.id)} disabled={doneActivities.has(a.id)} onChange={() => void toggleActivity(a.id)} />
-              {ACTIVITY_LABEL[a.type] ?? a.type}
-            </label>
-          ))}
+          {groupActivities(content.activities).map((a) => {
+            const done = a.ids.every((id) => doneActivities.has(id));
+            return (
+              <label key={a.type} className={styles.check}>
+                <input type="checkbox" checked={done} disabled={done} onChange={() => void completeActivities(a.ids)} />
+                {ACTIVITY_LABEL[a.type] ?? a.type}
+              </label>
+            );
+          })}
         </div>
       )}
       <div className={styles.actions}>
