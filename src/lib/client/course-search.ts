@@ -8,3 +8,12 @@ export function matchesCourse(course: { titleVi: string; titleEn: string }, quer
   const haystack = fold(`${course.titleVi} ${course.titleEn}`);
   return words.every((w) => haystack.includes(w));
 }
+
+export type CourseCardAction = "buy" | "learn" | "none";
+
+/** Nút trên thẻ khóa: khóa đã có thì Vào học; đã đăng nhập mà chưa biết thì chưa hiện, tránh mời mua nhầm khóa đã mua. */
+export function courseCardAction(s: { signedIn: boolean; owned: string[] | null; slug: string }): CourseCardAction {
+  if (!s.signedIn) return "buy";
+  if (!s.owned) return "none";
+  return s.owned.includes(s.slug) ? "learn" : "buy";
+}

@@ -116,6 +116,8 @@ try {
   await b.go(`${BASE}/khoa-hoc/${SLUG}`);
   check("đã có khóa → trang khóa hiện vào học", await waitFor(async () => (await text()).includes("Vào học")));
   check("đã có khóa → trang khóa không còn nút mua", !(await text()).includes("Mua khóa học"));
+  await b.go(`${BASE}/khoa-hoc`);
+  check("đã có khóa → danh sách khóa hiện vào học", await waitFor(async () => (await text()).includes("Vào học"), 60000));
 
   const errors = b.events.errors.filter((e) => !String(e).includes("401"));
   check("không lỗi trang", errors.length === 0, JSON.stringify(errors.slice(0, 3)));
