@@ -87,7 +87,9 @@ export function useLoad<T>(path: string | null) {
     const id = ++latest.current;
     const r = await adminApi<T>(path);
     if (id !== latest.current) return;
-    setState({ data: r.ok ? r.data : null, error: r.ok || r.status === 403 ? null : messageFor(r.data.error), forbidden: r.status === 403, loading: false });
+    // Mục nhạy cảm cần đăng nhập gần đây: chủ vẫn có quyền, báo đúng lý do thay vì "không có quyền".
+    const forbidden = r.status === 403 && r.data.error !== "reauth_required";
+    setState({ data: r.ok ? r.data : null, error: r.ok || forbidden ? null : messageFor(r.data.error), forbidden, loading: false });
   }, [path]);
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);

@@ -34,7 +34,7 @@ function registerServiceWorker() {
   }, () => undefined);
 }
 
-type Load = { kind: "loading" } | { kind: "login" } | { kind: "ready"; identity: Identity };
+type Load = { kind: "loading" } | { kind: "login" } | { kind: "no_network" } | { kind: "ready"; identity: Identity };
 
 export function LearnApp() {
   const params = useSearchParams();
@@ -64,7 +64,8 @@ export function LearnApp() {
     registerServiceWorker();
     loadIdentity().then(({ identity, online }) => {
       setOffline(!online);
-      if (!identity) return setLoad({ kind: "login" });
+      // Không hỏi được máy chủ thì chưa biết phiên còn hay hết: không báo "đã hết phiên".
+      if (!identity) return setLoad({ kind: online ? "login" : "no_network" });
       setLoad({ kind: "ready", identity });
       void refresh(identity);
     });
@@ -94,6 +95,19 @@ export function LearnApp() {
   }, [load, refresh]);
 
   if (load.kind === "loading") return <main className={styles.page}><div className={styles.wrap}><p className={styles.muted}>Đang mở…</p></div></main>;
+  if (load.kind === "no_network") {
+    return (
+      <main className={styles.page}>
+        <div className={styles.wrap}>
+          <div className={styles.card}>
+            <h1 className={styles.h1}>Chưa kết nối được</h1>
+            <p className={styles.muted}>Mạng đang chậm hoặc mất kết nối. Kiểm tra mạng rồi thử lại.</p>
+            <p><button className={styles.primary} onClick={() => window.location.reload()}>Thử lại</button></p>
+          </div>
+        </div>
+      </main>
+    );
+  }
   if (load.kind === "login") {
     return (
       <main className={styles.page}>

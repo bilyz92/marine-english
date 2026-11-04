@@ -57,7 +57,7 @@ export async function clearLocal(identity: Identity | null): Promise<void> {
   }
 }
 
-const NETWORK_TIMEOUT_MS = 10_000;
+const NETWORK_TIMEOUT_MS = 15_000;
 
 export async function loadIdentity(): Promise<IdentityResult> {
   const saved = savedIdentity();
@@ -189,7 +189,7 @@ async function removeCourseData(db: IDBDatabase, courseId: string): Promise<void
 // ===== Khóa và bài =====
 
 /** Khóa của tôi: có mạng thì hỏi máy chủ và lưu lại, mất mạng dùng bản đã lưu. */
-export async function loadMyCourses(identity: Identity): Promise<MyCourse[]> {
+export async function loadMyCourses(identity: Identity): Promise<MyCourse[] | null> {
   const db = await openOfflineDb(identity);
   try {
     const res = await fetch("/api/me/courses", { signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) });
@@ -201,7 +201,8 @@ export async function loadMyCourses(identity: Identity): Promise<MyCourse[]> {
   } catch {
     // Mất mạng.
   }
-  return (await dbGet<MyCourse[]>(db, "kv", "myCourses")) ?? [];
+  // null: chưa hỏi được máy chủ và máy cũng chưa lưu, không phải "chưa có khóa nào".
+  return (await dbGet<MyCourse[]>(db, "kv", "myCourses")) ?? null;
 }
 
 export async function loadManifest(identity: Identity, slug: string): Promise<Manifest | null> {

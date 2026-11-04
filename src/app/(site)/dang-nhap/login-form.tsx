@@ -150,8 +150,8 @@ export function LoginForm({ zaloEnabled, googleFailed, next, google: googleOn, e
     <form onSubmit={sendCode}>
       {methods}
       <div className={styles.tabs}>
-        <button type="button" className={mode === "signup" ? styles.tabActive : styles.tab} onClick={() => setMode("signup")}>Tạo tài khoản</button>
         <button type="button" className={mode === "login" ? styles.tabActive : styles.tab} onClick={() => setMode("login")}>Đăng nhập</button>
+        <button type="button" className={mode === "signup" ? styles.tabActive : styles.tab} onClick={() => setMode("signup")}>Tạo tài khoản</button>
       </div>
       {googleButton}
       {googleOn && <div className={styles.divider}>hoặc</div>}
