@@ -16,13 +16,13 @@ const BENEFITS = [
 
 const STEPS = [
   { title: "Chọn khóa, bấm Mua", text: "Đăng ký bằng số điện thoại và mật khẩu." },
-  { title: "Quét mã QR bằng app ngân hàng", text: "Mã QR đã có sẵn số tiền và nội dung. Mọi ngân hàng Việt Nam đều quét được." },
+  { title: "Quét mã QR bằng app ngân hàng", text: "Mọi ngân hàng Việt Nam đều quét được. Kiểm tra đúng số tiền và nội dung là mã đơn." },
   { title: "Bấm “Tôi đã chuyển khoản”, vào học", text: "Chuyển xong, bấm nút trên trang thanh toán là khóa học mở ngay." },
 ];
 
 // Cách thanh toán khi chưa bật SePay (chủ chọn 03/11/2026). Bật SePay (G4) thì sửa lại các câu này: tiền về là tự mở khóa.
 const FAQ = [
-  { q: "Thanh toán bằng cách nào?", a: "Quét mã QR bằng app ngân hàng bất kỳ, mã đã có sẵn số tiền và nội dung. Tiền chuyển thẳng vào tài khoản ngân hàng của chúng tôi." },
+  { q: "Thanh toán bằng cách nào?", a: "Quét mã QR bằng app ngân hàng bất kỳ, kiểm tra đúng số tiền và nội dung là mã đơn. Tiền chuyển thẳng vào tài khoản ngân hàng của chúng tôi." },
   { q: "Chuyển khoản xong bao lâu thì học được?", a: "Học được ngay: chuyển xong, bấm “Tôi đã chuyển khoản” trên trang thanh toán. Chúng tôi đối chiếu sao kê sau. Nếu chưa thấy tiền, khóa học tạm khóa và báo lý do; bạn gửi ảnh chuyển khoản để chúng tôi kiểm lại." },
   { q: "Trên tàu không có mạng thì học thế nào?", a: "Sau khi đơn được xác nhận đã thanh toán, tải bài về máy khi có mạng bờ hoặc Starlink. Khi mất mạng vẫn học được các bài đã tải." },
   { q: "Học trên mấy thiết bị?", a: "Mỗi tài khoản đăng nhập cùng lúc trên tối đa 2 thiết bị, chạy được cả Android và iPhone." },

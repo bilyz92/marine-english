@@ -94,6 +94,20 @@ describe("khách báo đã chuyển khoản", () => {
     expect((await manifest()).provisional).toBe(false);
   });
 
+  it("đơn đã hết hạn trong 24 giờ, chưa báo: Lịch sử thanh toán vẫn đưa khách tới trang báo đã chuyển; báo rồi thì thôi", async () => {
+    const { learner, code, orderId } = await paidCourseSetup();
+    expect((await paymentHistory(learner))[0]).toMatchObject({ code, claimable: true });
+    await sqlAsMigrator(`UPDATE orders SET status = 'expired', expired_at = now() WHERE id = $1`, [orderId]);
+    expect((await paymentHistory(learner))[0]).toMatchObject({ code, status: "expired", claimable: true });
+    await sqlAsMigrator(`ALTER TABLE orders DISABLE TRIGGER USER`);
+    await sqlAsMigrator(`UPDATE orders SET created_at = now() - interval '25 hours', expires_at = now() - interval '1485 minutes' WHERE id = $1`, [orderId]);
+    expect((await paymentHistory(learner))[0]).toMatchObject({ code, claimable: false });
+    await sqlAsMigrator(`UPDATE orders SET created_at = now() - interval '2 hours', expires_at = now() - interval '105 minutes' WHERE id = $1`, [orderId]);
+    await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);
+    await claim(learner, code);
+    expect((await paymentHistory(learner))[0]).toMatchObject({ code, claim: "open", claimable: false });
+  });
+
   it("bấm lại → không tạo thêm, không báo lại", async () => {
     const { learner, code, orderId } = await paidCourseSetup();
     expect((await claim(learner, code)).status).toBe(200);

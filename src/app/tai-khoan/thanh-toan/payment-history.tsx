@@ -9,7 +9,7 @@ import styles from "../../hoc/learn.module.css";
 // Lịch sử thanh toán (menu điện thoại): mọi đơn của học viên, mới nhất trước. Đơn còn chờ và chưa hết hạn có nút xem cách chuyển khoản.
 
 type Payment = {
-  code: string; course: string; slug: string; amountVnd: number; status: string; createdAt: string; paidAt: string | null; payableForSeconds: number;
+  code: string; course: string; slug: string; amountVnd: number; status: string; createdAt: string; paidAt: string | null; payableForSeconds: number; claimable: boolean;
   claim: "open" | "rejected" | null; rejectionReason: string | null;
 };
 
@@ -72,6 +72,7 @@ export function PaymentHistory() {
                 </div>
               )}
               {open && !p.claim && <p><a className={styles.barLink} href={`/thanh-toan/${p.code}`}>Xem cách chuyển khoản</a></p>}
+              {!open && p.claimable && <p><a className={styles.barLink} href={`/thanh-toan/${p.code}`}>Đã chuyển khoản? Báo tại đây</a></p>}
             </div>
           );
         })}

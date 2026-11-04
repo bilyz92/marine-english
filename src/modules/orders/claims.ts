@@ -16,7 +16,7 @@ import { sepayEnabled } from "./payment-info";
 // khách gửi ảnh chứng minh được. Đơn chỉ thành "đã thanh toán" qua dòng sổ đã xác minh, như mọi nguồn khác.
 
 /** Quá thời gian này kể từ lúc tạo đơn thì không báo đã chuyển được nữa (đặt đơn mới). */
-const CLAIM_WINDOW = "24 hours";
+export const CLAIM_WINDOW = "24 hours";
 const MAX_PROOFS_PER_ORDER = 5;
 export const MAX_PROOF_BYTES = 4 * 1024 * 1024;
 

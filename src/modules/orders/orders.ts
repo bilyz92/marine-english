@@ -7,7 +7,7 @@ import { newOrderCode } from "./codes";
 import { env } from "@/lib/env";
 import { paymentInfo, sepayEnabled } from "./payment-info";
 import { vietQrPayload } from "./vietqr";
-import { claimable, claimView, type ClaimView } from "./claims";
+import { CLAIM_WINDOW, claimable, claimView, type ClaimView } from "./claims";
 
 // Đơn: giá luôn lấy từ courses trên máy chủ, ghi ảnh chụp bất biến; mã đơn ngẫu nhiên, duy nhất nhờ ràng buộc DB.
 
@@ -173,13 +173,14 @@ export async function recentOrdersForCourse(ctx: LearnerCtx, courseSlug: string)
 export async function paymentHistory(ctx: LearnerCtx) {
   const group = await mergeGroupIds(null, ctx.userId);
   // Số giây còn được chuyển khoản tính bằng giờ máy chủ (giờ điện thoại trên tàu có thể sai).
-  const rows = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; paid_at: Date | null; expires_at: Date; slug: string; title_vi: string; payable_s: number; claim: "open" | "rejected" | null; reason: string | null }[]>`
+  const rows = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; paid_at: Date | null; expires_at: Date; slug: string; title_vi: string; payable_s: number; in_claim_window: boolean; claim: "open" | "rejected" | null; reason: string | null }[]>`
     SELECT o.code, o.status, o.amount_due_vnd, o.created_at, o.paid_at, o.expires_at, c.slug, c.title_vi,
            CASE WHEN EXISTS (SELECT 1 FROM enrollments e WHERE e.claim_order_id = o.id AND e.revoked_at IS NULL) THEN 'open'
                 WHEN o.status IN ('pending', 'expired') AND EXISTS (SELECT 1 FROM enrollments e WHERE e.claim_order_id = o.id) THEN 'rejected'
            END AS claim,
            (SELECT r.reason FROM transfer_claim_rejections r WHERE r.order_id = o.id ORDER BY r.created_at DESC LIMIT 1) AS reason,
-           CASE WHEN o.status = 'pending' THEN greatest(0, floor(extract(epoch FROM o.expires_at - now())))::int ELSE 0 END AS payable_s
+           CASE WHEN o.status = 'pending' THEN greatest(0, floor(extract(epoch FROM o.expires_at - now())))::int ELSE 0 END AS payable_s,
+           o.status IN ('pending', 'expired') AND o.created_at >= now() - ${CLAIM_WINDOW}::interval AS in_claim_window
     FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
     WHERE o.user_id = ANY(${group}::uuid[])
     ORDER BY o.created_at DESC
@@ -187,6 +188,8 @@ export async function paymentHistory(ctx: LearnerCtx) {
   return rows.map((r) => ({
     code: r.code, status: r.status, amountVnd: r.amount_due_vnd, createdAt: r.created_at, paidAt: r.paid_at, slug: r.slug, course: r.title_vi,
     payableForSeconds: r.payable_s,
+    // Đơn hết 15 phút vẫn báo đã chuyển được trong 24 giờ: Lịch sử phải đưa được khách tới trang đó.
+    claimable: r.in_claim_window && !r.claim && !sepayEnabled(env()),
     // Khách đã báo chuyển khoản: "open" đang học tạm chờ chủ xác nhận; "rejected" bị khóa lại, kèm lý do của chủ.
     claim: r.claim, rejectionReason: r.claim === "rejected" ? r.reason : null,
   }));
