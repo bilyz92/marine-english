@@ -157,7 +157,7 @@ function StatusBanners({ license, offline, pending }: { license: LicenseStatus |
     <>
       {offline && (
         <div className={styles.banner}>
-          Đang không có mạng. Bài đã tải vẫn học được{pending > 0 ? `; ${pending} hoạt động sẽ đồng bộ khi có mạng` : ""}.
+          Chưa kết nối được máy chủ. Bài đã tải vẫn học được{pending > 0 ? `; ${pending} hoạt động sẽ đồng bộ khi có mạng` : ""}.
         </div>
       )}
       {license?.state === "grace" && (

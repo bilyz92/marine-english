@@ -3,7 +3,7 @@
 .barInner { max-width: 1200px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 10px; font: inherit; font-weight: 800; font-size: 18px; color: var(--color-text); background: none; border: 0; padding: 0; cursor: pointer; }
 .logo { width: 40px; height: 40px; border-radius: 10px; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; }
-.barNav { color: var(--color-text-2); font-size: 15px; font-weight: 500; text-decoration: none; }
+.barNav { display: inline-flex; align-items: center; min-height: var(--touch); color: var(--color-text-2); font-size: 15px; font-weight: 500; text-decoration: none; }
 .brandText { white-space: nowrap; }
 @media (max-width: 760px) {
   .page { --sticky-top: 53px; }
@@ -11,10 +11,11 @@
   .logo { width: 36px; height: 36px; }
   .barNav { display: none; }
   .barRight { white-space: nowrap; min-width: 0; }
-  .barRight .barLink { display: inline-block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+  .barRight .barLink { display: block; max-width: 130px; line-height: var(--touch); overflow: hidden; text-overflow: ellipsis; }
 }
 @media (max-width: 480px) { .brandText { display: none; } }
-.barLink { color: var(--color-text-2); font-size: 14px; }
+.barLink { display: inline-flex; align-items: center; min-height: var(--touch); color: var(--color-text-2); font-size: 14px; }
+.srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .wrap { max-width: 720px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .wrapLesson { composes: wrap; max-width: 1080px; }
 .card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; }

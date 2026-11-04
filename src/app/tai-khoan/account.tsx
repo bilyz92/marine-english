@@ -84,7 +84,7 @@ export function Account() {
             <p className={styles.muted}>Học offline còn {Math.max(license.daysLeft, 0)} ngày, tự gia hạn mỗi lần đồng bộ.</p>
           )}
         </div>
-        {!online && <div className={styles.banner}>Đang không có mạng. Thiết bị và cách đăng nhập sẽ hiện khi có mạng.</div>}
+        {!online && <div className={styles.banner}>Chưa kết nối được máy chủ. Thiết bị và cách đăng nhập sẽ hiện khi có mạng.</div>}
         {message && <div className={styles.bannerDanger}>{message}</div>}
         {online && <MyOrders />}
         {logins.length > 0 && (

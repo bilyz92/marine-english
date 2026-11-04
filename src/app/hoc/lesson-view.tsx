@@ -111,6 +111,7 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
   const next = manifest.lessons.find((l) => l.position === position + 1);
   return (
     <>
+      <h1 className={styles.srOnly}>Bài {position}: {lesson.title}</h1>
       <div className={styles.actions}>
         <button className={styles.secondary} onClick={() => go({ khoa: slug })}>← Danh sách bài</button>
       </div>

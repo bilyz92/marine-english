@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { env } from "@/lib/env";
@@ -6,6 +7,8 @@ import { emailReady } from "@/modules/mail/email-sender";
 import { safeNext } from "@/lib/client/safe-next";
 import styles from "./login.module.css";
 import { LoginForm } from "./login-form";
+
+export const metadata: Metadata = { title: "Đăng ký và đăng nhập", robots: { index: false } };
 
 // Cờ Zalo đọc lúc chạy (không đóng băng lúc build).
 async function RuntimeLoginForm({ searchParams }: { searchParams: Promise<{ loi?: string; next?: string }> }) {

@@ -37,6 +37,7 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
       <div className={styles.card}>
         <h1 className={styles.h1}>Không mở được khóa này</h1>
         <p className={styles.muted}>Khóa chưa có trên máy, hoặc anh/chị không còn quyền học khóa này. Kết nối mạng để kiểm tra lại.</p>
+        <p><a className={styles.barLink} href="/tai-khoan/thanh-toan">Xem đơn hàng và lý do</a></p>
       </div>
     );
   }
