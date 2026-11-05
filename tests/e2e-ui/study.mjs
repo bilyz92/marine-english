@@ -22,7 +22,7 @@ try {
   await b.go(URL);
   await b.evaluate("localStorage.clear()");
   await b.go(URL);
-  check("mở bài, có 3 nút mức, mặc định Mức 1", (await see("Mức 2 · Cơ bản")) && (await pressed()).includes("Mức 1"));
+  check("mở bài, có 3 nút mức, mặc định Mức 1", (await see("Cơ bản")) && (await pressed()).includes("Mức 1"));
   check("Mức 1: bước 1/3, câu nhỏ có nghĩa tiếng Việt", (await see("Bước 1/3")) && (await text()).includes("What is your name?") && (await text()).includes("Bạn tên gì?"));
   check("Mức 1: bài tập chưa hiện khi đang học các bước", !(await text()).includes("Tự luyện, không tính điểm"));
   check("đáp án ngắn chưa hiện khi chưa bấm", !(await text()).includes("My name is [name]."));

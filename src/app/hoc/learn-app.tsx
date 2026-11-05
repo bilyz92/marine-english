@@ -15,6 +15,7 @@ import { LessonView } from "./lesson-view";
 import { BrandMark } from "@/components/brand-mark";
 import { InstallApp } from "@/components/install-app";
 import styles from "./learn.module.css";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /** Đổi màn bằng history (không gọi máy chủ), nên vẫn chuyển được khi mất mạng. */
 export function go(params: { khoa?: string; bai?: number }) {
@@ -137,6 +138,7 @@ export function LearnApp() {
             <Link className={styles.barNav} href="/tai-khoan/thanh-toan">Thanh toán</Link>
             <InstallApp className={styles.barInstall} label="Tải app" />
             <a className={styles.barLink} href="/tai-khoan">{identity.displayName}</a>
+            <ThemeToggle className={styles.barTheme} />
           </span>
         </div>
       </div>

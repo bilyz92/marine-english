@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { InstallApp } from "@/components/install-app";
 import { useSignedIn } from "@/components/learner-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import styles from "./site.module.css";
 
 // Menu đầu trang. Máy tính: một hàng. Điện thoại: một hàng logo + nút Menu, bấm mới mở danh sách.
@@ -29,6 +30,7 @@ export function SiteNav() {
           <Link key={href} href={href!} className={styles.navLink} onClick={close} aria-current={!href!.includes("#") && pathname.startsWith(href!) ? "page" : undefined}>{label}</Link>
         ))}
         <InstallApp className={styles.navInstall} label="Tải app" />
+        <ThemeToggle className={styles.navTheme} />
         <Link href={signedIn ? "/tai-khoan" : "/dang-nhap"} className={styles.navLink} onClick={close}
           aria-current={(signedIn ? pathname === "/tai-khoan" : pathname.startsWith("/dang-nhap")) ? "page" : undefined}>{signedIn ? "Tài khoản" : "Đăng nhập"}</Link>
         {!signedIn && <Link href="/khoa-hoc" className={styles.navCta} onClick={close}>Học thử miễn phí</Link>}

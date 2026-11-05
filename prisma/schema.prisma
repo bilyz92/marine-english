@@ -299,6 +299,7 @@ model Course {
   status           String          @default("draft")
   priceVnd         Int?            @map("price_vnd")
   currentVersionId String?         @map("current_version_id") @db.Uuid
+  topics           Json            @default("[]")
   createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime        @default(now()) @map("updated_at") @db.Timestamptz(6)
   currentVersion   CourseVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: Restrict)

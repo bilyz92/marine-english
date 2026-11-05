@@ -78,6 +78,10 @@ describe("quyền học", () => {
     expect((m as unknown as { titleVi: string }).titleVi).toBe("Thực tập sinh máy tàu dầu và hóa chất");
     expect(m.lessons.every((x) => x.contentHash.length === 64)).toBe(true);
     expect((await lesson(l, paidLesson)).status).toBe(200);
+    // Giao diện v2: danh sách bài chia theo chủ đề của học liệu (catalog.modules), đúng thứ tự, chỉ chủ đề có bài trong khóa.
+    const t2 = m as unknown as { topics: { id: string; titleVi: string }[]; lessons: { topic: string | null }[] };
+    expect(t2.topics).toEqual([{ id: "A1", titleVi: "Học vấn và mục tiêu nghề nghiệp" }, { id: "B1", titleVi: "Tàu dầu và hóa chất" }]);
+    expect(t2.lessons.map((x) => x.topic)).toEqual(["A1", "A1", "A1", "B1"]);
 
     const owner = await adminCtx("owner");
     const r = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn", payout: TEST_PAYOUT });

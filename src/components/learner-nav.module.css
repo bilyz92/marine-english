@@ -2,15 +2,18 @@
 .nav, .spacer { display: none; }
 @media (max-width: 760px) {
   .spacer { display: block; height: calc(68px + env(safe-area-inset-bottom)); }
+  /* Có menu đáy thì mọi thanh dính đáy (hàng Trước / Tiếp theo của bài học) nằm trên menu. */
+  :global(html):has(.nav) { --dock-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .nav {
     display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
     padding-bottom: env(safe-area-inset-bottom); background: var(--color-plate);
   }
 }
 .item {
-  min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 2px;
-  color: var(--color-plate-text); font-size: var(--font-xs); font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none;
+  /* Cao đúng 64px (khớp --dock-bottom): biểu tượng 20px + nhãn tối đa 2 dòng. */
+  height: 64px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 2px;
+  color: var(--color-plate-text); font-size: var(--font-xs); font-weight: 600; line-height: 1.1; text-align: center; text-decoration: none;
 }
-.item svg { flex: none; }
+.item svg { flex: none; width: 20px; height: 20px; }
 .active { composes: item; background: var(--color-action); color: var(--color-action-ink); font-weight: 700; }
 .item:focus-visible, .active:focus-visible { outline: 3px solid var(--color-focus); outline-offset: -3px; }

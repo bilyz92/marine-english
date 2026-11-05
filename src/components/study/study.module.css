@@ -1,6 +1,7 @@
 /* Giao diện học 3 mức (docs/superpowers/plans/2026-11-03-three-level-study.md). Dùng biến màu của website (tokens.css). */
 /* Mức học dính dưới thanh đầu trang; --sticky-top do trang học đặt, trang học thử không có thanh dính thì bằng 0. */
-.levels { position: sticky; top: var(--sticky-top, 0); z-index: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 6px 0; background: var(--study-bg, var(--color-bg)); }
+/* Ba mức như ba nấc tay chuông: dải đen, mức đang chọn màu vàng. */
+.levels { position: sticky; top: var(--sticky-top, 0); z-index: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: var(--radius-card); background: var(--color-plate); box-shadow: 0 -6px 0 var(--study-bg, var(--color-bg)); }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
 .side { order: 2; position: sticky; top: calc(var(--sticky-top, 0px) + 84px); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -8,45 +9,64 @@
   .layout { grid-template-columns: minmax(0, 1fr); }
   /* Bỏ khung cột phải để câu hỏi lên trước, từ vựng xuống sau phần học. */
   .side { display: contents; }
-  .main { order: 1; }
+  .main { order: -1; }
   .words { order: 2; }
 }
 .wordsHead { margin-top: 14px; }
-.word { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg); font-size: var(--font-xs); }
+.word { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; max-width: 100%; min-height: 40px; padding: 4px 10px; border-radius: 4px; background: var(--color-bg-soft); font-size: var(--font-small); }
 .level {
-  min-height: 56px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 8px 10px;
-  border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2);
+  min-height: 64px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 6px 10px;
+  border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-plate-text);
   font: inherit; text-align: left; cursor: pointer;
 }
-.level strong { font-size: var(--font-xs); line-height: 1.3; }
-.level span { font-size: var(--font-xs); color: var(--color-muted); line-height: 1.3; }
-.levelOn { composes: level; border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary-dark); box-shadow: inset 0 0 0 1px var(--color-primary); }
-.level:focus-visible, .choice:focus-within, .toggle:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; }
-.stepHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-.stepCount { font-size: var(--font-xs); font-weight: 700; color: var(--color-primary); }
-.bar { height: 6px; border-radius: 999px; background: var(--color-border); overflow: hidden; margin-bottom: 12px; }
-.barFill { height: 100%; background: var(--color-primary); transition: width 0.2s; }
-.answer { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--color-bg-alt); border-left: 3px solid var(--color-primary); }
-.answerLabel { font-size: var(--font-xs); font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 4px; }
-.toggle { min-height: var(--touch); padding: 8px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2); font: inherit; font-size: var(--font-xs); cursor: pointer; }
-.nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; }
-.nav button { min-height: var(--touch); }
+.level strong { font-size: 19px; line-height: 1.2; }
+.level span { font-size: var(--font-xs); color: var(--color-plate-muted); line-height: 1.2; }
+.levelOn { composes: level; background: var(--color-action); color: var(--color-action-ink); }
+.levelOn span { color: var(--color-action-ink); }
+.levelHint { display: none; }
+@media (min-width: 961px) { .levelHint { display: block; } }
+.level:focus-visible, .choice:focus-within, .toggle:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.stepHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.step .stepHead, .step .bar { margin-bottom: 0; }
+.stepCount { font-size: 22px; font-weight: 700; color: var(--color-text); }
+.bar { height: 14px; border-radius: 2px; background: var(--color-bg-soft); overflow: hidden; margin-bottom: 14px; }
+.barFill { height: 100%; background: var(--color-text); transition: width 0.2s; }
+.answer { margin-top: 12px; padding: 12px 14px; border-radius: 0 var(--radius-control) var(--radius-control) 0; background: var(--color-bg-soft); border-left: 6px solid var(--color-action); }
+.answerLabel { font-size: var(--font-small); font-weight: 700; color: var(--color-text); margin: 0 0 6px; }
+.toggle { min-height: var(--touch); padding: 8px 16px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font: inherit; font-weight: 700; cursor: pointer; }
+.toggle:disabled { border-style: dashed; color: var(--color-muted); cursor: not-allowed; }
+/* Trước / Tiếp theo: điện thoại thì dính đáy màn, trong tầm ngón cái (trên menu học viên nếu có). */
+.nav { display: grid; grid-template-columns: 2fr 3fr; gap: 10px; margin-top: 16px; }
+.step .nav { margin-top: 6px; }
+.nav button { min-height: var(--touch-main); }
+/* Câu tiếng Anh của bước nhỏ: chữ to nhất màn. */
+.step { display: flex; flex-direction: column; gap: 10px; }
+.step > * { margin-top: 0; margin-bottom: 0; }
+.step > p:first-of-type { font-size: var(--font-en); line-height: 1.25; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { padding: 4px 10px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary-dark); font-size: var(--font-xs); }
-.textarea { width: 100%; min-height: 96px; padding: 10px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); font: inherit; font-size: 16px; resize: vertical; background: var(--color-bg); color: var(--color-text); box-sizing: border-box; }
-.alts { margin: 8px 0 0; padding-left: 18px; font-size: var(--font-xs); color: var(--color-text-2); }
+.chip { display: inline-flex; align-items: center; min-height: 40px; padding: 4px 12px; border-radius: 4px; background: var(--color-bg-soft); color: var(--color-text); font-size: var(--font-small); }
+.textarea { width: 100%; min-height: 96px; padding: 10px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); font: inherit; resize: vertical; background: var(--color-bg); color: var(--color-text); box-sizing: border-box; }
+.alts { margin: 8px 0 0; padding-left: 20px; font-size: var(--font-small); color: var(--color-text-2); }
 .ex { padding: 12px 0; border-top: 1px solid var(--color-line); display: flex; flex-direction: column; gap: 8px; }
 .ex:first-of-type { border-top: 0; }
 .exRow { display: flex; gap: 8px; }
-.exRow input { flex: 1; min-width: 0; min-height: var(--touch); padding: 8px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); font: inherit; font-size: 16px; }
-.choice { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 10px; cursor: pointer; font-size: 15px; line-height: 1.45; }
-.choice input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
-.right { color: var(--color-success); font-size: var(--font-xs); font-weight: 600; margin: 0; }
-.wrong { color: var(--color-danger); font-size: var(--font-xs); font-weight: 600; margin: 0; }
+.exRow input { flex: 1; min-width: 0; min-height: var(--touch); padding: 8px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font: inherit; }
+.choice { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); cursor: pointer; line-height: 1.4; }
+.choice:has(input:checked) { box-shadow: inset 6px 0 0 var(--color-text); }
+.choice input { margin: 0; width: 26px; height: 26px; flex: none; accent-color: var(--color-text); }
+.right { color: var(--color-success); font-weight: 700; margin: 0; }
+.wrong { color: var(--color-danger); font-weight: 700; margin: 0; }
 .profile { display: flex; flex-direction: column; gap: 10px; }
 .saved { color: var(--color-success); font-size: var(--font-xs); margin: 0; }
+@media (max-width: 960px) {
+  .nav {
+    position: sticky; bottom: var(--dock-bottom, 0px); z-index: 2; margin: 16px -20px -20px; padding: 10px 16px;
+    background: var(--color-plate); border-radius: 0 0 var(--radius-card) var(--radius-card);
+  }
+  .nav button:first-child { background: transparent; color: var(--color-plate-text); border-color: var(--color-plate-text); }
+  .nav button:first-child:disabled { color: var(--color-plate-muted); border-color: var(--color-plate-muted); }
+}
 @media (max-width: 600px) {
-  .level { min-height: 44px; padding: 6px 8px; }
-  .level strong { font-size: var(--font-xs); }
-  .level span { display: none; }
+  .level { padding: 6px 8px; }
+  .level strong { font-size: 18px; }
 }

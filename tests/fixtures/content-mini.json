@@ -19,6 +19,42 @@
    "audio_generation_and_review"
   ]
  },
+ "catalog": {
+  "modules": [
+   {
+    "id": "A1",
+    "title": {
+     "en": "A1 Education background and career goals",
+     "vi": "A1 Học vấn và mục tiêu nghề nghiệp"
+    },
+    "lesson_ids": [
+     "A001",
+     "A002",
+     "A003-1"
+    ]
+   },
+   {
+    "id": "B1",
+    "title": {
+     "en": "B1 Oil and chemical tankers",
+     "vi": "B1 Tàu dầu và hóa chất"
+    },
+    "lesson_ids": [
+     "T001"
+    ]
+   },
+   {
+    "id": "C1",
+    "title": {
+     "en": "C1 Dry cargo",
+     "vi": "C1 Tàu hàng rời"
+    },
+    "lesson_ids": [
+     "H001"
+    ]
+   }
+  ]
+ },
  "courses": [
   {
    "id": "engine_cadet_tanker",

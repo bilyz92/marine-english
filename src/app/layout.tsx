@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { LearnerNav } from "@/components/learner-nav";
+import { THEME_SCRIPT } from "@/components/theme-toggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,6 +19,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="vi" suppressHydrationWarning>
+      <head>
+        {/* Chọn Sáng/Tối đã lưu trên máy, đặt trước khi vẽ trang. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         {children}
         {/* Menu điện thoại của học viên (chỉ hiện khi đã đăng nhập, không hiện ở khu quản trị). */}

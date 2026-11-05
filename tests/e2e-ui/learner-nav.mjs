@@ -69,6 +69,20 @@ try {
   await tap("Khóa của tôi");
   check("Khóa của tôi → app học", await waitFor(async () => (await path()).startsWith("/hoc")));
 
+  // Học viên đã đăng nhập mở bài học thử trên điện thoại: hàng Trước / Tiếp theo dính đáy nằm trên menu, không bị che.
+  await b.go(`${BASE}/khoa-hoc`);
+  await hydrated();
+  const slug = await b.evaluate(`[...document.querySelectorAll('a[href^="/khoa-hoc/"]')].map((a) => a.getAttribute("href").split("/")[2]).find(Boolean)`);
+  await b.go(`${BASE}/khoa-hoc/${slug}/hoc-thu/1`);
+  const dockClear = await waitFor(async () => b.evaluate(`(() => {
+    const next = [...document.querySelectorAll("button")].find((e) => e.textContent.trim().startsWith("Tiếp theo"));
+    const nav = document.querySelector('nav[aria-label="Menu học viên"]');
+    if (!next || !nav) return false;
+    window.scrollTo(0, 0);
+    return next.parentElement.getBoundingClientRect().bottom <= nav.getBoundingClientRect().top + 1;
+  })()`), 60000);
+  check("bài học thử: hàng Trước/Tiếp theo không bị menu đáy che", dockClear);
+
   await b.width(1280, 900);
   await b.go(`${BASE}/khoa-hoc`);
   await hydrated();

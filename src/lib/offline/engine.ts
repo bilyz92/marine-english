@@ -12,8 +12,13 @@ export type { Identity } from "./db";
 export type ManifestLesson = {
   position: number; lessonVersionId: string; externalId: string; title: string; contentHash: string; isFreeTrial: boolean;
   status: "in_progress" | "completed" | null; completedActivities: string[];
+  /** Chủ đề (A1…); không có ở manifest cũ đã lưu trên máy. */
+  topic?: string | null;
 };
-export type Manifest = { courseId: string; slug: string; titleVi: string; versionId: string; provisional?: boolean; lessons: ManifestLesson[]; assets: ManifestAsset[]; totalBytes: number };
+export type Manifest = {
+  courseId: string; slug: string; titleVi: string; versionId: string; provisional?: boolean; lessons: ManifestLesson[]; assets: ManifestAsset[]; totalBytes: number;
+  topics?: { id: string; titleVi: string }[];
+};
 export type MyCourse = { slug: string; titleVi: string; sources: string[] };
 type StoredLesson = { lessonVersionId: string; contentHash: string; content: unknown };
 type StoredFile = { assetId: string; sha256: string; mime: string; bytes: ArrayBuffer };

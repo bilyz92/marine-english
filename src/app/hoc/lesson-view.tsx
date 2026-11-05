@@ -140,7 +140,7 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
         </div>
       )}
       <div className={styles.actions}>
-        <button className={styles.primary} disabled={completed} onClick={() => void finish()}>{completed ? "Đã học xong bài này" : "Đánh dấu đã học xong"}</button>
+        <button className={styles.secondary} disabled={completed} onClick={() => void finish()}>{completed ? "Đã học xong bài này" : "Đánh dấu đã học xong"}</button>
         {next && <button className={styles.secondary} onClick={() => go({ khoa: slug, bai: next.position })}>Bài tiếp →</button>}
       </div>
     </>

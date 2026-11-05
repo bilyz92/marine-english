@@ -62,12 +62,16 @@ type Parsed = {
   exercises: { lesson_id: string; [key: string]: Json }[];
   bindings: Binding[];
   fields: FieldDef[];
+  topics: Topic[];
 };
+
+/** Chủ đề của học liệu (catalog.modules), ví dụ A1 "A1 Học vấn và mục tiêu nghề nghiệp". */
+type Topic = { id: string; title: { vi: string; en: string }; lesson_ids: string[] };
 
 function parse(data: unknown): Parsed {
   const d = data as {
     publication?: { importable?: unknown }; content_version?: unknown; courses?: unknown; lessons?: unknown; activities?: unknown;
-    learning_exercises?: unknown; placeholder_bindings?: unknown; profile_contract?: { fields?: unknown };
+    learning_exercises?: unknown; placeholder_bindings?: unknown; profile_contract?: { fields?: unknown }; catalog?: { modules?: unknown };
   };
   if (d?.publication?.importable !== true) throw new ContentImportError("Dữ liệu chưa được đánh dấu nhập được (publication.importable)");
   if (!Array.isArray(d.courses) || !Array.isArray(d.lessons)) throw new ContentImportError("Thiếu courses hoặc lessons");
@@ -87,7 +91,19 @@ function parse(data: unknown): Parsed {
     exercises: Array.isArray(d.learning_exercises) ? (d.learning_exercises as Parsed["exercises"]) : [],
     bindings: Array.isArray(d.placeholder_bindings) ? (d.placeholder_bindings as Binding[]) : [],
     fields: Array.isArray(d.profile_contract?.fields) ? (d.profile_contract!.fields as FieldDef[]) : [],
+    topics: Array.isArray(d.catalog?.modules)
+      ? (d.catalog!.modules as Topic[]).filter((t) => typeof t?.id === "string" && typeof t.title?.vi === "string" && Array.isArray(t.lesson_ids))
+      : [],
   };
+}
+
+/** Chủ đề có bài trong khóa, theo thứ tự học liệu; bỏ mã chủ đề ở đầu tên ("A1 Học vấn…" → "Học vấn…"). */
+export function courseTopics(topics: Topic[], lessonIds: string[]): { id: string; titleVi: string; titleEn: string }[] {
+  const inCourse = new Set(lessonIds);
+  const strip = (id: string, title: string) => (title.startsWith(`${id} `) ? title.slice(id.length + 1) : title).trim();
+  return topics
+    .filter((t) => t.lesson_ids.some((id) => inCourse.has(id)))
+    .map((t) => ({ id: t.id, titleVi: strip(t.id, t.title.vi), titleEn: strip(t.id, t.title.en ?? "") }));
 }
 
 /** Mọi nhãn ngoặc [..] trong chữ của một giá trị JSON. */
@@ -214,10 +230,10 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
         [course.id],
       );
       const [c] = await sql.query<{ id: string; status: string }>(
-        `INSERT INTO courses (slug, title_vi, title_en) VALUES ($1, $2, $3)
-         ON CONFLICT (slug) DO UPDATE SET title_vi = EXCLUDED.title_vi, title_en = EXCLUDED.title_en, updated_at = now()
+        `INSERT INTO courses (slug, title_vi, title_en, topics) VALUES ($1, $2, $3, $4::jsonb)
+         ON CONFLICT (slug) DO UPDATE SET title_vi = EXCLUDED.title_vi, title_en = EXCLUDED.title_en, topics = EXCLUDED.topics, updated_at = now()
          RETURNING id::text AS id, status`,
-        [course.id, course.title.vi, course.title.en],
+        [course.id, course.title.vi, course.title.en, JSON.stringify(courseTopics(p.topics, course.lesson_ids))],
       );
       const [existing] = await sql.query<{ id: string }>(
         `SELECT id::text AS id FROM course_versions WHERE course_id = $1::uuid AND source_hash = $2`,

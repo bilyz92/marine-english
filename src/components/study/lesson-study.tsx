@@ -58,8 +58,10 @@ function Study({ externalId, lesson, who, children }: { externalId: string; less
       <div className={styles.levels} role="group" aria-label="Mức hỗ trợ tiếng Anh">
         {LEVELS.map((l) => (
           <button key={l.id} type="button" className={l.id === level ? styles.levelOn : styles.level} aria-pressed={l.id === level} onClick={() => chooseLevel(l.id)}>
-            <strong>{l.label}</strong>
-            <span>{l.hint}</span>
+            {/* "Mức 1 · Mới bắt đầu": số mức chữ to, tên mức dòng dưới; lời gợi ý chỉ hiện trên màn rộng. */}
+            <strong>{l.label.split(" · ")[0]}</strong>
+            <span>{l.label.split(" · ")[1]}</span>
+            <span className={styles.levelHint}>{l.hint}</span>
           </button>
         ))}
       </div>
@@ -198,7 +200,7 @@ function Foundation({ data, fill, profile, step, setStep, onNext, answers, setAn
   return (
     <>
       {current ? (
-        <div className={learn.card} aria-live="polite">
+        <div className={`${learn.card} ${styles.step}`} aria-live="polite">
           <div className={styles.stepHead}>
             <span className={styles.stepCount}>Bước {at + 1}/{total}</span>
             <button type="button" className={styles.toggle} onClick={() => setShowVi(!showVi)}>{showVi ? "Ẩn nghĩa" : "Hiện nghĩa"}</button>

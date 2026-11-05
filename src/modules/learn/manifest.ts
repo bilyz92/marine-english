@@ -12,25 +12,28 @@ export type Manifest = {
   versionId: string;
   /** Chỉ có quyền mở tạm (chưa xác nhận tiền): học online, chưa tải về máy. */
   provisional: boolean;
-  lessons: { position: number; lessonVersionId: string; externalId: string; title: string; contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[] }[];
+  /** Chủ đề của học liệu theo thứ tự (A1, A2…); rỗng thì danh sách bài là một danh sách phẳng. */
+  topics: { id: string; titleVi: string }[];
+  lessons: { position: number; lessonVersionId: string; externalId: string; title: string; topic: string | null; contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[] }[];
   assets: { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string; visibility: "public" | "protected"; url: string }[];
   totalBytes: number;
 };
 
 export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Manifest | "forbidden" | "not_found"> {
   const db = prisma();
-  const [course] = await db.$queryRaw<{ id: string; title_vi: string; current_version_id: string | null }[]>`
-    SELECT id, title_vi, current_version_id FROM courses WHERE slug = ${slug}`;
+  const [course] = await db.$queryRaw<{ id: string; title_vi: string; current_version_id: string | null; topics: { id: string; titleVi: string }[] }[]>`
+    SELECT id, title_vi, current_version_id, topics FROM courses WHERE slug = ${slug}`;
   if (!course?.current_version_id) return "not_found";
   if (!(await hasActiveEnrollment(db, await mergeGroupIds(db, ctx.userId), course.id))) return "forbidden";
 
   const lessons = await db.$queryRaw<
     {
-      position: number; lesson_version_id: string; external_id: string; title: string | null; content_hash: string; is_free_trial: boolean;
+      position: number; lesson_version_id: string; external_id: string; title: string | null; module_id: string | null; content_hash: string; is_free_trial: boolean;
       status: "in_progress" | "completed" | null; completed_activities: string[] | null;
     }[]
   >`
     SELECT cvl.position, cvl.lesson_version_id, l.external_id, cvl.is_free_trial, lv.content_hash, lp.status, lp.completed_activities,
+           lv.content ->> 'module_id' AS module_id,
            coalesce(lv.content #>> '{question,text,vi}', lv.content #>> '{question,text,en}') AS title
     FROM course_version_lessons cvl
     JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id
@@ -49,15 +52,18 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
     ORDER BY cvl.position, ma.id`;
   // Một tệp dùng ở nhiều bài chỉ tải một lần.
   const bytesById = new Map(assets.map((a) => [a.id, a.bytes]));
+  const topics = course.topics.map((t) => ({ id: t.id, titleVi: t.titleVi }));
+  const topicIds = new Set(topics.map((t) => t.id));
   return {
     courseId: course.id,
     slug,
     titleVi: course.title_vi,
     versionId: course.current_version_id,
+    topics,
     provisional: (await entitledCourses(ctx.userId, db)).find((c) => c.courseId === course.id)?.provisional ?? false,
     lessons: lessons.map((l) => ({
       position: l.position, lessonVersionId: l.lesson_version_id, externalId: l.external_id,
-      title: l.title ?? l.external_id, contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
+      title: l.title ?? l.external_id, topic: l.module_id && topicIds.has(l.module_id) ? l.module_id : null, contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
       status: l.status, completedActivities: l.completed_activities ?? [],
     })),
     // Tệp công khai tải theo đường dẫn ổn định (Caddy phục vụ ở production); tệp bảo vệ chỉ qua API có kiểm quyền.
