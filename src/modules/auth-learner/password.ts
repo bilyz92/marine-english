@@ -50,6 +50,12 @@ async function isLocked(tx: Tx, ip: string, phone: string | null): Promise<boole
   return row!.ip_fails >= IP_FAILS || row!.phone_fails >= PHONE_FAILS;
 }
 
+async function emailTaken(tx: Tx, email: string): Promise<boolean> {
+  const [row] = await tx.$queryRaw<{ taken: boolean }[]>`
+    SELECT EXISTS (SELECT 1 FROM user_identities WHERE kind = 'email' AND value_canonical = ${email}) AS taken`;
+  return row!.taken;
+}
+
 /** Số đang có chủ: dòng mật khẩu chưa nhả của người khác, hoặc số đã xác minh của bất kỳ ai khác. */
 async function phoneTaken(tx: Tx, phone: string, exceptUserId: string | null): Promise<boolean> {
   const [row] = await tx.$queryRaw<{ taken: boolean }[]>`
@@ -105,7 +111,7 @@ async function attachPhone(tx: Tx, userId: string, phone: string, hash: string, 
 
 export type RegisterResult<T> =
   | { kind: "ok"; value: T }
-  | { kind: "invalid_phone" | "phone_taken" | "throttled" }
+  | { kind: "invalid_phone" | "phone_taken" | "email_taken" | "throttled" }
   | { kind: "weak"; problem: PasswordProblem };
 
 /**
@@ -114,14 +120,14 @@ export type RegisterResult<T> =
  * (mọi lần đăng ký trong 1 giờ, kể cả lần hỏng) và số đã có chủ, rồi **giữ chỗ** một lượt đăng ký; (2) băm; (3) dưới khóa kiểm lại số rồi tạo.
  */
 export async function registerWithPassword<T>(
-  input: { phone: string; password: string; displayName: string; rank: string | null; ip: string },
+  input: { phone: string; password: string; displayName: string; rank: string | null; ip: string; existingEmail?: string },
   then: (tx: Tx, userId: string) => Promise<T>,
 ): Promise<RegisterResult<T>> {
   const phone = canonicalizeVnPhone(input.phone);
   if (!phone) return { kind: "invalid_phone" };
   const problem = passwordProblem(input.password, phone);
   if (problem) return { kind: "weak", problem };
-  const reserved = await withTx(async (tx): Promise<{ kind: "throttled" | "phone_taken" } | { kind: "slot"; attemptId: string }> => {
+  const reserved = await withTx(async (tx): Promise<{ kind: "throttled" | "phone_taken" | "email_taken" } | { kind: "slot"; attemptId: string }> => {
     await lockKeys(tx, input.ip, phone);
     const [regs] = await tx.$queryRaw<{ n: number }[]>`
       SELECT count(*)::int AS n FROM password_attempts WHERE ip = ${input.ip}::inet AND kind = 'register' AND at > now() - interval '1 hour'`;
@@ -129,6 +135,8 @@ export async function registerWithPassword<T>(
     const [attempt] = await tx.$queryRaw<{ id: string }[]>`
       INSERT INTO password_attempts (kind, ip, phone_canonical, ok) VALUES ('register', ${input.ip}::inet, ${phone}, false) RETURNING id`;
     if (await phoneTaken(tx, phone, null)) return { kind: "phone_taken" };
+    // Đăng ký nhanh ở trang mua: email khách nhập đã là email (đã xác minh) của tài khoản khác → mời đăng nhập tài khoản đó.
+    if (input.existingEmail && (await emailTaken(tx, input.existingEmail))) return { kind: "email_taken" };
     return { kind: "slot", attemptId: attempt!.id };
   });
   if (reserved.kind !== "slot") return reserved;
@@ -363,7 +371,8 @@ async function addPhoneAndPassword(ctx: LearnerCtx, input: { newPassword: string
 
 // Mật khẩu tạm: 10 ký tự, bỏ các ký tự dễ nhầm khi đọc qua điện thoại (0/O, 1/I/l/L).
 const TEMP_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-const temporaryPassword = () => Array.from({ length: 10 }, () => TEMP_ALPHABET[randomInt(TEMP_ALPHABET.length)]).join("");
+/** Mật khẩu do hệ thống cấp (mật khẩu tạm của chủ, tài khoản tạo nhanh ở trang mua). */
+export const generatedPassword = () => Array.from({ length: 10 }, () => TEMP_ALPHABET[randomInt(TEMP_ALPHABET.length)]).join("");
 
 export type AdminResetResult = { kind: "ok"; temporaryPassword: string } | { kind: "not_found" | "no_password_login" | "invalid_phone" | "phone_taken" };
 
@@ -381,7 +390,7 @@ export async function adminResetPassword(
   const evidence = input.evidence.trim();
   if (!reason || !evidence) throw new HttpError(400, "Cần lý do và bằng chứng");
   const phone = input.phone ? canonicalizeVnPhone(input.phone) : null;
-  const temp = temporaryPassword();
+  const temp = generatedPassword();
   const hash = await hashPassword(temp);
   const result = await withTx(async (tx): Promise<AdminResetResult> => {
     const [user] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM users WHERE id = ${userId}::uuid FOR UPDATE`;

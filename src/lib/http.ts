@@ -36,9 +36,10 @@ export function route<A extends unknown[]>(handler: (req: Request, ...rest: A) =
       if (!(error instanceof HttpError)) throw error;
       res = json({ error: error.message }, { status: error.status });
     }
-    // Dữ liệu theo phiên (đơn, quản trị) không bao giờ được lưu đệm ở trình duyệt hay proxy dùng chung.
+    // Dữ liệu theo phiên (đơn, quản trị) và mọi phản hồi đăng nhập/đăng ký (có thể chứa mật khẩu tự cấp, mã, phiên)
+    // không bao giờ được lưu đệm ở trình duyệt hay proxy dùng chung; áp cả cho phản hồi lỗi.
     const path = new URL(req.url).pathname;
-    if ((path.startsWith("/api/me") || path.startsWith("/api/quan-tri")) && !res.headers.has("cache-control")) {
+    if ((path.startsWith("/api/me") || path.startsWith("/api/quan-tri") || path.startsWith("/api/auth")) && !res.headers.has("cache-control")) {
       res.headers.set("cache-control", "private, no-store");
     }
     return withCookies(res, pendingCookies.get(req) ?? []);

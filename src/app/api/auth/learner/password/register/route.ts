@@ -13,7 +13,7 @@ const Body = z.object({
   deviceLabel: z.string().trim().min(1).max(100),
 });
 
-const ERRORS = { invalid_phone: 400, weak: 400, phone_taken: 409, throttled: 429 } as const;
+const ERRORS = { invalid_phone: 400, weak: 400, phone_taken: 409, email_taken: 409, throttled: 429 } as const;
 
 /** D2: tạo tài khoản bằng số điện thoại (chưa xác minh) + mật khẩu, rồi vào luôn như các cách đăng nhập khác (giới hạn 2 máy). */
 export const POST = route(async (req: Request) => {
