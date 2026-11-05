@@ -199,6 +199,20 @@ describe("/api/quan-tri/learners", () => {
     expect(text).toContain("678");
   });
 
+  it("danh sách học viên (không từ khóa): mới nhất trước, có tổng số, trang sau theo con trỏ; hỗ trợ thấy số che bớt", async () => {
+    const a = await testLearner("Hoc vien A");
+    const b = await learnerWithContacts();
+    const s = await adminSess("owner");
+    const first = (await body(await callAdmin(learnersRoute, s, "GET", "/api/quan-tri/learners?list=1&limit=1"))).data as { learners: { id: string }[]; total: number; nextCursor: string | null };
+    expect(first.total).toBe(2);
+    expect(first.learners.map((x) => x.id)).toEqual([b.userId]);
+    const second = (await body(await callAdmin(learnersRoute, s, "GET", `/api/quan-tri/learners?list=1&limit=1&cursor=${encodeURIComponent(first.nextCursor!)}`))).data as { learners: { id: string }[]; nextCursor: string | null };
+    expect(second.learners.map((x) => x.id)).toEqual([a.userId]);
+    expect(second.nextCursor).toBeNull();
+    const text = await (await callAdmin(learnersRoute, await adminSess("support"), "GET", "/api/quan-tri/learners?list=1")).text();
+    expect(text).not.toContain("912345678");
+  });
+
   it("từ khóa ngắn hoặc ký tự đại diện không liệt kê cả bảng", async () => {
     await learnerWithContacts();
     const s = await adminSess("owner");

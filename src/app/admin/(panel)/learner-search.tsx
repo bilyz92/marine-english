@@ -5,7 +5,7 @@ import { adminApi, Field, messageFor } from "./admin-lib";
 import styles from "./admin.module.css";
 
 export type Learner = {
-  id: string; displayName: string; rank: string | null; status: string; mergedIntoId: string | null;
+  id: string; displayName: string; rank: string | null; status: string; mergedIntoId: string | null; createdAt: string;
   identities: { kind: string; value: string }[];
   courses: { enrollmentId: string; courseId: string; title: string; source: string }[];
   passwordLogin: { phone: string; verified: boolean; released: boolean; mustChange: boolean } | null;

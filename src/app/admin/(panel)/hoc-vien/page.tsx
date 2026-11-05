@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ActionDialog, adminApi, can, Field, fmtTime, LoadState, problemOf, useAdmin, useLoad } from "../admin-lib";
+import { ActionDialog, adminApi, can, Field, fmtTime, LoadState, messageFor, problemOf, useAdmin, useLoad } from "../admin-lib";
 import { KIND_LABEL, LearnerSearch, type Learner } from "../learner-search";
 import styles from "../admin.module.css";
 
@@ -99,24 +99,81 @@ function PasswordLogin({ learner }: { learner: Learner }) {
   );
 }
 
+const SOURCE_LABEL: Record<string, string> = { order: "Đã mua", grant: "Cấp không thu tiền", provisional: "Mở tạm · chờ đối soát" };
+
+function LearnerCard({ l }: { l: Learner }) {
+  return (
+    <section className={styles.card}>
+      <h2 className={styles.h2}>{l.displayName}</h2>
+      <p className={styles.muted}>{l.rank ?? "Chưa ghi chức danh"}{l.status !== "active" ? ` · ${l.status === "merged" ? "Đã gộp vào tài khoản khác" : "Đã khóa"}` : ""}</p>
+      {l.identities.map((i) => <div key={i.kind + i.value} className={styles.item}><span className={styles.muted}>{KIND_LABEL[i.kind] ?? i.kind}</span><span>{i.value}</span></div>)}
+      <h3 className={styles.h2}>Khóa đang có</h3>
+      {l.courses.length === 0 && <p className={styles.muted}>Chưa có khóa nào.</p>}
+      {l.courses.map((c) => <div key={c.enrollmentId} className={styles.item}><span>{c.title}</span><span className={c.source === "provisional" ? styles.tagWarn : styles.tag}>{SOURCE_LABEL[c.source] ?? c.source}</span></div>)}
+      <PasswordLogin learner={l} />
+      <Devices learner={l} />
+    </section>
+  );
+}
+
+type Page = { learners: Learner[]; total: number; nextCursor: string | null };
+
+/** Liên hệ ngắn gọn cho một dòng danh sách: số đăng nhập, rồi email. */
+function contactOf(l: Learner): string {
+  const phone = l.passwordLogin?.phone ?? l.identities.find((i) => i.kind === "phone")?.value;
+  const email = l.identities.find((i) => i.kind === "email")?.value;
+  return [phone, email].filter(Boolean).join(" · ") || "Chưa có số hoặc email";
+}
+
 export default function LearnersPage() {
-  const [learners, setLearners] = useState<Learner[]>([]);
+  const [found, setFound] = useState<Learner[] | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const { data, reload, ...state } = useLoad<Page>("/api/quan-tri/learners?list=1");
+  const [more, setMore] = useState<{ learners: Learner[]; cursor: string | null } | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const list = [...(data?.learners ?? []), ...(more?.learners ?? [])];
+  const cursor = more ? more.cursor : data?.nextCursor ?? null;
+
+  async function loadMore() {
+    const r = await adminApi<Page>(`/api/quan-tri/learners?list=1&cursor=${encodeURIComponent(cursor!)}`);
+    if (!r.ok) return setProblem(messageFor(r.data.error));
+    setMore({ learners: [...(more?.learners ?? []), ...r.data.learners], cursor: r.data.nextCursor });
+  }
+
+  const rows = (learners: Learner[]) => learners.map((l) => (
+    <div key={l.id}>
+      <button type="button" className={styles.item} style={{ width: "100%", background: "none", border: 0, font: "inherit", textAlign: "left", cursor: "pointer" }}
+        aria-expanded={open === l.id} onClick={() => setOpen(open === l.id ? null : l.id)}>
+        <span className={styles.itemText}>
+          <strong>{l.displayName}</strong>
+          <span className={styles.muted}>{contactOf(l)}</span>
+          <span className={styles.muted}>Tạo {fmtTime(l.createdAt)}{l.rank ? ` · ${l.rank}` : ""}</span>
+        </span>
+        <span className={l.courses.length ? styles.tag : styles.muted}>{l.courses.length ? `${l.courses.length} khóa` : "Chưa có khóa"}</span>
+      </button>
+      {open === l.id && <LearnerCard l={l} />}
+    </div>
+  ));
+
   return (
     <>
       <h1 className={styles.h1}>Học viên</h1>
-      <section className={styles.card}><LearnerSearch onResults={setLearners} /></section>
-      {learners.map((l) => (
-        <section key={l.id} className={styles.card}>
-          <h2 className={styles.h2}>{l.displayName}</h2>
-          <p className={styles.muted}>{l.rank ?? "Chưa ghi chức danh"}{l.status !== "active" ? ` · ${l.status === "merged" ? "Đã gộp vào tài khoản khác" : "Đã khóa"}` : ""}</p>
-          {l.identities.map((i) => <div key={i.kind + i.value} className={styles.item}><span className={styles.muted}>{KIND_LABEL[i.kind] ?? i.kind}</span><span>{i.value}</span></div>)}
-          <h3 className={styles.h2}>Khóa đang có</h3>
-          {l.courses.length === 0 && <p className={styles.muted}>Chưa có khóa nào.</p>}
-          {l.courses.map((c) => <div key={c.enrollmentId} className={styles.item}><span>{c.title}</span><span className={styles.tag}>{c.source === "order" ? "Đã mua" : "Cấp không thu tiền"}</span></div>)}
-          <PasswordLogin learner={l} />
-          <Devices learner={l} />
+      <section className={styles.card}>
+        <LearnerSearch onResults={(r) => { setFound(r); setOpen(r.length === 1 ? r[0]!.id : null); }} />
+        {found && <div className={styles.actions}><button type="button" className={styles.btn} onClick={() => setFound(null)}>Xem tất cả học viên</button></div>}
+      </section>
+      {found ? (
+        found.length > 0 && <section className={styles.card}><h2 className={styles.h2}>Kết quả tìm ({found.length})</h2>{rows(found)}</section>
+      ) : (
+        <section className={styles.card}>
+          <h2 className={styles.h2}>Tất cả học viên{data ? ` (${data.total})` : ""}</h2>
+          <LoadState {...state} reload={reload} />
+          {data && list.length === 0 && <p className={styles.muted}>Chưa có học viên nào.</p>}
+          {rows(list)}
+          {problem && <p className={styles.error} role="alert">{problem}</p>}
+          {cursor && <div className={styles.actions}><button type="button" className={styles.btn} onClick={() => void loadMore()}>Xem thêm</button></div>}
         </section>
-      ))}
+      )}
     </>
   );
 }
