@@ -1,57 +1,58 @@
-.page { --sticky-top: 65px; --study-bg: var(--color-bg-soft); min-height: 100vh; background: var(--color-bg-soft); color: var(--color-text); padding-bottom: 32px; }
-.bar { position: sticky; top: 0; z-index: 3; background: var(--color-bg); border-bottom: 1px solid var(--color-border); }
+.page { --sticky-top: 72px; --study-bg: var(--color-bg-alt); min-height: 100vh; background: var(--color-bg-alt); color: var(--color-text); padding-bottom: 32px; }
+.bar { position: sticky; top: 0; z-index: 3; background: var(--color-plate); color: var(--color-plate-text); }
 .barInner { max-width: 1200px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.brand { display: flex; align-items: center; gap: 10px; font: inherit; font-weight: 800; font-size: 18px; color: var(--color-text); background: none; border: 0; padding: 0; cursor: pointer; }
-.logo { width: 40px; height: 40px; border-radius: 10px; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; }
-.barNav { display: inline-flex; align-items: center; min-height: var(--touch); color: var(--color-text-2); font-size: 15px; font-weight: 500; text-decoration: none; }
+.brand { display: flex; align-items: center; gap: 10px; font: inherit; font-weight: 700; font-size: 19px; color: var(--color-plate-text); background: none; border: 0; padding: 0; cursor: pointer; }
+.logo { width: 32px; height: 40px; color: var(--color-action); display: flex; align-items: center; justify-content: center; }
+.barNav { display: inline-flex; align-items: center; min-height: var(--touch); color: var(--color-plate-text); font-size: var(--font-small); font-weight: 500; text-decoration: none; }
 .brandText { white-space: nowrap; }
 @media (max-width: 760px) {
-  .page { --sticky-top: 53px; }
+  .page { --sticky-top: 68px; }
   .barInner { padding: 8px 16px; }
-  .logo { width: 36px; height: 36px; }
+  .logo { width: 28px; height: 36px; }
   .barNav { display: none; }
   .barRight { white-space: nowrap; min-width: 0; }
   .barRight .barLink { display: block; max-width: 130px; line-height: var(--touch); overflow: hidden; text-overflow: ellipsis; }
 }
 @media (max-width: 480px) { .brandText { display: none; } }
-.barLink { display: inline-flex; align-items: center; min-height: var(--touch); color: var(--color-text-2); font-size: 14px; }
+.barLink { display: inline-flex; align-items: center; min-height: var(--touch); color: var(--color-text-2); font-size: var(--font-xs); }
+.bar .barLink, .bar .barNav:hover { color: var(--color-plate-text); }
 .srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .wrap { max-width: 720px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .wrapLesson { composes: wrap; max-width: 1080px; }
 .card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; }
 .h1 { font-size: 20px; margin: 0 0 6px; line-height: 1.35; }
 .h2 { font-size: 16px; margin: 0 0 8px; }
-.muted { color: var(--color-muted); font-size: 14px; line-height: 1.5; margin: 0; }
+.muted { color: var(--color-muted); font-size: var(--font-xs); line-height: 1.5; margin: 0; }
 .en { font-size: 17px; line-height: 1.5; margin: 0 0 4px; }
-.vi { color: var(--color-muted); font-size: 14px; line-height: 1.5; margin: 0; }
-.banner { background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); color: var(--color-warning); border-radius: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.5; }
+.vi { color: var(--color-muted); font-size: var(--font-xs); line-height: 1.5; margin: 0; }
+.banner { background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); color: var(--color-warning); border-radius: 10px; padding: 10px 12px; font-size: var(--font-xs); line-height: 1.5; }
 .bannerDanger { composes: banner; background: var(--color-danger-bg); border-color: var(--color-danger); color: var(--color-danger); }
-.note { background: var(--color-primary-soft); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--color-text-2); line-height: 1.5; }
+.note { background: var(--color-primary-soft); border-radius: 10px; padding: 10px 12px; font-size: var(--font-xs); color: var(--color-text-2); line-height: 1.5; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; color: inherit; font: inherit; cursor: pointer; }
 .row:disabled { opacity: 0.55; cursor: default; }
 .rowTitle { font-size: 15px; line-height: 1.4; }
-.tag { flex: none; font-size: 12px; border-radius: 999px; padding: 2px 8px; background: var(--color-line); color: var(--color-muted); }
+.tag { flex: none; font-size: var(--font-xs); border-radius: 999px; padding: 2px 8px; background: var(--color-line); color: var(--color-muted); }
 .tagDone { composes: tag; background: var(--color-success-bg); color: var(--color-success); }
 .tagDoing { composes: tag; background: var(--color-bg-alt); color: var(--color-primary-dark); }
 .tagTrial { composes: tag; background: var(--color-primary-soft); color: var(--color-primary); }
 .primary { padding: 12px 16px; border: 0; border-radius: var(--radius-control); background: var(--color-primary); color: var(--color-bg); font: inherit; font-weight: 600; cursor: pointer; }
 .primary:disabled { opacity: 0.6; cursor: default; }
-.secondary { padding: 10px 14px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2); font: inherit; cursor: pointer; }
+.secondary { padding: 10px 14px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2); font: inherit; cursor: pointer; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .item { padding: 8px 0; border-top: 1px solid var(--color-line); }
 .item:first-of-type { border-top: 0; }
-.check { display: flex; gap: 10px; align-items: center; padding: 6px 0; font-size: 14px; }
+.check { display: flex; gap: 10px; align-items: center; padding: 6px 0; font-size: var(--font-xs); }
 .check input { width: 20px; height: 20px; }
 .progress { height: 8px; border-radius: 999px; background: var(--color-border); overflow: hidden; }
 .progressFill { height: 100%; background: var(--color-primary); }
 .audio { width: 100%; }
-.field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; }
-.input { min-height: var(--touch); padding: 8px 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); font: inherit; font-weight: 400; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: var(--font-xs); font-weight: 600; }
+.input { min-height: var(--touch); padding: 8px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); font: inherit; font-weight: 400; }
 .refundForm { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 
 .barRight { display: flex; align-items: center; gap: 16px; }
-.barInstall { min-height: var(--touch); padding: 0 10px; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primary); cursor: pointer; }
+.barInstall { min-height: var(--touch); padding: 0 10px; border: 0; background: none; font: inherit; font-weight: 700; color: var(--color-action); cursor: pointer; }
 .speak { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; }
 .voice { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-.voice select { min-height: var(--touch); padding: 6px 10px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); font-size: 15px; max-width: 100%; }
+.voice select { min-height: var(--touch); padding: 6px 10px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); font-size: 15px; max-width: 100%; }

@@ -1,29 +1,29 @@
 /* Trang thanh toán theo mẫu chủ dự án gửi 03/11/2026: khung QR lớn, số tiền to, bảng thông tin có nút Copy. Màu theo tokens.css. */
 .pay {
   display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 16px 16px;
-  border-radius: var(--radius-card); background: linear-gradient(160deg, var(--color-primary-dark), var(--color-primary)); color: #fff;
+  border-radius: var(--radius-card); background: var(--color-plate); color: var(--color-plate-text);
 }
 .payTitle { margin: 0; font-size: 15px; font-weight: 600; opacity: 0.92; text-align: center; }
 .qrFrame { width: 100%; max-width: 300px; padding: 12px; border-radius: 16px; background: rgb(255 255 255 / 0.12); display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.qrBox { width: 100%; padding: 12px; border-radius: 12px; background: #fff; color: var(--color-text); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.qrBox { width: 100%; padding: 12px; border-radius: 12px; background: var(--color-paper); color: var(--color-paper-ink); display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .qr { display: block; width: 100%; max-width: 240px; height: auto; image-rendering: pixelated; }
-.qrPlaceholder { width: 100%; max-width: 240px; aspect-ratio: 1; border-radius: 8px; background: var(--color-line); }
-.qrCaption { margin: 0; display: flex; flex-direction: column; align-items: center; font-size: 12px; line-height: 1.4; color: var(--color-text-2); text-align: center; }
-.qrCaption strong { font-size: 12px; letter-spacing: 0.02em; }
-.qrNote { margin: 0; font-size: 13px; opacity: 0.9; text-align: center; }
-.amountLabel { margin: 4px 0 0; font-size: 14px; opacity: 0.9; }
+.qrPlaceholder { width: 100%; max-width: 240px; aspect-ratio: 1; border-radius: 8px; background: var(--color-paper-soft); }
+.qrCaption { margin: 0; display: flex; flex-direction: column; align-items: center; font-size: var(--font-xs); line-height: 1.4; color: var(--color-paper-ink); text-align: center; }
+.qrCaption strong { font-size: var(--font-xs); letter-spacing: 0.02em; }
+.qrNote { margin: 0; font-size: var(--font-xs); opacity: 0.9; text-align: center; }
+.amountLabel { margin: 4px 0 0; font-size: var(--font-xs); opacity: 0.9; }
 .amount { margin: 0; font-size: 34px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.table { width: 100%; background: #fff; color: var(--color-text); border-radius: 12px; padding: 4px 14px; }
+.table { width: 100%; background: var(--color-bg); color: var(--color-text); border-radius: 12px; padding: 4px 14px; }
 .row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--color-line); }
 .row:first-child { border-top: 0; }
-.rowLabel { font-size: 14px; color: var(--color-muted); }
+.rowLabel { font-size: var(--font-xs); color: var(--color-muted); }
 .rowValue { display: flex; flex-direction: column; align-items: flex-end; text-align: right; min-width: 0; overflow-wrap: anywhere; }
 .rowValue strong { font-size: 16px; font-variant-numeric: tabular-nums; }
-.rowValue small { font-size: 12px; color: var(--color-muted); }
+.rowValue small { font-size: var(--font-xs); color: var(--color-muted); }
 .accent { color: var(--color-primary); letter-spacing: 0.04em; }
-.copy { min-height: 36px; min-width: 56px; padding: 6px 10px; border: 1px solid var(--color-border-input); border-radius: 8px; background: var(--color-bg-alt); color: var(--color-text-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.copy { min-height: 36px; min-width: 56px; padding: 6px 10px; border: 2px solid var(--color-border-input); border-radius: 8px; background: var(--color-bg-alt); color: var(--color-text-2); font: inherit; font-size: var(--font-xs); font-weight: 600; cursor: pointer; }
 .copy:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; }
-.after { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-text-2); text-align: center; }
+.after { margin: 0; font-size: var(--font-xs); line-height: 1.55; color: var(--color-text-2); text-align: center; }
 .steps { margin: 0; padding-left: 20px; color: var(--color-text-2); }
 .clock { font-variant-numeric: tabular-nums; }
 .value { font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

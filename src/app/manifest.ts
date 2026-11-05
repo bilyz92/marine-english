@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/hoc",
     scope: "/",
     display: "standalone",
-    background_color: "#F7F4FD",
-    theme_color: "#5B21B6",
+    background_color: "#EDF1ED",
+    theme_color: "#0B0F0B",
     lang: "vi",
     // Android cần icon PNG 192 và 512 để cài; SVG cho trình duyệt hiểu được.
     icons: [

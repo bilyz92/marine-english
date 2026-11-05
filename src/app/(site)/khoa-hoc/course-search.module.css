@@ -1,4 +1,4 @@
 .field { display: flex; flex-direction: column; gap: 6px; max-width: 520px; }
-.label { font-weight: 600; font-size: 14px; }
-.input { min-height: var(--touch-main); padding: 10px 14px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); font-size: 16px; background: var(--color-bg); color: var(--color-text); }
+.label { font-weight: 600; font-size: var(--font-xs); }
+.input { min-height: var(--touch-main); padding: 10px 14px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); font-size: 16px; background: var(--color-bg); color: var(--color-text); }
 .input:focus-visible { outline: 3px solid var(--color-primary-soft); border-color: var(--color-primary); }

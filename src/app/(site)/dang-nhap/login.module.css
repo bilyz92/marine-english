@@ -1,21 +1,21 @@
-.page { flex: 1; background: var(--color-bg-soft); color: var(--color-text); padding: 32px 16px; }
-.card { max-width: 440px; margin: 0 auto; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; padding: 24px; }
-.title { font-size: 22px; margin: 0 0 8px; }
+.page { flex: 1; background: var(--color-bg-alt); color: var(--color-text); padding: 32px 16px; }
+.card { max-width: 440px; margin: 0 auto; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-card); padding: 24px; }
+.title { font-size: 26px; line-height: 1.2; margin: 0 0 8px; }
 .lead { color: var(--color-muted); margin: 0 0 20px; line-height: 1.5; }
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.tab { flex: 1; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2); cursor: pointer; }
-.tabActive { composes: tab; border-color: var(--color-primary); color: var(--color-primary); font-weight: 600; }
+.tab { flex: 1; min-height: var(--touch); padding: 8px 10px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font-weight: 600; cursor: pointer; }
+.tabActive { composes: tab; background: var(--color-text); border-color: var(--color-text); color: var(--color-bg); font-weight: 700; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.label { font-weight: 600; font-size: 14px; }
-.input { padding: 10px 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-control); font-size: 16px; }
-.error { color: var(--color-danger); font-size: 14px; }
-.note { color: var(--color-muted); font-size: 13px; line-height: 1.5; }
-.primary { width: 100%; min-height: var(--touch-main); padding: 12px; border: 0; border-radius: var(--radius-control); background: var(--color-primary); color: var(--color-bg); font-size: 16px; font-weight: 600; cursor: pointer; }
-.primary:disabled { opacity: 0.6; cursor: default; }
-.secondary { width: 100%; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text-2); font-size: 16px; cursor: pointer; }
+.label { font-weight: 600; font-size: var(--font-small); }
+.input { min-height: var(--touch); padding: 10px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font-size: var(--font-body); }
+.error { color: var(--color-danger); font-size: var(--font-small); font-weight: 600; }
+.note { color: var(--color-muted); font-size: var(--font-xs); line-height: 1.5; }
+.primary { width: 100%; min-height: var(--touch-main); padding: 12px; border: 2px solid var(--color-action-edge); border-radius: var(--radius-control); background: var(--color-action); color: var(--color-action-ink); font-size: 19px; font-weight: 700; cursor: pointer; }
+.primary:disabled { border-style: dashed; background: var(--color-bg); color: var(--color-muted); border-color: var(--color-border-input); cursor: not-allowed; }
+.secondary { width: 100%; min-height: var(--touch); padding: 10px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font-size: var(--font-body); font-weight: 600; cursor: pointer; }
 .divider { text-align: center; color: var(--color-muted); margin: 14px 0; }
-.link { background: none; border: 0; color: var(--color-primary); padding: 8px 0; cursor: pointer; }
+.link { background: none; border: 0; color: var(--color-primary); min-height: 48px; padding: 8px 0; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .list { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 8px; }
-.device { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control); padding: 12px; }
+.device { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); padding: 12px; }
 .field input[aria-invalid="true"] { border-color: var(--color-danger); }
 .secondary + .secondary { margin-top: 8px; }

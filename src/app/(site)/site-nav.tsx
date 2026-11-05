@@ -14,7 +14,7 @@ const GUEST = [["/khoa-hoc", "Khóa học"], ["/#cach-hoc", "Cách học"], ["/#
 const LEARNER = [["/khoa-hoc", "Khóa học"], ["/hoc", "Khóa của tôi"], ["/tai-khoan/thanh-toan", "Thanh toán"], ["/gioi-thieu", "Về tôi"]];
 
 export function SiteNav() {
-  usePathname(); // Dựng lại khi chuyển trang: vừa đăng nhập xong là menu đổi ngay.
+  const pathname = usePathname(); // Dựng lại khi chuyển trang: vừa đăng nhập xong là menu đổi ngay.
   const signedIn = useSignedIn();
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -25,9 +25,12 @@ export function SiteNav() {
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d={open ? "M6 6l12 12M18 6 6 18" : "M4 7h16M4 12h16M4 17h16"} /></svg>
       </button>
       <nav id="menu-chinh" aria-label="Menu chính" className={open ? styles.navOpen : styles.nav}>
-        {(signedIn ? LEARNER : GUEST).map(([href, label]) => <Link key={href} href={href!} className={styles.navLink} onClick={close}>{label}</Link>)}
+        {(signedIn ? LEARNER : GUEST).map(([href, label]) => (
+          <Link key={href} href={href!} className={styles.navLink} onClick={close} aria-current={!href!.includes("#") && pathname.startsWith(href!) ? "page" : undefined}>{label}</Link>
+        ))}
         <InstallApp className={styles.navInstall} label="Tải app" />
-        <Link href={signedIn ? "/tai-khoan" : "/dang-nhap"} className={styles.navLink} onClick={close}>{signedIn ? "Tài khoản" : "Đăng nhập"}</Link>
+        <Link href={signedIn ? "/tai-khoan" : "/dang-nhap"} className={styles.navLink} onClick={close}
+          aria-current={(signedIn ? pathname === "/tai-khoan" : pathname.startsWith("/dang-nhap")) ? "page" : undefined}>{signedIn ? "Tài khoản" : "Đăng nhập"}</Link>
         {!signedIn && <Link href="/khoa-hoc" className={styles.navCta} onClick={close}>Học thử miễn phí</Link>}
       </nav>
     </>
