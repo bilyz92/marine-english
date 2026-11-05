@@ -57,7 +57,10 @@ describe("bảng học tập", () => {
       expect(await errCode(c, `INSERT INTO media_assets (sha256, mime, bytes, visibility, storage_key) VALUES ($1, 'audio/mpeg', 10, 'protected', $2)`, [sha, `${sha}.mp3`])).toBeNull();
       expect(await errCode(c, `INSERT INTO lesson_version_assets (lesson_version_id, media_asset_id, role) SELECT $1, id, 'audio' FROM media_assets`, [f.lvId])).toBeNull();
       expect(await errCode(c, `UPDATE media_assets SET bytes = 11`)).not.toBeNull();
-      expect(await errCode(c, `DELETE FROM lesson_version_assets`)).toBe("42501");
+      // Gắn tệp không sửa được; gỡ được (chủ gỡ ghi âm của bài, 05/11/2026), tệp media vẫn còn.
+      expect(await errCode(c, `UPDATE lesson_version_assets SET role = 'image'`)).not.toBeNull();
+      expect(await errCode(c, `DELETE FROM lesson_version_assets`)).toBeNull();
+      expect(await errCode(c, `DELETE FROM media_assets`)).not.toBeNull();
     });
   });
 });

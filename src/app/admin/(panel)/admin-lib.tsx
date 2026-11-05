@@ -71,6 +71,17 @@ export async function adminUpload<T>(path: string, file: Blob, headers: Record<s
   return { ok: res.ok, status: res.status, data };
 }
 
+/** Gửi form nhiều phần (tệp kèm trường khác) tới API quản trị. */
+export async function adminForm<T>(path: string, form: FormData): Promise<ApiResult<T>> {
+  const res = await fetch(path, { method: "POST", headers: csrf(), body: form }).catch(() => null);
+  if (!res) return { ok: false, status: 0, data: { error: "Không kết nối được, kiểm tra mạng." } as never };
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- phiên hết hạn: tải lại toàn trang để bỏ trạng thái cũ.
+  if (res.status === 401) window.location.assign(`/admin/dang-nhap`);
+  if (res.status === 413) return { ok: false, status: 413, data: { error: "Tệp quá lớn." } as never };
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
 /** Lỗi cần hiển thị của kết quả ghi, kể cả trường hợp API trả 200 kèm result “rejected”. */
 export function problemOf(r: ApiResult<unknown>): string | null {
   if (r.ok && r.data.result !== "rejected") return null;

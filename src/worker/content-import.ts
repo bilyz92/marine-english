@@ -187,6 +187,18 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
         id = created!.id;
         report.newLessonVersions += 1;
       }
+      // Ghi âm và tệp gắn với bài (chủ tải trên web) đi theo bài: chép từ phiên bản mà chính các khóa trong bộ dữ liệu này
+      // đang dùng (không lấy từ khóa khác), kể cả khi dùng lại một phiên bản cũ cùng nội dung. Chạy trước vòng đổi phiên bản khóa.
+      await sql.query(
+        `INSERT INTO lesson_version_assets (lesson_version_id, media_asset_id, role)
+         SELECT DISTINCT $1::uuid, lva.media_asset_id, lva.role FROM courses c
+         JOIN course_version_lessons cvl ON cvl.course_version_id = c.current_version_id
+         JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id AND lv.lesson_id = $2::uuid AND lv.id <> $1::uuid
+         JOIN lesson_version_assets lva ON lva.lesson_version_id = lv.id
+         WHERE c.slug = ANY($3::text[])
+         ON CONFLICT DO NOTHING`,
+        [id, l!.id, courses.filter((c) => c.lesson_ids.includes(lesson.id)).map((c) => c.id)],
+      );
       lessonVersion.set(lesson.id, { id, hash });
     }
 

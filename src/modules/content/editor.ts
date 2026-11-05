@@ -176,6 +176,12 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
       }
       const content = applyFields(base, id, input);
       const lv = await lessonVersionFor(tx, id, content);
+      // Ghi âm và tệp gắn với bài đi theo bài sang phiên bản mới.
+      const previous = externalId ? list.find((m) => m.externalId === id)?.lessonVersionId : undefined;
+      if (previous && previous !== lv.id) {
+        await tx.$executeRaw`INSERT INTO lesson_version_assets (lesson_version_id, media_asset_id, role)
+          SELECT ${lv.id}::uuid, media_asset_id, role FROM lesson_version_assets WHERE lesson_version_id = ${previous}::uuid ON CONFLICT DO NOTHING`;
+      }
       const next = externalId
         ? list.map((m) => (m.externalId === id ? { ...m, lessonVersionId: lv.id, hash: lv.hash } : m))
         : [...list, { position: list.length + 1, isFreeTrial: list.length < FREE_TRIAL_LESSONS, lessonVersionId: lv.id, externalId: id, hash: lv.hash, content }];

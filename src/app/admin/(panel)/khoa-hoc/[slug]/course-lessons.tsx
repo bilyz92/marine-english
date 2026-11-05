@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useState } from "react";
 import { adminApi, can, Field, LoadState, messageFor, useAdmin, useLoad } from "../../admin-lib";
+import { LessonAudio } from "./lesson-audio";
 import styles from "../../admin.module.css";
 
 // Danh sách bài của phiên bản hiện tại; chủ sửa bài hoặc thêm bài cuối khóa. Mỗi lần lưu tạo phiên bản mới.
@@ -57,6 +58,7 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [audioOf, setAudioOf] = useState<string | null>(null);
   const canEdit = can(me, "content.edit");
   const live = data?.course.status === "published";
 
@@ -130,7 +132,13 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
                 <span>{l.position}. {l.questionVi || l.questionEn}</span>
                 <span className={styles.muted}>{l.externalId}{l.isFreeTrial ? " · học thử" : ""}{l.hasAnswer ? "" : " · chưa có đáp án mẫu"}</span>
               </div>
-              {canEdit && <div className={styles.actions}><button className={styles.btn} onClick={() => void open(l.externalId)}>Sửa</button></div>}
+              <div className={styles.actions}>
+                <button className={styles.btn} aria-expanded={audioOf === l.externalId} onClick={() => setAudioOf(audioOf === l.externalId ? null : l.externalId)}>
+                  {audioOf === l.externalId ? "Ẩn ghi âm" : "Ghi âm"}
+                </button>
+                {canEdit && <button className={styles.btn} onClick={() => void open(l.externalId)}>Sửa</button>}
+              </div>
+              {audioOf === l.externalId && <LessonAudio slug={slug} externalId={l.externalId} canEdit={canEdit} />}
             </div>
           ))}
           {canEdit && <div className={styles.actions}><button className={styles.btnMain} onClick={() => void open(null)}>Thêm bài</button></div>}
