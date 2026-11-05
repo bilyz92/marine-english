@@ -27,6 +27,10 @@ describe("classifyPath", () => {
     ["/api/payments/sepay/webhook", "provider"],
     ["/api/auth/learner/otp", "auth"],
     ["/api/auth/admin/link", "auth"],
+    // Mua khóa không cần đăng nhập trước (2026-11-05): trang mua công khai; thanh toán, học, API của học viên vẫn cần phiên.
+    ["/mua/engine_cadet_tanker", "public"],
+    ["/thanh-toan/ME7K3QX9AB", "learner"],
+    ["/api/me/orders", "learner"],
     ["/hoc/bai-1", "learner"],
     ["/tai-khoan", "learner"],
     ["/api/learn/sync", "learner"],

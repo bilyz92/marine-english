@@ -232,8 +232,8 @@ describe("đơn gần đây của khóa", () => {
 });
 
 describe("đường dẫn", () => {
-  it("trang mua và thanh toán cần đăng nhập ở lớp proxy", () => {
-    expect(classifyPath("/mua/khoa-a")).toBe("learner");
+  it("trang mua mở cho khách (mua không cần đăng nhập trước); thanh toán cần đăng nhập ở lớp proxy", () => {
+    expect(classifyPath("/mua/khoa-a")).toBe("public");
     expect(classifyPath("/thanh-toan/ME7K3QX9AB")).toBe("learner");
     expect(classifyPath("/khoa-hoc/khoa-a")).toBe("public");
   });

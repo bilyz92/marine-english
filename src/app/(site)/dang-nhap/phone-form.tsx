@@ -6,26 +6,10 @@ import styles from "./login.module.css";
 import { DEVICES_KEY, NEXT_KEY, postJson, type Device } from "./api";
 import { deviceLabel, getDeviceKey } from "./device-key";
 import { RANKS } from "./ranks";
+import { MESSAGE, WEAK } from "./phone-messages";
 
 type Mode = "signup" | "login" | "forgot";
 type Answer = { next?: string; error?: string; problem?: string; devices?: Device[]; ok?: boolean };
-
-const WEAK: Record<string, string> = {
-  too_short: "Mật khẩu cần ít nhất 8 ký tự.",
-  too_long: "Mật khẩu dài quá 128 ký tự.",
-  common: "Mật khẩu này quá dễ đoán, chọn mật khẩu khác.",
-  phone: "Không dùng chính số điện thoại làm mật khẩu.",
-};
-
-const MESSAGE: Record<string, string> = {
-  invalid_phone: "Số điện thoại không đúng. Nhập số di động Việt Nam, ví dụ 0912 345 678.",
-  phone_taken: "Số này đã có tài khoản. Chọn Đăng nhập, hoặc Quên mật khẩu.",
-  throttled: "Thử đăng ký quá nhiều lần. Đợi một giờ rồi thử lại.",
-  invalid: "Số điện thoại hoặc mật khẩu không đúng.",
-  locked: "Sai quá nhiều lần. Đợi 15 phút rồi thử lại, hoặc dùng Quên mật khẩu.",
-  invalid_code: "Mã không đúng hoặc đã hết hạn. Gửi mã mới rồi thử lại.",
-  network: "Không kết nối được. Kiểm tra mạng rồi bấm lại.",
-};
 
 /** D2: tạo tài khoản, đăng nhập, quên mật khẩu bằng số điện thoại + mật khẩu. */
 export function PhoneForm({ next, onDone }: { next: string; onDone: (created: boolean) => void }) {

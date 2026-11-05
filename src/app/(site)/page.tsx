@@ -15,7 +15,7 @@ const BENEFITS = [
 ];
 
 const STEPS = [
-  { title: "Chọn khóa, bấm Mua", text: "Đăng ký bằng số điện thoại và mật khẩu." },
+  { title: "Chọn khóa, bấm Mua", text: "Điền họ tên và số điện thoại, tài khoản tự tạo, không cần đăng ký trước." },
   { title: "Quét mã QR bằng app ngân hàng", text: "Mọi ngân hàng Việt Nam đều quét được. Kiểm tra đúng số tiền và nội dung là mã đơn." },
   { title: "Bấm “Tôi đã chuyển khoản”, vào học", text: "Chuyển xong, bấm nút trên trang thanh toán là khóa học mở ngay." },
 ];

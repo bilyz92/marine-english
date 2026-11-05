@@ -24,11 +24,14 @@ try {
   await b.go(`${BASE}/khoa-hoc/${SLUG}`);
   check("khách: trang khóa có nút mua", await waitFor(async () => (await text()).includes("Mua khóa học")));
 
-  // 1. Chưa đăng nhập vào trang mua → sang đăng nhập, giữ đường về.
+  // 1. Chưa đăng nhập vào trang mua → thấy form khách (mua không cần đăng nhập trước); "Đã có tài khoản? Đăng nhập" giữ đường về.
   await b.go(`${BASE}/mua/${SLUG}`);
-  check("chưa đăng nhập → trang đăng nhập có next", (await b.evaluate("location.pathname + location.search")).startsWith(`/dang-nhap?next=%2Fmua%2F${SLUG}`));
+  check("chưa đăng nhập → form khách", await waitFor(async () => (await text()).includes("Tạo tài khoản và tiếp tục"), 60000));
+  await b.evaluate(`[...document.querySelectorAll("main a")].find((e) => e.textContent.trim() === "Đăng nhập").click()`);
+  check("bấm Đăng nhập → trang đăng nhập có next", await waitFor(async () => (await b.evaluate("location.pathname + location.search")).startsWith(`/dang-nhap?next=%2Fmua%2F${SLUG}`)));
 
-  // 2. Đăng nhập bằng mã qua đúng giao diện.
+  // 2. Đăng nhập bằng mã qua đúng giao diện (tải hẳn trang: chuyển trang phía trình duyệt còn giữ form cũ đã gắn React).
+  await b.go(`${BASE}/dang-nhap?next=%2Fmua%2F${SLUG}`);
   const email = `mua${Date.now()}@x.vn`;
   check("form đăng nhập hiện, mặc định số điện thoại", await waitFor(() => b.evaluate(`document.querySelector("input[type=tel]") !== null`), 40000));
   await hydrated();
@@ -56,7 +59,7 @@ try {
   check("ô điều khoản không tích sẵn", !(await b.evaluate(`document.querySelector("input[type=checkbox]").checked`)));
   await b.evaluate(`document.querySelector("input[type=checkbox]").click()`);
   await click("Tiếp tục thanh toán");
-  check("sang trang thanh toán", await waitFor(async () => (await b.evaluate("location.pathname")).startsWith("/thanh-toan/ME")));
+  check("sang trang thanh toán", await waitFor(async () => (await b.evaluate("location.pathname")).startsWith("/thanh-toan/ME"), 60000));
   await waitFor(async () => (await text()).includes("Thông tin chuyển khoản"));
   const orderCode = (await b.evaluate("location.pathname")).split("/").pop();
   check("hiện mã đơn và đếm ngược", (await text()).includes(orderCode) && /\d\d:\d\d/.test(await text()));
