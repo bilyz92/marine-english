@@ -76,18 +76,21 @@ try {
   const toBuy = await tabUntil((f) => f.name.includes("Tiếp tục thanh toán"), 10);
   check("Tab tiếp tới nút Tiếp tục thanh toán", Boolean(toBuy.found), JSON.stringify(toBuy.seen.map((f) => f.name)));
   await key("Enter", "Enter", 13);
-  check("Enter sang trang thanh toán", await waitFor(async () => (await b.evaluate("location.pathname")).startsWith("/thanh-toan/ME")));
+  check("Enter sang trang thanh toán", await waitFor(async () => (await b.evaluate("location.pathname")).startsWith("/thanh-toan/ME"), 60000));
 
-  // Trang thanh toán: các nút chép tới được bằng Tab, có viền focus.
-  await waitFor(() => b.evaluate(`document.body.innerText.includes("Thông tin chuyển khoản")`));
+  // Trang thanh toán (mẫu chủ 03/11): 4 nút Copy (ngân hàng, số tài khoản, chủ tài khoản, nội dung) tới được bằng Tab, có viền focus.
+  await waitFor(() => b.evaluate(`document.body.innerText.includes("Số tiền thanh toán")`), 60000);
   await hydrated();
-  const copies = [];
-  for (let i = 0; i < 40 && copies.length < 3; i++) {
+  // Đếm theo tên nút (không đếm lượt Tab): Tab vòng lại cùng một nút không được tính hai lần.
+  const COPY_NAMES = ["Copy Ngân hàng", "Copy Số tài khoản", "Copy Chủ tài khoản", "Copy Nội dung"];
+  const byName = new Map();
+  for (let i = 0; i < 40 && byName.size < COPY_NAMES.length; i++) {
     await tab();
     const f = await focused();
-    if (f?.name.startsWith("Chép")) copies.push(f);
+    if (f?.name.startsWith("Copy ")) byName.set(f.name, f);
   }
-  check("Tab tới đủ 3 nút chép", copies.length === 3, JSON.stringify(copies));
+  const copies = [...byName.values()];
+  check("Tab tới đủ 4 nút Copy", COPY_NAMES.every((n) => byName.has(n)), JSON.stringify([...byName.keys()]));
   check("nút chép có viền focus", copies.every((f) => f.visible));
   await b.shot(`${OUT}/thanh-toan-focus.png`);
 } finally {

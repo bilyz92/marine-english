@@ -61,10 +61,12 @@ try {
   check("chưa có mật khẩu → dải nhắc đặt mật khẩu", await see("Chưa đặt mật khẩu"), `${await path()} · ${(await text()).slice(0, 300)} · link=${String(link).slice(0, 60)}`);
   await click("Mật khẩu");
   await see("Mật khẩu mới");
+  // Chữ hiện trước khi React gắn vào ô nhập: điền sớm thì giá trị bị mất (máy chậm), nên chờ ô nhập sẵn sàng.
+  await waitFor(() => b.evaluate(`(() => { const el = document.querySelector("main input[type=password]"); return !!el && Object.keys(el).some((k) => k.startsWith("__reactProps")); })()`), 60000);
   await fill("Mật khẩu mới", PW);
   await fill("Nhập lại mật khẩu mới", PW);
   await click("Lưu mật khẩu");
-  check("đặt mật khẩu xong, dải nhắc biến mất", (await see("Đã lưu mật khẩu")) && !(await text()).includes("Chưa đặt mật khẩu"));
+  check("đặt mật khẩu xong, dải nhắc biến mất", (await see("Đã lưu mật khẩu")) && !(await text()).includes("Chưa đặt mật khẩu"), `${await path()} · ${(await text()).slice(0, 500)}`);
   await click("Đăng xuất");
   await waitFor(async () => (await path()) === "/admin/dang-nhap");
 

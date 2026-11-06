@@ -65,6 +65,8 @@ try {
     e.userChoice = Promise.resolve({ outcome: "accepted" });
     dispatchEvent(e);
   })()`);
+  // React cập nhật trạng thái "có hộp thoại cài" sau sự kiện; máy chậm thì chờ một nhịp trước khi bấm.
+  await sleep(1000);
   await clickInstall();
   check("gọi hộp thoại cài của trình duyệt", await waitFor(() => b.evaluate("window.__prompted === true")));
   check("đồng ý cài thì ẩn nút", await waitFor(async () => !(await text()).includes("Tải app")));

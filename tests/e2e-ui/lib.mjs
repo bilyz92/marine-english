@@ -46,7 +46,14 @@ export async function openBrowser({ port = 9444 } = {}) {
     },
     async shot(path) {
       const { writeFileSync } = await import("node:fs");
-      const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+      // Trang vừa chuyển đi thì Chrome có thể từ chối chụp: thử lại vài lần, vẫn lỗi thì báo đúng lỗi của Chrome.
+      let r;
+      for (let i = 0; i < 5; i++) {
+        r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+        if (r.result?.data) break;
+        await sleep(1000);
+      }
+      if (!r.result?.data) throw new Error(`Không chụp được ${path}: ${JSON.stringify(r.error ?? r).slice(0, 200)}`);
       writeFileSync(path, Buffer.from(r.result.data, "base64"));
     },
     close() { ws.close(); chrome.kill(); },
