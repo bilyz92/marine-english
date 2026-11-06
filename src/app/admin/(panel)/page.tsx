@@ -27,8 +27,8 @@ export default function OverviewPage() {
     <>
       <h1 className={styles.h1}>Tổng quan</h1>
       <div className={styles.actions}>
-        {RANGES.map((r) => <button key={r.days} className={r.days === days ? styles.btnMain : styles.btn} aria-pressed={r.days === days} onClick={() => setDays(r.days)}>{r.label}</button>)}
-        <button className={days === null ? styles.btnMain : styles.btn} aria-pressed={days === null} onClick={() => setDays(null)}>Tự chọn</button>
+        {RANGES.map((r) => <button key={r.days} className={styles.btn} aria-pressed={r.days === days} onClick={() => setDays(r.days)}>{r.label}</button>)}
+        <button className={styles.btn} aria-pressed={days === null} onClick={() => setDays(null)}>Tự chọn</button>
       </div>
       {days === null && (
         <div className={styles.actions}>
@@ -40,10 +40,14 @@ export default function OverviewPage() {
       {data && (
         <>
           {(data.queueOpen > 0 || (me?.features?.refunds && data.refundsOpen > 0)) && (
-            <p className={styles.notice}>
-              <Link href="/admin/so-giao-dich">{data.queueOpen} khoản cần xử lý tay</Link>
-              {me?.features?.refunds && <> · <Link href="/admin/hoan-tien">{data.refundsOpen} yêu cầu hoàn tiền</Link></>}
-            </p>
+            <section className={styles.act} aria-label="Việc cần làm">
+              <p className={styles.actTitle}>
+                {data.queueOpen} khoản cần xử lý tay
+                {me?.features?.refunds && data.refundsOpen > 0 && <> · <Link href="/admin/hoan-tien">{data.refundsOpen} yêu cầu hoàn tiền</Link></>}
+              </p>
+              {/* Chỉ còn yêu cầu hoàn tiền thì nút chính đưa tới trang hoàn tiền, không tới sổ giao dịch trống. */}
+              <Link className={styles.actLink} href={data.queueOpen > 0 ? "/admin/so-giao-dich" : "/admin/hoan-tien"}>Xử lý ngay</Link>
+            </section>
           )}
           <div className={styles.stats}>
             <div className={styles.card}><span className={styles.label}>Tiền đã nhận</span><span className={styles.stat}>{formatVnd(data.receivedVnd)}</span></div>
