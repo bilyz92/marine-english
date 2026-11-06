@@ -30,7 +30,7 @@
 .step .stepHead, .step .bar { margin-bottom: 0; }
 .stepCount { font-size: 22px; font-weight: 700; color: var(--color-text); }
 .bar { height: 14px; border-radius: 2px; background: var(--color-bg-soft); overflow: hidden; margin-bottom: 14px; }
-.barFill { height: 100%; background: var(--color-text); transition: width 0.2s; }
+.barFill { height: 100%; background: var(--color-primary); transition: width 0.2s; }
 .answer { margin-top: 12px; padding: 12px 14px; border-radius: 0 var(--radius-control) var(--radius-control) 0; background: var(--color-bg-soft); border-left: 6px solid var(--color-action); }
 .answerLabel { font-size: var(--font-small); font-weight: 700; color: var(--color-text); margin: 0 0 6px; }
 .toggle { min-height: var(--touch); padding: 8px 16px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font: inherit; font-weight: 700; cursor: pointer; }

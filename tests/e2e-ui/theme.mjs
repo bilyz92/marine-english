@@ -13,13 +13,13 @@ const press = (label) => waitFor(() => b.evaluate(`(() => { const e = [...docume
 try {
   await b.width(1280);
   await b.go(`${BASE}/khoa-hoc`);
-  check("mặc định sáng", (await bg()) === "rgb(237, 241, 237)", await bg());
+  check("mặc định sáng", (await bg()) === "rgb(248, 247, 251)", await bg());
   check("bấm Tối", await press("Tối"));
-  check("nền đen, nút thành Sáng", await waitFor(async () => (await bg()) === "rgb(0, 0, 0)" && (await b.evaluate(`[...document.querySelectorAll("button")].some((e) => e.textContent.trim() === "Sáng")`))));
+  check("nền tối, nút thành Sáng", await waitFor(async () => (await bg()) === "rgb(17, 14, 26)" && (await b.evaluate(`[...document.querySelectorAll("button")].some((e) => e.textContent.trim() === "Sáng")`))));
   await b.go(`${BASE}/`);
-  check("tải lại vẫn tối", await waitFor(async () => (await bg()) === "rgb(0, 0, 0)"));
+  check("tải lại vẫn tối", await waitFor(async () => (await bg()) === "rgb(17, 14, 26)"));
   check("bấm Sáng", await press("Sáng"));
-  check("về sáng", await waitFor(async () => (await bg()) === "rgb(237, 241, 237)"));
+  check("về sáng", await waitFor(async () => (await bg()) === "rgb(248, 247, 251)"));
   check("không lỗi trang", b.events.errors.length === 0, JSON.stringify(b.events.errors.slice(0, 3)));
 } finally {
   b.close();

@@ -1,7 +1,7 @@
 .header { background: var(--color-plate); color: var(--color-plate-text); }
 .headerRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-top: 12px; padding-bottom: 12px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--color-plate-text); text-decoration: none; font-weight: 700; font-size: 19px; min-height: var(--touch); }
-.logo { width: 32px; height: 40px; background: none; color: var(--color-action); display: flex; align-items: center; justify-content: center; }
+.logo { width: 32px; height: 40px; background: none; color: var(--color-plate-text); display: flex; align-items: center; justify-content: center; }
 .nav, .navOpen { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .menuButton, .phoneLogin { display: none; }
 @media (max-width: 760px) {
@@ -20,7 +20,7 @@
 .navLink { min-height: var(--touch); padding: 0 10px; display: flex; align-items: center; color: var(--color-plate-text); font-size: var(--font-small); text-decoration: none; font-weight: 500; border-radius: var(--radius-control); }
 .navLink:hover { color: var(--color-plate-text); background: var(--color-plate-2); }
 .navLink[aria-current] { background: var(--color-action); color: var(--color-action-ink); font-weight: 700; }
-.navInstall { composes: navLink; border: 0; background: none; font: inherit; font-weight: 700; color: var(--color-action); cursor: pointer; }
+.navInstall { composes: navLink; border: 0; background: none; font: inherit; font-weight: 700; color: var(--color-plate-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .navTheme { composes: navLink; border: 0; background: none; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .navCta { min-height: var(--touch); padding: 0 14px; font-size: var(--font-small); border-radius: var(--radius-control); background: var(--color-action); color: var(--color-action-ink); border: 2px solid var(--color-action-edge); font-weight: 700; text-decoration: none; display: flex; align-items: center; }
 .navCta:hover { color: var(--color-action-ink); filter: brightness(0.94); }

@@ -1,40 +1,39 @@
 /* Biến thiết kế dùng chung. Màu chỉ khai báo ở đây.
-   Giao diện v2 (chủ chọn 06/11/2026, bản mẫu docs/design/giao-dien-v2-thu/): "bảng nhãn buồng máy":
-   mực đen trên nền sáng, tấm nhãn nền đen chữ trắng, một màu vàng tín hiệu cho việc chính, có chế độ tối.
-   Tên biến giữ như v1 để mọi trang đổi theo; giá trị theo v2.css. */
+   Bố cục giao diện v2 (chủ chọn 06/11/2026, docs/design/giao-dien-v2-thu/), màu theo bản cũ v1 (chủ chọn lại 06/11/2026):
+   tím thương hiệu, cam cho nút chính và vị trí hiện tại, nền trắng và tím nhạt; khối "tấm nhãn" là tím đậm; có chế độ tối. */
 :root {
   color-scheme: light;
-  --color-primary: #0b0f0b;        /* liên kết, nút thứ cấp đặc, viền tiêu điểm */
-  --color-primary-dark: #2a312b;
-  --color-primary-soft: #dfe5df;   /* nền nhãn nhỏ */
+  --color-primary: #5b21b6;        /* tím thương hiệu: liên kết, nút thứ cấp đặc, viền tiêu điểm */
+  --color-primary-dark: #4c1d95;
+  --color-primary-soft: #ede5fb;   /* nền nhãn nhỏ */
   --color-on-primary: #ffffff;
-  --color-action: #ffd21f;         /* vàng tín hiệu: nút chính, vị trí hiện tại */
-  --color-action-ink: #0b0f0b;
-  --color-action-edge: #0b0f0b;
-  --color-plate: #0b0f0b;          /* tấm nhãn: thanh đầu, khối quan trọng */
-  --color-plate-2: #2a312b;
+  --color-action: #c2410c;         /* cam: nút chính, vị trí hiện tại */
+  --color-action-ink: #ffffff;
+  --color-action-edge: #c2410c;
+  --color-plate: #4c1d95;          /* tấm nhãn tím đậm: thanh đầu, menu, khối quan trọng */
+  --color-plate-2: #5b21b6;
   --color-plate-text: #ffffff;
-  --color-plate-muted: #d5dcd5;
-  --color-text: #0b0f0b;
-  --color-text-2: #1f261f;
-  --color-muted: #39423a;
+  --color-plate-muted: #ddd6fe;
+  --color-text: #1c1630;
+  --color-text-2: #3a3550;
+  --color-muted: #5b5670;
   --color-bg: #ffffff;             /* mặt khối */
-  --color-bg-alt: #edf1ed;         /* nền trang: xanh sơn buồng máy, nhạt */
-  --color-bg-soft: #dfe5df;
-  --color-border: #aab3aa;         /* viền khối */
-  --color-border-input: #2b322b;   /* viền ô nhập, nút viền */
-  --color-line: #dfe5df;
-  --color-danger: #9c1419;
-  --color-danger-bg: #ffe6e3;
-  --color-success: #0b5c2d;
-  --color-success-bg: #d9f4e2;
-  --color-warning: #6b3a00;
-  --color-warning-bg: #fff1cc;
-  --color-warning-border: #6b3a00;
-  --color-focus: #0047c2;
+  --color-bg-alt: #f8f7fb;         /* nền trang */
+  --color-bg-soft: #ede5fb;
+  --color-border: #e7e5ee;         /* viền khối */
+  --color-border-input: #cfc6e6;   /* viền ô nhập, nút viền */
+  --color-line: #f1f0f5;
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fef2f2;
+  --color-success: #166534;
+  --color-success-bg: #f0fdf4;
+  --color-warning: #7c2d12;
+  --color-warning-bg: #fff7ed;
+  --color-warning-border: #fdba74;
+  --color-focus: #5b21b6;
   --color-paper: #ffffff;          /* nền mã QR: luôn trắng để app ngân hàng đọc được */
-  --color-paper-ink: #0b0f0b;
-  --color-paper-soft: #dfe5df;
+  --color-paper-ink: #1c1630;
+  --color-paper-soft: #f1f0f5;
   --radius-control: 6px;
   --radius-card: 8px;
   --touch: 48px;
@@ -45,62 +44,64 @@
   --font-en: 26px;
 }
 
-/* Chế độ tối: theo máy, hoặc theo nút đổi (data-theme trên <html>). Cùng bố cục, cùng nút vàng. */
+/* Chế độ tối: theo máy, hoặc theo nút đổi (data-theme trên <html>). Cùng bố cục, cùng tím và cam. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --color-primary: #ffffff;
-    --color-primary-dark: #d0d6d0;
-    --color-primary-soft: #262a26;
-    --color-on-primary: #0b0f0b;
-    --color-action-edge: #ffd21f;
-    --color-plate: #1b1f1b;
-    --color-plate-2: #3a403a;
-    --color-text: #ffffff;
-    --color-text-2: #e6ebe6;
-    --color-muted: #d0d6d0;
-    --color-bg: #141614;
-    --color-bg-alt: #000000;
-    --color-bg-soft: #262a26;
-    --color-border: #5c655c;
-    --color-border-input: #c9d0c9;
-    --color-line: #262a26;
-    --color-danger: #ff9d94;
+    --color-primary: #c4b5fd;
+    --color-primary-dark: #ddd6fe;
+    --color-primary-soft: #2e2550;
+    --color-on-primary: #1c1630;
+    --color-action-edge: #c2410c;
+    --color-plate: #2e1065;
+    --color-plate-2: #4c1d95;
+    --color-plate-muted: #ddd6fe;
+    --color-text: #f3f0fa;
+    --color-text-2: #ddd6ee;
+    --color-muted: #b9b1cc;
+    --color-bg: #1c1729;
+    --color-bg-alt: #110e1a;
+    --color-bg-soft: #2e2550;
+    --color-border: #4a4163;
+    --color-border-input: #8b80a8;
+    --color-line: #2a2438;
+    --color-danger: #fca5a5;
     --color-danger-bg: #3a1513;
-    --color-success: #7ee8a4;
+    --color-success: #86efac;
     --color-success-bg: #10301c;
-    --color-warning: #ffd98a;
-    --color-warning-bg: #33270a;
-    --color-warning-border: #ffd98a;
-    --color-focus: #ffffff;
+    --color-warning: #fdba74;
+    --color-warning-bg: #3a2210;
+    --color-warning-border: #fdba74;
+    --color-focus: #c4b5fd;
   }
 }
 :root[data-theme="dark"] {
-  color-scheme: dark;
-  --color-primary: #ffffff;
-  --color-primary-dark: #d0d6d0;
-  --color-primary-soft: #262a26;
-  --color-on-primary: #0b0f0b;
-  --color-action-edge: #ffd21f;
-  --color-plate: #1b1f1b;
-  --color-plate-2: #3a403a;
-  --color-text: #ffffff;
-  --color-text-2: #e6ebe6;
-  --color-muted: #d0d6d0;
-  --color-bg: #141614;
-  --color-bg-alt: #000000;
-  --color-bg-soft: #262a26;
-  --color-border: #5c655c;
-  --color-border-input: #c9d0c9;
-  --color-line: #262a26;
-  --color-danger: #ff9d94;
+    color-scheme: dark;
+  --color-primary: #c4b5fd;
+  --color-primary-dark: #ddd6fe;
+  --color-primary-soft: #2e2550;
+  --color-on-primary: #1c1630;
+  --color-action-edge: #c2410c;
+  --color-plate: #2e1065;
+  --color-plate-2: #4c1d95;
+  --color-plate-muted: #ddd6fe;
+  --color-text: #f3f0fa;
+  --color-text-2: #ddd6ee;
+  --color-muted: #b9b1cc;
+  --color-bg: #1c1729;
+  --color-bg-alt: #110e1a;
+  --color-bg-soft: #2e2550;
+  --color-border: #4a4163;
+  --color-border-input: #8b80a8;
+  --color-line: #2a2438;
+  --color-danger: #fca5a5;
   --color-danger-bg: #3a1513;
-  --color-success: #7ee8a4;
+  --color-success: #86efac;
   --color-success-bg: #10301c;
-  --color-warning: #ffd98a;
-  --color-warning-bg: #33270a;
-  --color-warning-border: #ffd98a;
-  --color-focus: #ffffff;
+  --color-warning: #fdba74;
+  --color-warning-bg: #3a2210;
+  --color-warning-border: #fdba74;
+  --color-focus: #c4b5fd;
 }
 
 @media (max-width: 600px) {
