@@ -31,10 +31,16 @@ try {
   check("có khung quét QR", await see("Dùng app ngân hàng quét mã QR"));
   check("QR dựng tại chỗ (ảnh data:, không gọi ra ngoài)", await waitFor(() => b.evaluate(`document.querySelector('section[aria-label="Chuyển khoản"] img')?.src.startsWith("data:image/png")`)));
   check("ghi QR đã có sẵn số tiền và nội dung", await see("Mã QR đã có sẵn số tiền và nội dung"));
+  check("có nút Lưu ảnh QR tải đúng ảnh QR của đơn", await b.evaluate(`(() => {
+    const save = [...document.querySelectorAll("a")].find((e) => e.textContent.trim() === "Lưu ảnh QR");
+    const img = document.querySelector('section[aria-label="Chuyển khoản"] img');
+    return !!save && save.getAttribute("download") === "QR-${code}.png" && save.href === img.src;
+  })()`));
   const t = await text();
   check("có số tiền to và 4 dòng Ngân hàng / Số tài khoản / Chủ tài khoản / Nội dung", ["Số tiền thanh toán", "Ngân hàng", "Số tài khoản", "Chủ tài khoản", "Nội dung", code].every((s) => t.includes(s)));
   check("4 nút Copy", (await b.evaluate(`document.querySelectorAll('button[aria-label^="Copy "]').length`)) === 4);
-  check("chưa có SePay → báo xác nhận tay, không hứa tự mở", t.includes("khóa học mở khi tiền được xác nhận"));
+  // Chưa có SePay (chủ quyết định 03/11/2026): không hứa tự mở; khách bấm "Tôi đã chuyển khoản" sau khi chuyển.
+  check("chưa có SePay → không hứa tự mở, có nút Tôi đã chuyển khoản", !t.includes("tự mở khi hệ thống nhận được tiền") && t.includes("Tôi đã chuyển khoản"));
   const outside = b.events.requests.filter((u) => !u.startsWith(BASE) && !u.startsWith("data:") && !u.startsWith("blob:"));
   check("không gọi ra ngoài domain", outside.length === 0, outside.slice(0, 3).join(" "));
   const problems = await b.evaluate(PAGE_CHECKS);

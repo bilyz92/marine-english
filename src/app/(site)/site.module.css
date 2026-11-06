@@ -17,14 +17,20 @@
   }
   .navOpen .navCta { justify-content: center; margin: 8px 0; }
 }
-.navLink { min-height: var(--touch); padding: 0 12px; display: flex; align-items: center; color: var(--color-plate-text); text-decoration: none; font-weight: 500; border-radius: var(--radius-control); }
+.navLink { min-height: var(--touch); padding: 0 10px; display: flex; align-items: center; color: var(--color-plate-text); font-size: var(--font-small); text-decoration: none; font-weight: 500; border-radius: var(--radius-control); }
 .navLink:hover { color: var(--color-plate-text); background: var(--color-plate-2); }
 .navLink[aria-current] { background: var(--color-action); color: var(--color-action-ink); font-weight: 700; }
 .navInstall { composes: navLink; border: 0; background: none; font: inherit; font-weight: 700; color: var(--color-action); cursor: pointer; }
 .navTheme { composes: navLink; border: 0; background: none; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.navCta { min-height: var(--touch); padding: 0 18px; border-radius: var(--radius-control); background: var(--color-action); color: var(--color-action-ink); border: 2px solid var(--color-action-edge); font-weight: 700; text-decoration: none; display: flex; align-items: center; }
+.navCta { min-height: var(--touch); padding: 0 14px; font-size: var(--font-small); border-radius: var(--radius-control); background: var(--color-action); color: var(--color-action-ink); border: 2px solid var(--color-action-edge); font-weight: 700; text-decoration: none; display: flex; align-items: center; }
 .navCta:hover { color: var(--color-action-ink); filter: brightness(0.94); }
 .footer { margin-top: auto; border-top: 1px solid var(--color-border); background: var(--color-bg); }
 .footerRow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 24px; padding-top: 32px; padding-bottom: 32px; color: var(--color-muted); font-size: var(--font-small); }
 .footerNav { display: flex; flex-wrap: wrap; gap: 0 20px; }
 .footerNav a { min-height: var(--touch); display: flex; align-items: center; }
+/* Máy màn hẹp (360px): logo, Đăng nhập và nút Menu vẫn nằm một hàng. */
+@media (max-width: 380px) {
+  .brand { font-size: 15px; gap: 6px; }
+  .logo { width: 24px; }
+  .phoneLogin { padding: 0 4px; font-size: var(--font-xs); }
+}

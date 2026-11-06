@@ -1,3 +1,4 @@
-.steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.step { padding: 6px 12px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-text-2); font-size: var(--font-xs); font-weight: 600; }
-.now { composes: step; background: var(--color-action); color: var(--color-action-ink); }
+/* Ba bước mua (giao diện v2): ba ô bằng nhau, bước hiện tại màu vàng. */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; max-width: 560px; }
+.step { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 6px; border-radius: 4px; background: var(--color-bg-soft); color: var(--color-text); font-size: var(--font-xs); font-weight: 600; line-height: 1.2; text-align: center; }
+.now { composes: step; background: var(--color-action); color: var(--color-action-ink); font-weight: 700; }

@@ -1,9 +1,32 @@
-.layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "head buy" "main buy"; gap: 16px 32px; align-items: start; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-areas: "head buy" "main buy"; gap: 20px 24px; align-items: start; }
 .head { grid-area: head; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.main { grid-area: main; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.lessons { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.lesson { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
-.lesson > :last-child { flex: none; white-space: nowrap; }
+.head p { margin: 0; }
+.main { grid-area: main; min-width: 0; gap: 0; }
+.main > h2 { margin-bottom: 8px; }
+.lessons { margin: 0 0 8px; padding: 0; list-style: none; }
+.lesson { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; min-height: 64px; padding: 10px 0; border-top: 1px solid var(--color-line); }
+.lesson:first-child { border-top: 0; }
+.lesson > :last-child { white-space: nowrap; }
+.lessonId { font-weight: 700; font-size: var(--font-small); }
+.lessonTitle { min-width: 0; }
+/* Chủ đề gập mở được, như danh sách bài trong app học. */
+.topic { border-top: 1px solid var(--color-border); }
+.topic:first-of-type { border-top: 0; }
+.topic > summary { display: flex; align-items: center; gap: 10px; min-height: 68px; padding: 8px 0; list-style: none; cursor: pointer; }
+.topic > summary::-webkit-details-marker { display: none; }
+.topic > summary::after { content: "+"; flex: none; width: 28px; text-align: center; font-size: 26px; font-weight: 700; line-height: 1; }
+.topic[open] > summary::after { content: "\2212"; }
+.topicCode { flex: none; display: inline-flex; align-items: center; min-height: 34px; padding: 2px 10px; border-radius: 4px; background: var(--color-action); color: var(--color-action-ink); font-weight: 700; font-size: var(--font-small); }
+.topicTitle { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; font-weight: 700; }
+.topicCount { font-size: var(--font-xs); font-weight: 500; color: var(--color-muted); }
+/* Khối giá: tấm nhãn đen, nút Mua vàng, Học thử là nút viền trắng. */
 .buy { grid-area: buy; position: sticky; top: 16px; }
+.buy p { margin: 0; }
+.trial { composes: btn from "../../../../components/ui.module.css"; background: transparent; border-color: var(--color-plate-text); color: var(--color-plate-text); }
+.trial:hover { color: var(--color-plate-text); background: var(--color-plate-2); }
 /* Điện thoại: tên khóa, rồi giá và nút mua, rồi danh sách bài. */
 @media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "buy" "main"; } .buy { position: static; } }
+@media (max-width: 600px) {
+  .lesson { grid-template-columns: 76px minmax(0, 1fr); }
+  .lesson > :last-child { grid-column: 2; justify-self: start; }
+}

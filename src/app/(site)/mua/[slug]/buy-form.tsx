@@ -93,7 +93,7 @@ export function BuyForm({ slug, titleVi, priceVnd, lessonCount, refundPolicy, au
   );
 
   const summary = (
-    <aside className={`${ui.card} ${styles.summary}`} aria-label="Đơn hàng">
+    <aside className={`${ui.plate} ${styles.summary}`} aria-label="Đơn hàng">
       <h2 className={ui.h3}>Đơn hàng</h2>
       <p className={ui.lead} style={{ margin: 0 }}><strong>{titleVi}</strong></p>
       <p className={ui.muted} style={{ margin: 0 }}>{lessonCount} bài</p>

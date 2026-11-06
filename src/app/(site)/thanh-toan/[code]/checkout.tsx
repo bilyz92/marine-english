@@ -53,7 +53,7 @@ function CopyRow({ label, value, shown, hint, accent }: { label: string; value: 
 }
 
 /** Ảnh QR: dựng từ chuỗi VietQR của đơn (đã điền số tiền, mã đơn) ngay trên máy; không có thì dùng ảnh QR tĩnh. */
-function QrImage({ payload, fallback, alt }: { payload: string | null; fallback: string | null; alt: string }) {
+function QrImage({ payload, fallback, alt, fileName }: { payload: string | null; fallback: string | null; alt: string; fileName: string }) {
   const [src, setSrc] = useState<string | null>(payload ? null : fallback);
   useEffect(() => {
     if (!payload) return;
@@ -62,8 +62,14 @@ function QrImage({ payload, fallback, alt }: { payload: string | null; fallback:
     return () => { alive = false; };
   }, [payload, fallback]);
   if (!src) return <div className={styles.qrPlaceholder} aria-hidden="true" />;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img className={styles.qr} src={src} alt={alt} />;
+  // Trả bằng chính điện thoại đang hiện mã thì không tự quét được: lưu ảnh rồi chọn ảnh trong app ngân hàng (giao diện v2).
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className={styles.qr} src={src} alt={alt} />
+      <a className={styles.save} href={src} download={fileName}>Lưu ảnh QR</a>
+    </>
+  );
 }
 
 function Countdown({ expiresAt, clockOffsetMs, onDone }: { expiresAt: string; clockOffsetMs: number; onDone: () => void }) {
@@ -160,7 +166,7 @@ function Pending({ order, clockOffsetMs, onExpire }: { order: Order; clockOffset
         <div className={styles.qrFrame}>
           <div className={styles.qrBox}>
             {/* key: đổi chuỗi QR hoặc ảnh tĩnh thì dựng lại từ đầu, không bao giờ còn hiện QR cũ. */}
-            <QrImage key={`${payment.qrPayload ?? ""}|${payment.qrImageUrl ?? ""}`} payload={payment.qrPayload} fallback={payment.qrImageUrl} alt={`Mã QR chuyển khoản ${formatVnd(order.amountDueVnd)} tới ${payment.accountName}, nội dung ${order.code}`} />
+            <QrImage key={`${payment.qrPayload ?? ""}|${payment.qrImageUrl ?? ""}`} payload={payment.qrPayload} fallback={payment.qrImageUrl} alt={`Mã QR chuyển khoản ${formatVnd(order.amountDueVnd)} tới ${payment.accountName}, nội dung ${order.code}`} fileName={`QR-${order.code}.png`} />
             <p className={styles.qrCaption}>
               <strong>{payment.accountName}</strong>
               <span>{payment.accountNo}</span>

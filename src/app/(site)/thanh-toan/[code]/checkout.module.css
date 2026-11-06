@@ -1,31 +1,36 @@
-/* Trang thanh toán theo mẫu chủ dự án gửi 03/11/2026: khung QR lớn, số tiền to, bảng thông tin có nút Copy. Màu theo tokens.css. */
+/* Trang thanh toán theo mẫu chủ dự án gửi 03/11/2026 (khung QR lớn, số tiền to, bảng có nút Copy), màu và cỡ theo giao diện v2. */
 .pay {
   display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 16px 16px;
   border-radius: var(--radius-card); background: var(--color-plate); color: var(--color-plate-text);
 }
-.payTitle { margin: 0; font-size: 15px; font-weight: 600; opacity: 0.92; text-align: center; }
-.qrFrame { width: 100%; max-width: 300px; padding: 12px; border-radius: 16px; background: rgb(255 255 255 / 0.12); display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.qrBox { width: 100%; padding: 12px; border-radius: 12px; background: var(--color-paper); color: var(--color-paper-ink); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.payTitle { margin: 0; font-size: var(--font-small); font-weight: 700; text-align: center; }
+.qrFrame { width: 100%; max-width: 300px; padding: 12px; border-radius: var(--radius-card); background: var(--color-plate-2); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.qrBox { width: 100%; padding: 12px; border-radius: var(--radius-control); background: var(--color-paper); color: var(--color-paper-ink); display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .qr { display: block; width: 100%; max-width: 240px; height: auto; image-rendering: pixelated; }
 .qrPlaceholder { width: 100%; max-width: 240px; aspect-ratio: 1; border-radius: 8px; background: var(--color-paper-soft); }
 .qrCaption { margin: 0; display: flex; flex-direction: column; align-items: center; font-size: var(--font-xs); line-height: 1.4; color: var(--color-paper-ink); text-align: center; }
 .qrCaption strong { font-size: var(--font-xs); letter-spacing: 0.02em; }
-.qrNote { margin: 0; font-size: var(--font-xs); opacity: 0.9; text-align: center; }
-.amountLabel { margin: 4px 0 0; font-size: var(--font-xs); opacity: 0.9; }
+.qrNote { margin: 0; font-size: var(--font-xs); color: var(--color-plate-muted); text-align: center; }
+.save { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 6px 16px; border: 2px solid var(--color-paper-ink); border-radius: var(--radius-control); color: var(--color-paper-ink); font-weight: 700; text-decoration: none; }
+.save:hover { color: var(--color-paper-ink); background: var(--color-paper-soft); }
+.amountLabel { margin: 4px 0 0; font-size: var(--font-small); color: var(--color-plate-muted); }
 .amount { margin: 0; font-size: 34px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.table { width: 100%; background: var(--color-bg); color: var(--color-text); border-radius: 12px; padding: 4px 14px; }
-.row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--color-line); }
+.table { width: 100%; background: var(--color-bg); color: var(--color-text); border-radius: var(--radius-control); padding: 4px 14px; }
+/* Nhãn nhỏ ở trên, giá trị to ở dưới, nút Copy bên phải: số tài khoản và mã đơn không bị bẻ dòng. */
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label copy" "value copy"; align-items: center; gap: 2px 10px; padding: 10px 0; border-top: 1px solid var(--color-line); }
+.row > button { grid-area: copy; }
 .row:first-child { border-top: 0; }
-.rowLabel { font-size: var(--font-xs); color: var(--color-muted); }
-.rowValue { display: flex; flex-direction: column; align-items: flex-end; text-align: right; min-width: 0; overflow-wrap: anywhere; }
-.rowValue strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.rowLabel { grid-area: label; font-size: var(--font-xs); color: var(--color-muted); }
+.rowValue { grid-area: value; display: flex; flex-direction: column; align-items: flex-start; min-width: 0; overflow-wrap: anywhere; }
+/* Chữ nhỏ dần trên màn hẹp để số tài khoản (đến 14 chữ số) và mã đơn nằm một dòng cạnh nút Copy; chỉ chuỗi dài hơn mới xuống dòng. */
+.rowValue strong { font-size: clamp(16px, 5vw, 20px); font-variant-numeric: tabular-nums; }
 .rowValue small { font-size: var(--font-xs); color: var(--color-muted); }
-.accent { color: var(--color-primary); letter-spacing: 0.04em; }
-.copy { min-height: 36px; min-width: 56px; padding: 6px 10px; border: 2px solid var(--color-border-input); border-radius: 8px; background: var(--color-bg-alt); color: var(--color-text-2); font: inherit; font-size: var(--font-xs); font-weight: 600; cursor: pointer; }
-.copy:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; }
-.after { margin: 0; font-size: var(--font-xs); line-height: 1.55; color: var(--color-text-2); text-align: center; }
+.accent { display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--color-action); color: var(--color-action-ink); letter-spacing: 0.04em; }
+.copy { min-height: 48px; min-width: 72px; padding: 6px 12px; border: 2px solid var(--color-border-input); border-radius: var(--radius-control); background: var(--color-bg); color: var(--color-text); font: inherit; font-size: var(--font-small); font-weight: 700; cursor: pointer; }
+.copy:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.after { margin: 0; font-size: var(--font-small); line-height: 1.55; color: var(--color-text-2); text-align: center; }
 .steps { margin: 0; padding-left: 20px; color: var(--color-text-2); }
-.clock { font-variant-numeric: tabular-nums; }
+.clock { font-size: 22px; font-variant-numeric: tabular-nums; }
 .value { font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .rowText { display: flex; flex-direction: column; min-width: 0; }
 .claim { display: flex; flex-direction: column; gap: 8px; align-items: stretch; text-align: center; }

@@ -42,6 +42,10 @@ describe("danh mục công khai", () => {
     expect(courses[0]!.trialLessons[0]!.title).toMatch(/^Hãy giới thiệu/);
     const detail = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as { lessons: { isFreeTrial: boolean }[] };
     expect(detail.lessons.map((l) => l.isFreeTrial)).toEqual([true, true, true, false]);
+    // Giao diện v2: trang khóa chia bài theo chủ đề như trong app học.
+    const topical = detail as unknown as { topics: { id: string; titleVi: string }[]; lessons: { topic: string | null }[] };
+    expect(topical.topics).toEqual([{ id: "A1", titleVi: "Học vấn và mục tiêu nghề nghiệp" }, { id: "B1", titleVi: "Tàu dầu và hóa chất" }]);
+    expect(topical.lessons.map((l) => l.topic)).toEqual(["A1", "A1", "A1", "B1"]);
   });
 
   it("bài học thử: vị trí 1–3 có nội dung; vị trí 4, 0, abc → 404", async () => {
