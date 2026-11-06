@@ -34,3 +34,7 @@
   .logo { width: 24px; }
   .phoneLogin { padding: 0 4px; font-size: var(--font-xs); }
 }
+/* Máy rất hẹp (320px, iPhone SE đời đầu): chỉ còn mỏ neo, để Đăng nhập và Menu vẫn cùng một hàng. Tên vẫn đọc được qua aria-label. */
+@media (max-width: 340px) {
+  .brandText { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}

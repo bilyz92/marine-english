@@ -13,7 +13,7 @@ export function SiteHeader() {
           <span className={styles.logo}>
             <BrandMark />
           </span>
-          Marine English
+          <span className={styles.brandText}>Marine English</span>
         </Link>
         <Suspense fallback={null}><SiteNav /></Suspense>
       </div>
