@@ -23,6 +23,8 @@ model User {
   mergedFrom       User[]             @relation("UserMerge")
   identities       UserIdentity[]
   passwordLogin    PasswordLogin?
+  pendingCredentials LearnerPendingCredentials?
+  contactEmail     LearnerContactEmail?
   devices          Device[]
   sessions         LearnerSession[]
   loginTickets     LoginTicket[]
@@ -64,6 +66,27 @@ model PasswordLogin {
   user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("password_logins")
+}
+
+/// Mật khẩu tạm của khách mua không cần đăng nhập, mã hóa, để hiện ở bước 3 và gửi email khi thanh toán xong.
+model LearnerPendingCredentials {
+  userId      String    @id @map("user_id") @db.Uuid
+  passwordEnc String    @map("password_enc")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  emailedAt   DateTime? @map("emailed_at") @db.Timestamptz(6)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learner_pending_credentials")
+}
+
+/// Email khách nhập ở trang mua (chưa xác minh): chỉ để gửi thư.
+model LearnerContactEmail {
+  userId    String   @id @map("user_id") @db.Uuid
+  email     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learner_contact_emails")
 }
 
 model PasswordAttempt {

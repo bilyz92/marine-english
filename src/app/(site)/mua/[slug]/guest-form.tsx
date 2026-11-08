@@ -10,10 +10,10 @@ import styles from "./buy.module.css";
 import ui from "@/components/ui.module.css";
 
 // Khách chưa có tài khoản mua ngay (docs/superpowers/plans/2026-11-05-guest-checkout.md): tên + số (email tùy chọn) →
-// tài khoản tự tạo, mật khẩu hệ thống cấp hiện một lần; số đã có tài khoản → nhập mật khẩu và mua tiếp trên trang này.
+// tài khoản tự tạo (mật khẩu tạm hiện ở bước 3 và gửi email khi thanh toán xong); số đã có tài khoản → nhập mật khẩu và mua tiếp trên trang này.
 
-type Answer = { next?: string; error?: string; problem?: string; password?: string; devices?: Device[] };
-type Step = "form" | "saved" | "login" | "email_taken";
+type Answer = { next?: string; error?: string; problem?: string; devices?: Device[] };
+type Step = "form" | "login" | "email_taken";
 
 export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }: {
   slug: string; terms: React.ReactNode; termsAccepted: boolean; onBlocked: () => void; onSignedIn: () => void;
@@ -26,9 +26,6 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [mustSetPassword, setMustSetPassword] = useState(false);
-  const [issued, setIssued] = useState<string | null>(null);
-  const [savedIt, setSavedIt] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const loginHref = `/dang-nhap?next=${encodeURIComponent(`/mua/${slug}`)}`;
@@ -62,8 +59,8 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
         displayName: name.trim(), phone, ...(email.trim() ? { email: email.trim() } : {}), deviceKey: await getDeviceKey(), deviceLabel: deviceLabel(),
       });
       if (r.status === 0) return setError(MESSAGE.network!);
-      if (r.data.password) setIssued(r.data.password);
-      if (r.data.next === "done") return setStep("saved");
+      // Chủ 09/11/2026: mật khẩu tạm không hiện ở bước này; hiện ở bước 3 và gửi email khi thanh toán xong.
+      if (r.data.next === "done") return onSignedIn();
       if (r.data.next === "choose_device") return chooseDevice(r.data);
       if (r.data.error === "phone_taken") return setStep("login");
       if (r.data.error === "email_taken") return setStep("email_taken");
@@ -91,30 +88,6 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
       setError(MESSAGE[r.data.error ?? r.data.next ?? ""] ?? "Không đăng nhập được, thử lại sau.");
     });
   };
-
-  async function copy() {
-    if (!issued) return;
-    await navigator.clipboard?.writeText(issued).then(() => setCopied(true), () => setCopied(false));
-  }
-
-  if (step === "saved" && issued) {
-    return (
-      <div className={styles.issued} role="status">
-        <p className={ui.lead} style={{ margin: 0 }}>Đã tạo tài khoản cho bạn. Lần sau đăng nhập bằng:</p>
-        <dl className={styles.credentials}>
-          <dt>Số điện thoại</dt><dd>{phone}</dd>
-          <dt>Mật khẩu</dt><dd className={styles.password}>{issued}</dd>
-        </dl>
-        <button type="button" className={ui.outline} onClick={() => void copy()}>{copied ? "Đã sao chép" : "Sao chép mật khẩu"}</button>
-        <p className={styles.warn}>Chụp màn hình hoặc ghi lại ngay. Mật khẩu chỉ hiện một lần.</p>
-        <label className={styles.terms}>
-          <input type="checkbox" checked={savedIt} onChange={(e) => setSavedIt(e.target.checked)} />
-          <span>Tôi đã lưu mật khẩu</span>
-        </label>
-        <button type="button" className={ui.action} disabled={!savedIt} onClick={() => onSignedIn()}>Tiếp tục</button>
-      </div>
-    );
-  }
 
   if (step === "email_taken") {
     return (
@@ -147,7 +120,7 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
           <Link href={loginHref}>Đăng nhập cách khác</Link> · <Link href={loginHref}>Quên mật khẩu?</Link> ·{" "}
           <button type="button" className={styles.linkButton} onClick={() => { setStep("form"); setPassword(""); setError(null); }}>Dùng số khác</button>
         </p>
-        <p className={ui.muted}>Vừa đăng ký mà chưa thấy mật khẩu, hoặc không đăng nhập được? <Link href="/lien-he">Liên hệ hỗ trợ</Link>.</p>
+        <p className={ui.muted}>Không nhớ mật khẩu, hoặc không đăng nhập được? <Link href="/lien-he">Liên hệ hỗ trợ</Link>.</p>
       </form>
     );
   }
@@ -166,7 +139,7 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
       <label className={styles.field}>
         <span>Email (không bắt buộc)</span>
         <input className={styles.input} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <small className={ui.muted}>Để nhận ra tài khoản bạn đã có.</small>
+        <small className={ui.muted}>Nhận thông tin đăng nhập khi thanh toán xong. Không có email thì xem ở bước 3.</small>
       </label>
       {terms}
       {error && <p className={ui.error} role="alert">{error}</p>}

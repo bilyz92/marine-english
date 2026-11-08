@@ -31,18 +31,16 @@ async function login(phone: string, password: string) {
 }
 
 describe("đăng ký nhanh ở trang mua", () => {
-  it("số mới → tạo tài khoản, có phiên, trả mật khẩu 10 ký tự đăng nhập lại được; DB chỉ có bản băm; không lưu đệm", async () => {
+  it("số mới → tạo tài khoản, có phiên, không trả mật khẩu (hiện ở bước 3); mật khẩu tạm bắt đổi khi đăng nhập; không lưu đệm", async () => {
     const r = await quick({ phone: "0912 000 111" });
     expect(r.status).toBe(200);
-    expect(r.body.next).toBe("done");
-    expect(r.body.password).toMatch(/^[A-HJKMNP-Za-hjkmnp-z2-9]{10}$/);
+    expect(r.body).toEqual({ next: "done" });
     expect(r.session).toBeTruthy();
     expect(r.cache).toContain("no-store");
-    expect((await login("0912000111", r.body.password!)).next).toBe("done");
-    const { rows } = await sqlAsMigrator(`SELECT password_hash, must_change FROM password_logins WHERE phone_canonical = '+84912000111'`);
+    const { rows } = await sqlAsMigrator(`SELECT must_change FROM password_logins WHERE phone_canonical = '+84912000111'`);
     expect(rows).toHaveLength(1);
-    expect(rows[0].password_hash).not.toContain(r.body.password);
-    expect(rows[0].must_change).toBe(false);
+    expect(rows[0].must_change).toBe(true);
+    expect((await login("0912000111", "khong-phai-mat-khau")).next).toBe("invalid");
   });
 
   it("số đã có tài khoản → 409 phone_taken, không trả mật khẩu, không tạo tài khoản thứ hai", async () => {

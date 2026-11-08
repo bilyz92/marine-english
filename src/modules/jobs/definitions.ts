@@ -1,3 +1,4 @@
+import { prunePendingCredentials } from "@/modules/auth-learner/pending-credentials";
 import { prisma } from "@/lib/db";
 import { deliverBatch, defaultSenders } from "@/modules/outbox/deliver";
 import { reconcile, sepayApi } from "@/modules/ledger/reconcile";
@@ -128,7 +129,9 @@ export const JOBS: ScheduledJob[] = [
     timeoutMs: 5 * MINUTE,
     run: async () => {
       const [row] = await prisma().$queryRaw<{ n: number; admin: number }[]>`SELECT prune_password_attempts() AS n, prune_admin_login_attempts() AS admin`;
-      return { deleted: row!.n, adminDeleted: row!.admin };
+      // Mật khẩu tạm (mã hóa) của khách mua quá 30 ngày (docs/superpowers/plans/2026-11-09-checkout-credentials.md).
+      const pendingCredentials = await prunePendingCredentials();
+      return { deleted: row!.n, adminDeleted: row!.admin, pendingCredentials };
     },
   },
 ];

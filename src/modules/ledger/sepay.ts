@@ -15,7 +15,8 @@ export type SignatureCheck = "ok" | "missing" | "bad_signature" | "stale";
 /** HMAC-SHA256 (hex) của `${timestamp}.${rawBody}`, thử mọi bí mật; timestamp (giây Unix) lệch tối đa 5 phút. */
 export function verifySepaySignature(headers: Headers, rawBody: string, nowMs: number, secrets: string[]): SignatureCheck {
   const timestamp = headers.get("x-sepay-timestamp");
-  const signature = headers.get("x-sepay-signature")?.trim().toLowerCase();
+  // SePay gửi "sha256=<hex>" (developer.sepay.vn/vi/sepay-webhooks/xac-thuc); vẫn nhận hex trần.
+  const signature = headers.get("x-sepay-signature")?.trim().toLowerCase().replace(/^sha256=/, "");
   if (!timestamp || !signature || !/^\d{1,12}$/.test(timestamp)) return "missing";
   if (Math.abs(nowMs / 1000 - Number(timestamp)) > MAX_SKEW_SECONDS) return "stale";
   const base = signaturePayload(timestamp, rawBody);

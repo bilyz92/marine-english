@@ -4,6 +4,7 @@ import { emailSender, EmailNotConfiguredError } from "@/modules/mail/email-sende
 import { emailMessage, telegramMessage } from "./messages";
 import { enqueueOutbox } from "./outbox";
 import { NotConfiguredError, telegramSender, type TelegramSender } from "./telegram";
+import { markCredentialsEmailed, readPendingCredentials } from "@/modules/auth-learner/pending-credentials";
 
 export interface OutboxEmailSender {
   send(to: string, subject: string, body: string): Promise<void>;
@@ -84,7 +85,10 @@ async function markDead(event: Claimed, error: string) {
   });
 }
 
-/** Email của học viên; tài khoản đã gộp thì định danh nằm ở tài khoản đích nên tra ngược lên theo merged_into_id. */
+/**
+ * Email của học viên; tài khoản đã gộp thì định danh nằm ở tài khoản đích nên tra ngược lên theo merged_into_id. Không có email đã
+ * xác minh thì dùng email liên hệ khách nhập ở trang mua (chưa xác minh, chỉ để gửi thư).
+ */
 async function learnerEmail(userId: string): Promise<string | null> {
   const rows = await prisma().$queryRaw<{ email: string }[]>`
     WITH RECURSIVE up(id, merged_into_id) AS (
@@ -94,7 +98,28 @@ async function learnerEmail(userId: string): Promise<string | null> {
     )
     SELECT i.value_canonical AS email FROM up JOIN user_identities i ON i.user_id = up.id
     WHERE i.kind = 'email' ORDER BY i.verified_at DESC LIMIT 1`;
-  return rows[0]?.email ?? null;
+  if (rows[0]) return rows[0].email;
+  const [contact] = await prisma().$queryRaw<{ email: string }[]>`SELECT email FROM learner_contact_emails WHERE user_id = ${userId}::uuid`;
+  return contact?.email ?? null;
+}
+
+/**
+ * Thư "đơn đã thanh toán" của khách tạo tài khoản ở trang mua: thêm thông tin đăng nhập, dựng lúc gửi (mật khẩu không bao giờ
+ * nằm trong outbox). Đã đổi mật khẩu thì chỉ nhắc số điện thoại.
+ */
+async function withLoginInfo(userId: string, body: string): Promise<{ body: string; issued: boolean }> {
+  const creds = await readPendingCredentials(userId);
+  if (creds) {
+    return {
+      body: `${body}\n\nThông tin đăng nhập: số điện thoại ${creds.phone}, mật khẩu tạm ${creds.password}. `
+        + "Lần đầu đăng nhập bạn sẽ đặt mật khẩu mới.",
+      issued: true,
+    };
+  }
+  const [login] = await prisma().$queryRaw<{ phone_canonical: string }[]>`
+    SELECT phone_canonical FROM password_logins WHERE user_id = ${userId}::uuid AND released_at IS NULL`;
+  if (!login) return { body, issued: false };
+  return { body: `${body}\n\nĐăng nhập bằng số điện thoại ${`0${login.phone_canonical.slice(3)}`} và mật khẩu của bạn.`, issued: false };
 }
 
 /** Gửi một tin; trả "no_email" nếu học viên không có địa chỉ để gửi. */
@@ -105,8 +130,15 @@ async function send(event: Claimed, senders: Senders): Promise<"sent" | "no_emai
     return "sent";
   }
   const { subject, body } = emailMessage(event.kind, event.payload);
-  const to = await learnerEmail(String(event.payload.userId));
+  const userId = String(event.payload.userId);
+  const to = await learnerEmail(userId);
   if (!to) return "no_email";
+  if (event.kind === "order_paid") {
+    const mail = await withLoginInfo(userId, body);
+    await senders.email.send(to, subject, mail.body);
+    if (mail.issued) await markCredentialsEmailed(userId);
+    return "sent";
+  }
   await senders.email.send(to, subject, body);
   return "sent";
 }

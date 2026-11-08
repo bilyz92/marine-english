@@ -5,8 +5,9 @@ import { generatedPassword, registerWithPassword } from "@/modules/auth-learner/
 import { canonicalizeEmail } from "@/modules/identity/email";
 import { sessionCookies, ticketCookie } from "@/modules/sessions/cookies";
 
-// Mua khóa không cần đăng nhập trước (docs/superpowers/plans/2026-11-05-guest-checkout.md): tên + số (email tùy chọn,
-// chỉ để nhận ra tài khoản đã có, không lưu vì chưa xác minh) → tài khoản mới, mật khẩu do hệ thống cấp, trả về đúng một lần.
+// Mua khóa không cần đăng nhập trước (docs/superpowers/plans/2026-11-05-guest-checkout.md): tên + số (email tùy chọn) → tài khoản mới,
+// mật khẩu do hệ thống cấp. Chủ 09/11/2026 (2026-11-09-checkout-credentials.md): không trả mật khẩu ở bước này; mật khẩu hiện ở bước 3
+// và gửi vào email khi thanh toán xong, lần đầu đăng nhập phải đổi. Email chưa xác minh: chỉ để gửi thư và nhận ra tài khoản đã có.
 
 const Body = z.object({
   displayName: z.string().trim().min(1).max(100),
@@ -32,13 +33,13 @@ export const POST = route(async (req: Request) => {
   }
   const password = generatedPassword();
   const result = await registerWithPassword(
-    { phone: body.phone, password, displayName: body.displayName, rank: null, ip: clientIp(req), existingEmail: email },
+    { phone: body.phone, password, displayName: body.displayName, rank: null, ip: clientIp(req), existingEmail: email, issued: { contactEmail: email } },
     (tx, userId) => completeLearnerAuth(tx, { userId, deviceKeyHash, deviceLabel: body.deviceLabel, authAt: new Date() }),
   );
   // Mật khẩu tự sinh luôn đủ mạnh; nhánh "weak" chỉ để đủ kiểu.
   if (result.kind === "weak") return json({ error: "weak_password" }, { status: 500, headers: NO_STORE });
   if (result.kind !== "ok") return json({ error: result.kind }, { status: STATUS[result.kind], headers: NO_STORE });
   const outcome = result.value;
-  if (outcome.kind === "session") return withCookies(json({ next: "done", password }, { headers: NO_STORE }), sessionCookies("learner", outcome.token, outcome.csrf));
-  return withCookies(json({ next: "choose_device", devices: outcome.devices, password }, { headers: NO_STORE }), [ticketCookie(outcome.ticket)]);
+  if (outcome.kind === "session") return withCookies(json({ next: "done" }, { headers: NO_STORE }), sessionCookies("learner", outcome.token, outcome.csrf));
+  return withCookies(json({ next: "choose_device", devices: outcome.devices }, { headers: NO_STORE }), [ticketCookie(outcome.ticket)]);
 });

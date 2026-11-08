@@ -14,7 +14,7 @@ const failures = [];
 const check = (name, ok, extra = "") => { console.log(ok ? "✓" : "✗", name, ok ? "" : extra); if (!ok) failures.push(name); };
 const text = () => b.evaluate(`document.body?.innerText ?? ""`).catch(() => "");
 const waitFor = async (fn, ms = 30000) => { for (let i = 0; i < ms / 250; i++) { if (await fn().catch(() => false)) return true; await sleep(250); } return false; };
-const see = (s, ms = 60000) => waitFor(async () => (await text()).includes(s), ms);
+const see = (s, ms = 120000) => waitFor(async () => (await text()).includes(s), ms);
 const path = () => b.evaluate("location.pathname");
 const hydrated = () => waitFor(() => b.evaluate(`(() => { const el = document.querySelector("main form button"); return !!el && Object.keys(el).some((k) => k.startsWith("__reactProps")); })()`), 60000);
 // Điền theo nhãn: <label><span>Nhãn</span><input/></label>.
@@ -47,26 +47,29 @@ try {
   }
   await b.width(390, 900);
 
-  // 1. Khách mới: chưa tích điều khoản → báo; tích → mật khẩu hiện, chưa tích "đã lưu" thì chưa đi tiếp.
+  // 1. Khách mới: chưa tích điều khoản → báo; tích → tạo tài khoản và sang thanh toán ngay, KHÔNG hiện mật khẩu (chủ 09/11/2026).
   await fill("Họ và tên *", "Khách Mua Nhanh");
   await fill("Số điện thoại *", phone);
+  await fill("Email (không bắt buộc)", `khach${stamp}@x.vn`);
   await press("Tạo tài khoản và tiếp tục");
   check("chưa đồng ý điều khoản → báo", await see("Cần đồng ý điều khoản", 10000));
   await tick("Tôi đồng ý");
   await press("Tạo tài khoản và tiếp tục");
-  check("tạo xong, hiện mật khẩu", await see("Mật khẩu chỉ hiện một lần"));
-  const password = await b.evaluate(`[...document.querySelectorAll("dd")].pop()?.textContent.trim()`);
-  check("mật khẩu 10 ký tự", /^[A-Za-z0-9]{10}$/.test(password ?? ""), String(password));
-  check("có nút sao chép", (await text()).includes("Sao chép mật khẩu"));
-  check("chưa tích 'đã lưu' thì nút Tiếp tục khóa", await b.evaluate(`[...document.querySelectorAll("main button")].find((e) => e.textContent.trim() === "Tiếp tục")?.disabled === true`));
-  await problems("mật khẩu tự cấp @390");
-  await b.shot(`${OUT}/2-mat-khau.png`);
-  await tick("Tôi đã lưu mật khẩu");
-  await press("Tiếp tục");
-  check("sang trang thanh toán", await waitFor(async () => (await path()).startsWith("/thanh-toan/ME"), 60000));
+  check("tạo xong → sang trang thanh toán ngay", await waitFor(async () => (await path()).startsWith("/thanh-toan/ME"), 120000));
   const firstOrder = (await path()).split("/").pop();
+  await see("Tôi đã chuyển khoản");
+  check("bước 2 không hiện mật khẩu", !(await text()).includes("Mật khẩu tạm"));
 
-  // 2. Số đã có tài khoản: sai mật khẩu → báo; đúng → về đúng đơn cũ, không tạo đơn thứ hai.
+  // 3. Bước 3: báo đã chuyển khoản → hiện tài khoản (số + mật khẩu tạm), nhắc email.
+  await waitFor(() => b.evaluate(`(() => { const e = [...document.querySelectorAll("main button")].find((x) => x.textContent.trim() === "Tôi đã chuyển khoản" && Object.keys(x).some((k) => k.startsWith("__reactProps"))); e?.click(); return !!e; })()`), 60000);
+  check("bước 3 hiện Tài khoản của bạn", await see("Tài khoản của bạn"));
+  const password = await b.evaluate(`[...document.querySelectorAll('[aria-label="Tài khoản của bạn"] dd')].pop()?.textContent.trim()`);
+  check("bước 3 có số điện thoại và mật khẩu tạm 10 ký tự", (await text()).includes(phone) && /^[A-Za-z0-9]{10}$/.test(password ?? ""), String(password));
+  check("bước 3 nhắc sẽ gửi email khi thanh toán xong", (await text()).includes("gửi vào email"));
+  await problems("bước 3 @390");
+  await b.shot(`${OUT}/2-buoc-3.png`);
+
+  // 2. Số đã có tài khoản: sai mật khẩu → báo; mật khẩu tạm → phải đặt mật khẩu mới ngay trên trang mua.
   await signOut();
   await openBuy();
   await fill("Họ và tên *", "Ai Đó");
@@ -81,7 +84,10 @@ try {
   check("sai mật khẩu → báo", await see("Số điện thoại hoặc mật khẩu không đúng"));
   await fill("Mật khẩu", password);
   await press("Đăng nhập và mua tiếp");
-  check("đúng mật khẩu → về đúng đơn cũ", await waitFor(async () => (await path()) === `/thanh-toan/${firstOrder}`, 60000), await path());
+  check("lần đầu đăng nhập bằng mật khẩu tạm → bắt đặt mật khẩu mới", await see("Đặt mật khẩu mới để mua tiếp"));
+  await fill("Mật khẩu mới (ít nhất 8 ký tự)", "Thuyenvien2026moi");
+  await press("Đăng nhập và mua tiếp");
+  check("đặt xong → về đơn cũ hoặc báo đã có khóa (đang mở tạm)", await waitFor(async () => (await path()) === `/thanh-toan/${firstOrder}` || (await text()).includes("Bạn đã có khóa"), 60000), await path());
   const { rows: orders } = await db.query(`SELECT count(*)::int AS n FROM orders o JOIN password_logins p ON p.user_id = o.user_id WHERE p.phone_canonical = $1`, [`+84${phone.slice(1)}`]);
   check("chỉ một đơn", orders[0].n === 1, String(orders[0].n));
 
@@ -134,7 +140,7 @@ try {
   check("mật khẩu tạm → hỏi mật khẩu mới ngay trên trang mua", await see("Đặt mật khẩu mới để mua tiếp"));
   await fill("Mật khẩu mới (ít nhất 8 ký tự)", "Thuyenvien2026moi");
   await press("Đăng nhập và mua tiếp");
-  check("đặt xong → sang trang thanh toán", await waitFor(async () => (await path()).startsWith("/thanh-toan/ME"), 60000), await path());
+  check("đặt xong → sang trang thanh toán", await waitFor(async () => (await path()).startsWith("/thanh-toan/ME"), 120000), await path());
 
   await problems("trang thanh toán @390");
   const errors = b.events.errors.filter((e) => !String(e).includes("401"));

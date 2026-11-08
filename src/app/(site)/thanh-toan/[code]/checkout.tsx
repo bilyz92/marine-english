@@ -129,14 +129,50 @@ function ClaimButton({ code, onDone }: { code: string; onDone: () => void }) {
   );
 }
 
+/**
+ * Bước 3 (chủ 09/11/2026): khách tạo tài khoản ngay trên trang mua thấy số điện thoại và mật khẩu tạm ở đây (bước 1 không hiện).
+ * Máy chủ chỉ trả khi đơn đã báo chuyển khoản hoặc đã thanh toán; tài khoản tự đặt mật khẩu thì không có gì để hiện.
+ */
+function AccountInfo({ code, paid }: { code: string; paid: boolean }) {
+  const [info, setInfo] = useState<{ phone: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void fetch(`/api/me/credentials?order=${encodeURIComponent(code)}`, { cache: "no-store" })
+      .then(async (res) => (res.ok ? ((await res.json()) as { available: boolean; phone?: string; password?: string }) : null))
+      .then((r) => { if (live && r?.available) setInfo({ phone: r.phone!, password: r.password! }); })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, [code]);
+  if (!info) return null;
+  return (
+    <section className={styles.account} aria-label="Tài khoản của bạn">
+      <h2 className={ui.h3}>Tài khoản của bạn</h2>
+      <dl className={styles.accountList}>
+        <div><dt>Số điện thoại</dt><dd>{info.phone}</dd></div>
+        <div><dt>Mật khẩu tạm</dt><dd className={styles.accountPassword}>{info.password}</dd></div>
+      </dl>
+      <button type="button" className={ui.outline} onClick={() => void navigator.clipboard?.writeText(info.password).then(() => setCopied(true), () => undefined)}>
+        {copied ? "Đã sao chép" : "Sao chép mật khẩu"}
+      </button>
+      <p className={ui.muted}>Ghi lại để đăng nhập trên máy khác. Lần đầu đăng nhập bằng mật khẩu tạm, bạn sẽ đặt mật khẩu mới.</p>
+      {!paid && <p className={ui.muted}>Thông tin này cũng được gửi vào email của bạn khi thanh toán xong.</p>}
+    </section>
+  );
+}
+
 function ClaimState({ order, onChanged }: { order: Order; onChanged: () => void }) {
   if (order.claim.status === "open") {
     return (
+      <>
+      <BuySteps current={3} />
       <div className={ui.card} role="status">
         <h1 className={ui.h2}>Khóa học đã mở</h1>
         <p className={ui.lead}>Đơn {order.code}: {order.courseTitleVi}. Bạn đã báo chuyển khoản {formatVnd(order.amountDueVnd)}; chủ khóa học sẽ đối chiếu sao kê.</p>
         {order.enrolled && <Link className={ui.action} href={`/hoc?khoa=${order.courseSlug}`}>Vào học ngay</Link>}
+        <AccountInfo code={order.code} paid={false} />
       </div>
+      </>
     );
   }
   return (
@@ -263,11 +299,13 @@ export function Checkout({ code }: { code: string }) {
       {order.needsManual && !finished && (
         <p className={ui.notice} role="status">Hệ thống đã ghi nhận một khoản chuyển cho đơn này nhưng cần đối chiếu tay. Đừng chuyển lại.</p>
       )}
+      {order.status === "paid" && <BuySteps current={3} />}
       {order.status === "paid" && (
         <div className={ui.card} role="status">
           <h1 className={ui.h2}>Thanh toán thành công</h1>
           <p className={ui.lead}>Đơn {order.code}: {order.courseTitleVi}.</p>
           {order.enrolled && <Link className={ui.action} href={`/hoc?khoa=${order.courseSlug}`}>Vào học ngay</Link>}
+          <AccountInfo code={order.code} paid />
         </div>
       )}
       {order.status === "refunded" && (

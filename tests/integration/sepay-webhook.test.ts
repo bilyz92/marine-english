@@ -30,9 +30,9 @@ function payload(code: string, at: Date, patch: Record<string, unknown> = {}) {
   };
 }
 
-function signed(body: string, opts: { secret?: string; skewSec?: number; contentType?: string; signature?: string } = {}) {
+function signed(body: string, opts: { secret?: string; skewSec?: number; contentType?: string; signature?: string; prefix?: string } = {}) {
   const ts = String(Math.floor(Date.now() / 1000) + (opts.skewSec ?? 0));
-  const sig = opts.signature ?? createHmac("sha256", opts.secret ?? NEW_SECRET).update(`${ts}.${body}`).digest("hex");
+  const sig = opts.signature ?? `${opts.prefix ?? ""}${createHmac("sha256", opts.secret ?? NEW_SECRET).update(`${ts}.${body}`).digest("hex")}`;
   return new Request(`${process.env.APP_ORIGIN}/api/payments/sepay/webhook`, {
     method: "POST",
     headers: { "content-type": opts.contentType ?? "application/json", "x-sepay-timestamp": ts, "x-sepay-signature": sig },
@@ -50,6 +50,14 @@ describe("webhook SePay", () => {
     expect([res.status, await res.json()]).toEqual([200, { success: true }]);
     expect((await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } })).status).toBe("paid");
     expect(logged.join("\n")).not.toContain(s.code);
+  });
+
+  it("chữ ký dạng SePay gửi thật: \"sha256=<hex>\" (developer.sepay.vn/vi/sepay-webhooks/xac-thuc) → 200, đơn paid", async () => {
+    const s = await paidCourseSetup();
+    const body = JSON.stringify(payload(s.code, new Date(s.createdAt.getTime() + 60_000)));
+    const res = await POST(signed(body, { prefix: "sha256=" }));
+    expect([res.status, await res.json()]).toEqual([200, { success: true }]);
+    expect((await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } })).status).toBe("paid");
   });
 
   it("sửa body sau khi ký, thiếu header, sai khóa → 401", async () => {
