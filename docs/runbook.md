@@ -18,7 +18,12 @@ Một máy chủ, một tệp `docker-compose.prod.yml`:
 
 Dữ liệu nằm ở các volume `pgdata`, `media`, `backups`, `caddy_data`. Khóa sao lưu nằm ở `BACKUP_KEYS_HOST_DIR` trên máy chủ (không trong volume).
 
-## 1A. Máy đang chạy: 103.180.134.101 (marine-english.heytek.vn), từ 02/11/2026
+## 1A. Máy đang chạy: 103.180.134.101 (conghung.ce-tanker.vn), từ 02/11/2026
+
+- Tên miền (đổi 08/11/2026): **https://conghung.ce-tanker.vn** là tên chính (`APP_ORIGIN`); `ce-tanker.vn` và `www.ce-tanker.vn` chuyển hẳn (301) về tên chính;
+  `marine-english.heytek.vn` đã bỏ, nginx đóng kết nối (444) để không rơi vào trang khác của máy. Một chứng chỉ chung `ce-tanker.vn` cho 3 tên, gia hạn qua
+  webroot `/var/www/certbot`. Đổi tên miền lần sau: sửa `APP_ORIGIN` trong `prod.env`, cấu hình nginx, `up -d app worker`, rồi đăng ký lại webhook Telegram (lệnh `setWebhook` ở mục 8).
+  Học viên đã cài app từ tên cũ phải cài lại từ tên mới (dữ liệu học offline nằm theo tên miền).
 
 - Máy dùng chung với heytek và crmgo; hai dự án này **đang tạm tắt** theo yêu cầu của chủ dự án để đủ RAM (1,8 GB). Lệnh bật lại: `~/DU-AN-DA-TAT.md` trên máy.
 - nginx của máy giữ cổng 80/443 và chuyển tiếp vào app ở `127.0.0.1:3100` (`/etc/nginx/sites-available/marine-english`, mẫu ở `deploy/nginx-marine-english.conf`);
