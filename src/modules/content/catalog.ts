@@ -5,48 +5,53 @@ import type { AdminCtx } from "@/modules/sessions/guards";
 
 // Danh mục chỉ gồm khóa published; nội dung đọc theo phiên bản hiện hành của khóa.
 
-export type LessonSummary = { position: number; externalId: string; title: string; isFreeTrial: boolean; topic: string | null };
-export type Topic = { id: string; titleVi: string };
+type LessonSummary = { position: number; externalId: string; title: string; isFreeTrial: boolean; moduleId: string | null };
+type TrialLesson = { position: number; externalId: string; title: string };
 export type CourseCard = {
   slug: string;
   titleVi: string;
   titleEn: string;
   priceVnd: number;
   lessonCount: number;
-  trialLessons: { position: number; externalId: string; title: string }[];
+  trialLessons: TrialLesson[];
 };
+/**
+ * Trang khóa công khai (chủ 08/11/2026): người chưa mua chỉ thấy tên module và số bài; trong mỗi module chỉ bài học thử có tiêu đề,
+ * bài khác chỉ còn con số, không gửi câu hỏi ra ngoài. Khóa chưa chia module: một nhóm "Nội dung khóa học".
+ */
+export type CourseModuleSummary = { id: string | null; titleVi: string; lessonCount: number; trial: TrialLesson[] };
+export type CourseDetail = CourseCard & { modules: CourseModuleSummary[] };
 
 type Row = {
-  slug: string; title_vi: string; title_en: string; price_vnd: number; topics: Topic[];
+  course_id: string; slug: string; title_vi: string; title_en: string; price_vnd: number;
   position: number; external_id: string; is_free_trial: boolean; title: string | null; module_id: string | null;
 };
 
 /** Tiêu đề bài: câu hỏi tiếng Việt, không có thì tiếng Anh, không có nữa thì mã bài. */
 async function publishedRows(slug?: string): Promise<Row[]> {
   return prisma().$queryRaw<Row[]>`
-    SELECT c.slug, c.title_vi, c.title_en, c.price_vnd, c.topics, cvl.position, l.external_id, cvl.is_free_trial, lv.content ->> 'module_id' AS module_id,
-           coalesce(lv.content #>> '{question,text,vi}', lv.content #>> '{question,text,en}') AS title
+    SELECT c.id::text AS course_id, c.slug, c.title_vi, c.title_en, c.price_vnd, cvl.position, l.external_id, cvl.is_free_trial,
+           clm.module_id::text AS module_id, coalesce(lv.content #>> '{question,text,vi}', lv.content #>> '{question,text,en}') AS title
     FROM courses c
     JOIN course_version_lessons cvl ON cvl.course_version_id = c.current_version_id
     JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id
     JOIN lessons l ON l.id = lv.lesson_id
+    LEFT JOIN course_lesson_modules clm ON clm.course_id = c.id AND clm.lesson_id = l.id
     WHERE c.status = 'published' AND (${slug ?? null}::text IS NULL OR c.slug = ${slug ?? null})
     ORDER BY c.slug, cvl.position`;
 }
 
-type CourseDetail = CourseCard & { topics: Topic[]; lessons: LessonSummary[] };
+type Grouped = CourseCard & { courseId: string; lessons: LessonSummary[] };
 
-function group(rows: Row[]): CourseDetail[] {
-  const bySlug = new Map<string, CourseDetail>();
+function group(rows: Row[]): Grouped[] {
+  const bySlug = new Map<string, Grouped>();
   for (const r of rows) {
     let course = bySlug.get(r.slug);
     if (!course) {
-      const topics = r.topics.map((t) => ({ id: t.id, titleVi: t.titleVi }));
-      course = { slug: r.slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: r.price_vnd, lessonCount: 0, trialLessons: [], topics, lessons: [] };
+      course = { courseId: r.course_id, slug: r.slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: r.price_vnd, lessonCount: 0, trialLessons: [], lessons: [] };
       bySlug.set(r.slug, course);
     }
-    const topic = r.module_id && course.topics.some((t) => t.id === r.module_id) ? r.module_id : null;
-    const lesson = { position: r.position, externalId: r.external_id, title: r.title ?? r.external_id, isFreeTrial: r.is_free_trial, topic };
+    const lesson = { position: r.position, externalId: r.external_id, title: r.title ?? r.external_id, isFreeTrial: r.is_free_trial, moduleId: r.module_id };
     course.lessons.push(lesson);
     course.lessonCount += 1;
     if (r.is_free_trial) course.trialLessons.push({ position: lesson.position, externalId: lesson.externalId, title: lesson.title });
@@ -55,11 +60,24 @@ function group(rows: Row[]): CourseDetail[] {
 }
 
 export async function listPublishedCourses(): Promise<CourseCard[]> {
-  return group(await publishedRows()).map(({ lessons: _lessons, topics: _topics, ...card }) => card);
+  return group(await publishedRows()).map(({ lessons: _lessons, courseId: _courseId, ...card }) => card);
 }
 
 export async function getPublishedCourse(slug: string): Promise<CourseDetail | null> {
-  return group(await publishedRows(slug))[0] ?? null;
+  const course = group(await publishedRows(slug))[0];
+  if (!course) return null;
+  const { lessons, courseId, ...card } = course;
+  const modules = await prisma().$queryRaw<{ id: string; title_vi: string }[]>`
+    SELECT id::text AS id, title_vi FROM course_modules WHERE course_id = ${courseId}::uuid ORDER BY position`;
+  const summary = (id: string | null, titleVi: string, own: LessonSummary[]): CourseModuleSummary => ({
+    id, titleVi, lessonCount: own.length,
+    trial: own.filter((l) => l.isFreeTrial).map(({ position, externalId, title }) => ({ position, externalId, title })),
+  });
+  if (modules.length === 0) return { ...card, modules: [summary(null, "Nội dung khóa học", lessons)] };
+  const known = new Set(modules.map((m) => m.id));
+  const groups = modules.map((m) => summary(m.id, m.title_vi, lessons.filter((l) => l.moduleId === m.id))).filter((g) => g.lessonCount > 0);
+  const other = lessons.filter((l) => !l.moduleId || !known.has(l.moduleId));
+  return { ...card, modules: other.length ? [...groups, summary(null, "Bài khác", other)] : groups };
 }
 
 /** Nội dung bài học thử: chỉ khi khóa published và vị trí là bài thử trong phiên bản hiện hành. */

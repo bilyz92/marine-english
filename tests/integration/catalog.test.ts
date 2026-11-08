@@ -5,10 +5,15 @@ import { GET as getTrial } from "@/app/api/public/courses/[slug]/trial/[position
 import { PATCH as patchCourse } from "@/app/api/quan-tri/courses/[id]/route";
 import { withTx } from "@/lib/db";
 import { createSession } from "@/modules/sessions/sessions";
+import { POST as createModuleRoute } from "@/app/api/quan-tri/content/courses/[slug]/modules/route";
+import { PUT as lessonModuleRoute } from "@/app/api/quan-tri/content/courses/[slug]/lessons/[externalId]/module/route";
 import { auditRows, insertAdmin } from "../helpers/admin";
+import { adminSess, callAdmin } from "../helpers/admin-call";
+import { sqlAsMigrator } from "../helpers/otp";
 import { publish, seedContent } from "../helpers/content";
 
 const ORIGIN = process.env.APP_ORIGIN!;
+type Detail = { lessonCount: number; modules: { id: string | null; titleVi: string; lessonCount: number; trial: { position: number; externalId: string; title: string }[] }[] };
 const get = (path: string) => new Request(`${ORIGIN}${path}`);
 const params = <T extends Record<string, string>>(p: T) => ({ params: Promise.resolve(p) });
 
@@ -40,12 +45,37 @@ describe("danh mục công khai", () => {
     expect(courses[0]).toMatchObject({ slug: "engine_cadet_tanker", priceVnd: 199_000, lessonCount: 4 });
     expect(courses[0]!.trialLessons.map((l) => l.externalId)).toEqual(["A001", "A002", "A003-1"]);
     expect(courses[0]!.trialLessons[0]!.title).toMatch(/^Hãy giới thiệu/);
-    const detail = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as { lessons: { isFreeTrial: boolean }[] };
-    expect(detail.lessons.map((l) => l.isFreeTrial)).toEqual([true, true, true, false]);
-    // Giao diện v2: trang khóa chia bài theo chủ đề như trong app học.
-    const topical = detail as unknown as { topics: { id: string; titleVi: string }[]; lessons: { topic: string | null }[] };
-    expect(topical.topics).toEqual([{ id: "A1", titleVi: "Học vấn và mục tiêu nghề nghiệp" }, { id: "B1", titleVi: "Tàu dầu và hóa chất" }]);
-    expect(topical.lessons.map((l) => l.topic)).toEqual(["A1", "A1", "A1", "B1"]);
+    // Khóa chưa chia module: một nhóm "Nội dung khóa học", chỉ bài học thử có tiêu đề (chủ 08/11/2026: người chưa mua chỉ thấy module).
+    const detail = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as Detail;
+    expect(detail).not.toHaveProperty("lessons");
+    expect(detail).not.toHaveProperty("topics");
+    expect(detail.modules).toEqual([{ id: null, titleVi: "Nội dung khóa học", lessonCount: 4, trial: courses[0]!.trialLessons }]);
+  });
+
+  it("API công khai không chứa câu hỏi của bài không học thử", async () => {
+    await seedContent();
+    await publish("engine_cadet_tanker");
+    const body = await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).text();
+    expect(body).not.toContain("T001");
+    expect(body).not.toContain("tanker cargo support systems");
+    expect(body).not.toContain("hệ thống hỗ trợ hàng");
+  });
+
+  it("mỗi module có lessonCount đúng và đủ 3 bài học thử; bài chưa xếp vào nhóm Bài khác ở cuối", async () => {
+    await seedContent();
+    await publish("engine_cadet_tanker");
+    const s = await adminSess("owner");
+    const createModule = async (titleVi: string) =>
+      ((await (await callAdmin(createModuleRoute, s, "POST", "/x", { titleVi }, { slug: "engine_cadet_tanker" })).json()) as { id: string }).id;
+    await createModule("Kinh nghiệm phỏng vấn");
+    const m2 = await createModule("Kinh nghiệm vận hành");
+    expect((await callAdmin(lessonModuleRoute, s, "PUT", "/x", { moduleId: m2 }, { slug: "engine_cadet_tanker", externalId: "T001" })).status).toBe(200);
+    const detail = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as Detail;
+    expect(detail.modules.map((m) => [m.titleVi, m.lessonCount, m.trial.length])).toEqual([["Kinh nghiệm phỏng vấn", 3, 3], ["Kinh nghiệm vận hành", 1, 0]]);
+    expect(detail.modules.reduce((n, m) => n + m.lessonCount, 0)).toBe(detail.lessonCount);
+    await sqlAsMigrator(`DELETE FROM course_lesson_modules WHERE lesson_id = (SELECT id FROM lessons WHERE external_id = 'T001')`);
+    const after = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as Detail;
+    expect(after.modules.map((m) => [m.id === null, m.titleVi, m.lessonCount])).toEqual([[false, "Kinh nghiệm phỏng vấn", 3], [true, "Bài khác", 1]]);
   });
 
   it("bài học thử: vị trí 1–3 có nội dung; vị trí 4, 0, abc → 404", async () => {

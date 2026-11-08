@@ -5,8 +5,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import ui from "@/components/ui.module.css";
 import { formatVnd } from "@/lib/format";
-import { getPublishedCourse, type LessonSummary } from "@/modules/content/catalog";
-import { groupByTopic } from "@/lib/offline/topics";
+import { getPublishedCourse } from "@/modules/content/catalog";
 import { BuyOrLearn } from "./buy-or-learn";
 import styles from "./course.module.css";
 
@@ -18,17 +17,9 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
   const course = await getPublishedCourse(slug);
   if (!course) notFound();
   const firstTrial = course.trialLessons[0];
-  // Giao diện v2: bài chia theo chủ đề (gập mở được, chủ đề đầu mở sẵn); khóa không có chủ đề thì danh sách phẳng.
-  const groups = groupByTopic(course.topics, course.lessons.map((l) => ({ ...l, status: null })));
-  const row = (l: LessonSummary) => (
-    <li key={l.position} className={styles.lesson}>
-      <span className={styles.lessonId}>{l.externalId}</span>
-      <span className={styles.lessonTitle}>{l.title}</span>
-      {l.isFreeTrial
-        ? <Link className={ui.outline} href={`/khoa-hoc/${course.slug}/hoc-thu/${l.position}`}>Học thử</Link>
-        : <span className={ui.muted}>Mở khi mua</span>}
-    </li>
-  );
+  // Chủ 08/11/2026: người chưa mua chỉ thấy module và số bài; trong module chỉ bài học thử hiện tên, còn lại là dòng mờ giả
+  // (máy chủ không gửi tên bài thật nên không ai đọc được). Học viên đã mua xem đủ bài trong app học /hoc.
+  // Nhóm không có mã ("Nội dung khóa học", "Bài khác") luôn đứng cuối nên số module là thứ tự i + 1.
   return (
     <div className={styles.layout}>
       <div className={styles.head}>
@@ -38,15 +29,34 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
       </div>
       <section className={`${ui.card} ${styles.main}`} aria-label="Danh sách bài">
         <h2 className={ui.h3}>Danh sách bài ({course.lessonCount})</h2>
-        {groups ? groups.map((g) => (
-          <details key={g.id ?? "khac"} className={styles.topic} open={g.open}>
-            <summary>
-              {g.id && <span className={styles.topicCode}>{g.id}</span>}
-              <span className={styles.topicTitle}>{g.titleVi}<span className={styles.topicCount}>{g.lessons.length} bài</span></span>
-            </summary>
-            <ol className={styles.lessons}>{g.lessons.map(row)}</ol>
-          </details>
-        )) : <ol className={styles.lessons}>{course.lessons.map(row)}</ol>}
+        {course.modules.map((m, i) => {
+          const hidden = m.lessonCount - m.trial.length;
+          return (
+            <details key={m.id ?? "khac"} className={styles.topic} open={i === 0}>
+              <summary>
+                {m.id && <span className={styles.topicCode}>Module {i + 1}</span>}
+                <span className={styles.topicTitle}>{m.titleVi}<span className={styles.topicCount}>{m.lessonCount} bài</span></span>
+              </summary>
+              <ol className={styles.lessons}>
+                {m.trial.map((l) => (
+                  <li key={l.position} className={styles.lesson}>
+                    <span className={styles.lessonId}>{l.externalId}</span>
+                    <span className={styles.lessonTitle}>{l.title}</span>
+                    <Link className={ui.outline} href={`/khoa-hoc/${course.slug}/hoc-thu/${l.position}`}>Học thử</Link>
+                  </li>
+                ))}
+                {Array.from({ length: Math.min(hidden, 4) }, (_, k) => (
+                  <li key={`an-${k}`} className={`${styles.lesson} ${styles.locked}`} aria-hidden="true">
+                    <span className={styles.lessonId}>•••</span>
+                    <span className={styles.lessonTitle}>Bài học trong khóa</span>
+                    <span className={ui.muted}>Mở khi mua</span>
+                  </li>
+                ))}
+              </ol>
+              {hidden > 0 && <p className={styles.lockedNote}>Mua khóa để mở {hidden} bài{m.trial.length ? " còn lại" : ""}.</p>}
+            </details>
+          );
+        })}
       </section>
       <aside className={`${ui.plate} ${styles.buy}`}>
         <span className={ui.price}>{formatVnd(course.priceVnd)}</span>

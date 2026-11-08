@@ -19,6 +19,9 @@
 .topicCode { flex: none; display: inline-flex; align-items: center; min-height: 34px; padding: 2px 10px; border-radius: 4px; background: var(--color-action); color: var(--color-action-ink); font-weight: 700; font-size: var(--font-small); }
 .topicTitle { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; font-weight: 700; }
 .topicCount { font-size: var(--font-xs); font-weight: 500; color: var(--color-muted); }
+/* Bài chưa mua: dòng giả làm mờ (không có tên bài thật trong trang). */
+.locked { filter: blur(4px); user-select: none; pointer-events: none; }
+.lockedNote { margin: 0 0 12px; font-weight: 600; }
 /* Khối giá: tấm nhãn đen, nút Mua vàng, Học thử là nút viền trắng. */
 .buy { grid-area: buy; position: sticky; top: 16px; }
 .buy p { margin: 0; }

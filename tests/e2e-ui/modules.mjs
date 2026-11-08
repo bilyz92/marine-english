@@ -18,6 +18,7 @@ const stamp = String(Date.now()).slice(-7);
 const SLUG = `tu_luan_${stamp}`;
 const QUESTION = "Describe how you prepare the main engine before departure.";
 const ANSWER = "First, I check the lube oil level and the cooling water.";
+const HIDDEN_QUESTION = "Which alarms do you test before taking over the engine room watch?";
 
 function helpers(b) {
   const text = () => b.evaluate(`document.body?.innerText ?? ""`).catch(() => "");
@@ -145,6 +146,15 @@ try {
   }
   await admin.width(1280, 900);
 
+  // Bài 3, 4 (hỏi–đáp) để khóa có bài không học thử: trang công khai không được lộ câu hỏi bài 4.
+  const { rows: [mod] } = await db.query(`SELECT id::text AS id FROM course_modules WHERE course_id = $1 ORDER BY position LIMIT 1`, [course.id]);
+  for (const q of ["How do you check the purifier?", HIDDEN_QUESTION]) {
+    const { rows: [{ v }] } = await db.query(`SELECT current_version_id::text AS v FROM courses WHERE id = $1`, [course.id]);
+    const r = await api(admin, "admin", "POST", `/api/quan-tri/content/courses/${SLUG}/lessons`, {
+      expectedVersionId: v, lessonType: "qa", moduleId: mod.id, questionEn: q, questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [],
+    });
+    check(`thêm bài hỏi–đáp “${q.slice(0, 20)}”`, r.status === 200, JSON.stringify(r));
+  }
   check("mở bán", (await api(admin, "admin", "PATCH", `/api/quan-tri/courses/${course.id}`, { priceVnd: 99000, status: "published" })).status === 200);
 
   // (a) Học thử bài tự luận (khách, sessionStorage).
@@ -152,6 +162,22 @@ try {
   const gh = helpers(g);
   try {
     await g.width(390, 900);
+    // Trang khóa (khách): chỉ module; bài không học thử là dòng mờ, câu hỏi thật không có trong trang (Task 7).
+    await g.go(`${BASE}/khoa-hoc`);
+    const html = await g.evaluate(`fetch("/khoa-hoc/${SLUG}").then((r) => r.text())`);
+    check("trang khóa: HTML không có câu hỏi bài 4", html.length > 1000 && !html.includes(HIDDEN_QUESTION));
+    check("API công khai: không có câu hỏi bài 4", !(await g.evaluate(`fetch("/api/public/courses/${SLUG}").then((r) => r.text())`)).includes(HIDDEN_QUESTION));
+    await g.go(`${BASE}/khoa-hoc/${SLUG}`);
+    check("trang khóa: thấy module", await gh.see("Kinh nghiệm vận hành"));
+    check("trang khóa: 3 nút Học thử", await g.evaluate(`[...document.querySelectorAll("main a")].filter((e) => e.textContent.trim() === "Học thử").length`) === 3);
+    check("trang khóa: có dòng mờ và lời mời mua", await g.evaluate(`!!document.querySelector("li[aria-hidden=true]")`) && (await gh.text()).includes("Mua khóa để mở 1 bài còn lại."));
+    for (const w of [1280, 390]) {
+      await g.width(w, 900);
+      await sleep(300);
+      const coursePage = await g.evaluate(PAGE_CHECKS);
+      check(`trang khóa: không lỗi giao diện @${w}`, coursePage.length === 0, JSON.stringify(coursePage));
+      await g.shot(`${OUT}/trang-khoa-${w}.png`);
+    }
     await g.go(`${BASE}/khoa-hoc/${SLUG}/hoc-thu/1`);
     check("học thử: thấy đề tự luận", await gh.see(QUESTION));
     check("học thử: nhãn Tự luận", (await gh.text()).includes("Tự luận"));
