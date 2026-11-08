@@ -21,13 +21,14 @@ const vnDay = (d: Date) => new Date(d.getTime() + 7 * HOUR).toISOString().slice(
 
 type RunRow = { job_name: string; first_run: Date; last_completed: Date | null; last_success: Date | null; last_skipped_unconfigured: boolean };
 
-async function runSummary(): Promise<Map<string, RunRow>> {
+/** Lần chạy trong 7 ngày trước `now` (theo mốc được truyền vào, không theo giờ DB, để kiểm tra lại được ở thời điểm cố định). */
+async function runSummary(now: Date): Promise<Map<string, RunRow>> {
   const rows = await prisma().$queryRaw<RunRow[]>`
     SELECT job_name, min(started_at) AS first_run,
            max(started_at) FILTER (WHERE status = 'success' OR stats ? 'skippedReason') AS last_completed,
            max(started_at) FILTER (WHERE status = 'success') AS last_success,
            (array_agg(stats ->> 'skippedReason' ORDER BY started_at DESC))[1] = 'not_configured' AS last_skipped_unconfigured
-    FROM job_runs WHERE started_at > now() - interval '7 days' GROUP BY job_name`;
+    FROM job_runs WHERE started_at > ${now}::timestamptz - interval '7 days' GROUP BY job_name`;
   return new Map(rows.map((r) => [r.job_name, r]));
 }
 
@@ -41,7 +42,7 @@ export async function watch(now: Date, deps: WatchDeps): Promise<Alert[]> {
   const days = await deps.certDaysLeft();
   if (days !== null && days < 14) alerts.push({ type: "cert_expiring", detail: { days } });
 
-  const runs = await runSummary();
+  const runs = await runSummary(now);
   // Sao lưu có cảnh báo riêng khi chưa cấu hình; ở đây chỉ báo khi đã chạy mà quá 26 giờ không có bản thành công.
   const backup = runs.get(BACKUP_JOB);
   if (backup && !backup.last_skipped_unconfigured) {
