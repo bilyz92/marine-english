@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useState } from "react";
 import { adminApi, can, Field, LoadState, messageFor, useAdmin, useLoad } from "../../admin-lib";
 import { CourseModules, type CourseModule } from "./course-modules";
+import { ExcelUpload } from "./excel-upload";
 import { LessonAudio } from "./lesson-audio";
 import styles from "../../admin.module.css";
 
@@ -204,6 +205,8 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
           {!editing && problem && <p className={styles.error} role="alert">{problem}</p>}
         </section>
       )}
+
+      {data && <ExcelUpload slug={slug} currentVersionId={data.course.currentVersionId} live={live} canEdit={canEdit} onDone={modulesChanged} />}
 
       {editing && (
         <form className={styles.card} onSubmit={(e) => void save(e)} aria-label="Soạn bài">

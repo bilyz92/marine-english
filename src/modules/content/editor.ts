@@ -12,8 +12,8 @@ import { modulesFor } from "./modules";
 // Chủ sửa và thêm bài trên web (docs/superpowers/plans/2026-11-02-content-authoring.md, bước 5).
 // Phiên bản bất biến: sửa = phiên bản bài mới + phiên bản khóa mới thay bài đó tại chỗ; chỉ đổi khóa đang mở.
 
-const FREE_TRIAL_LESSONS = 3;
-const EDIT_TX = { lockTimeoutMs: 3_000, retries: 0 };
+export const FREE_TRIAL_LESSONS = 3;
+export const EDIT_TX = { lockTimeoutMs: 3_000, retries: 0 };
 
 const text = z.string().trim().max(4000);
 const pair = z.object({ id: z.string().max(200).optional(), en: text, vi: text.optional().default("") });
@@ -43,12 +43,12 @@ export const CreateCourse = z.object({
 });
 
 type Json = Record<string, unknown>;
-type Member = { position: number; isFreeTrial: boolean; lessonVersionId: string; lessonId: string; externalId: string; hash: string; content: Json };
-type CourseRow = { id: string; slug: string; title_vi: string; title_en: string; status: string; current_version_id: string | null };
+export type Member = { position: number; isFreeTrial: boolean; lessonVersionId: string; lessonId: string; externalId: string; hash: string; content: Json };
+export type CourseRow = { id: string; slug: string; title_vi: string; title_en: string; status: string; current_version_id: string | null };
 
 const bilingual = (en: string, vi: string) => (vi ? { en, vi } : { en });
 
-async function members(db: Tx | ReturnType<typeof prisma>, versionId: string | null): Promise<Member[]> {
+export async function members(db: Tx | ReturnType<typeof prisma>, versionId: string | null): Promise<Member[]> {
   if (!versionId) return [];
   const rows = await db.$queryRaw<{ position: number; is_free_trial: boolean; lesson_version_id: string; lesson_id: string; external_id: string; content_hash: string; content: Json }[]>`
     SELECT cvl.position, cvl.is_free_trial, lv.id::text AS lesson_version_id, l.id::text AS lesson_id, l.external_id, lv.content_hash, lv.content
@@ -57,7 +57,7 @@ async function members(db: Tx | ReturnType<typeof prisma>, versionId: string | n
   return rows.map((r) => ({ position: r.position, isFreeTrial: r.is_free_trial, lessonVersionId: r.lesson_version_id, lessonId: r.lesson_id, externalId: r.external_id, hash: r.content_hash, content: r.content }));
 }
 
-async function courseBySlug(db: Tx | ReturnType<typeof prisma>, slug: string, lock = false): Promise<CourseRow> {
+export async function courseBySlug(db: Tx | ReturnType<typeof prisma>, slug: string, lock = false): Promise<CourseRow> {
   const rows = lock
     ? await db.$queryRaw<CourseRow[]>`SELECT id::text AS id, slug, title_vi, title_en, status, current_version_id::text AS current_version_id FROM courses WHERE slug = ${slug} FOR UPDATE`
     : await db.$queryRaw<CourseRow[]>`SELECT id::text AS id, slug, title_vi, title_en, status, current_version_id::text AS current_version_id FROM courses WHERE slug = ${slug}`;
@@ -157,7 +157,7 @@ export function applyFields(base: Json, id: string, f: Omit<z.infer<typeof Lesso
   return next;
 }
 
-async function lessonVersionFor(tx: Tx, externalId: string, content: Json): Promise<{ id: string; hash: string }> {
+export async function lessonVersionFor(tx: Tx, externalId: string, content: Json): Promise<{ id: string; hash: string }> {
   const hash = contentHash(content);
   await tx.$executeRaw`INSERT INTO lessons (external_id) VALUES (${externalId}) ON CONFLICT (external_id) DO NOTHING`;
   const [lesson] = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM lessons WHERE external_id = ${externalId}`;
@@ -168,6 +168,30 @@ async function lessonVersionFor(tx: Tx, externalId: string, content: Json): Prom
     VALUES (${lesson!.id}::uuid, (SELECT coalesce(max(version), 0) + 1 FROM lesson_versions WHERE lesson_id = ${lesson!.id}::uuid), ${canonical(content as never)}::jsonb, ${hash})
     RETURNING id::text AS id`;
   return { id: created!.id, hash };
+}
+
+/** Phiên bản khóa gồm đúng các bài `next` (theo thứ tự): dùng lại phiên bản cũ cùng nội dung, không thì tạo mới. */
+export async function courseVersionFor(tx: Tx, courseId: string, next: Pick<Member, "externalId" | "hash" | "lessonVersionId" | "position" | "isFreeTrial">[], contentVersion: string): Promise<string> {
+  const sourceHash = createHash("sha256").update(JSON.stringify(next.map((m) => [m.externalId, m.hash]))).digest("hex");
+  const [existing] = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM course_versions WHERE course_id = ${courseId}::uuid AND source_hash = ${sourceHash}`;
+  if (existing) return existing.id;
+  const [created] = await tx.$queryRaw<{ id: string }[]>`
+    INSERT INTO course_versions (course_id, version, content_version, source_hash)
+    VALUES (${courseId}::uuid, (SELECT coalesce(max(version), 0) + 1 FROM course_versions WHERE course_id = ${courseId}::uuid), ${contentVersion}, ${sourceHash})
+    RETURNING id::text AS id`;
+  for (const m of next) {
+    await tx.$executeRaw`INSERT INTO course_version_lessons (course_version_id, lesson_version_id, position, is_free_trial)
+      VALUES (${created!.id}::uuid, ${m.lessonVersionId}::uuid, ${m.position}, ${m.isFreeTrial})`;
+  }
+  return created!.id;
+}
+
+/** Mã bài mới thêm cuối khóa: `${slug}-b<n>`, n từ số bài hiện có + 1, bỏ qua mã đã dùng. */
+export async function freshLessonIds(tx: Tx, slug: string, count: number, from: number): Promise<string[]> {
+  const used = new Set((await tx.$queryRaw<{ external_id: string }[]>`SELECT external_id FROM lessons WHERE external_id LIKE ${`${slug}-b%`}`).map((r) => r.external_id));
+  const ids: string[] = [];
+  for (let n = from; ids.length < count; n++) if (!used.has(`${slug}-b${n}`)) ids.push(`${slug}-b${n}`);
+  return ids;
 }
 
 /** Sửa bài (externalId có sẵn) hoặc thêm bài cuối khóa (externalId null). */
@@ -202,10 +226,7 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
         if (!m) throw new HttpError(404, "not_found");
         base = m.content;
       } else {
-        const used = new Set((await tx.$queryRaw<{ external_id: string }[]>`SELECT external_id FROM lessons WHERE external_id LIKE ${`${slug}-b%`}`).map((r) => r.external_id));
-        let n = list.length + 1;
-        while (used.has(`${slug}-b${n}`)) n++;
-        id = `${slug}-b${n}`;
+        [id] = await freshLessonIds(tx, slug, 1, list.length + 1) as [string];
         base = { source_kind: "web_editor" };
       }
       const content = applyFields(base, id, input);
@@ -219,20 +240,7 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
       const next = externalId
         ? list.map((m) => (m.externalId === id ? { ...m, lessonVersionId: lv.id, hash: lv.hash } : m))
         : [...list, { position: list.length + 1, isFreeTrial: list.length < FREE_TRIAL_LESSONS, lessonVersionId: lv.id, lessonId: "", externalId: id, hash: lv.hash, content }];
-      const sourceHash = createHash("sha256").update(JSON.stringify(next.map((m) => [m.externalId, m.hash]))).digest("hex");
-      const [existing] = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM course_versions WHERE course_id = ${course.id}::uuid AND source_hash = ${sourceHash}`;
-      let versionId = existing?.id;
-      if (!versionId) {
-        const [created] = await tx.$queryRaw<{ id: string }[]>`
-          INSERT INTO course_versions (course_id, version, content_version, source_hash)
-          VALUES (${course.id}::uuid, (SELECT coalesce(max(version), 0) + 1 FROM course_versions WHERE course_id = ${course.id}::uuid), 'web', ${sourceHash})
-          RETURNING id::text AS id`;
-        versionId = created!.id;
-        for (const m of next) {
-          await tx.$executeRaw`INSERT INTO course_version_lessons (course_version_id, lesson_version_id, position, is_free_trial)
-            VALUES (${versionId}::uuid, ${m.lessonVersionId}::uuid, ${m.position}, ${m.isFreeTrial})`;
-        }
-      }
+      const versionId = await courseVersionFor(tx, course.id, next, "web");
       if (moduleId) {
         await tx.$executeRaw`
           INSERT INTO course_lesson_modules (course_id, lesson_id, module_id)

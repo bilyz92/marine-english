@@ -45,6 +45,9 @@ const MESSAGES: Record<string, string> = {
   module_not_empty: "Module còn bài: chuyển các bài sang module khác rồi mới xóa được.",
   module_required: "Chọn module cho bài mới.",
   essay_needs_answer: "Bài tự luận cần có đáp án mẫu tiếng Anh.",
+  not_xlsx: "Tệp không phải Excel (.xlsx) hoặc bị hỏng. Lưu lại bằng Excel dạng .xlsx rồi tải lên.",
+  file_too_complex: "Tệp Excel quá phức tạp hoặc quá lớn để đọc. Chỉ giữ hai trang của khung mẫu rồi thử lại.",
+  file_too_large: "Tệp lớn hơn 2 MB.",
 };
 export const messageFor = (code: unknown) => (typeof code === "string" && MESSAGES[code]) || (typeof code === "string" && code) || "Có lỗi, thử lại sau.";
 

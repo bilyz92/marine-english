@@ -3,7 +3,12 @@ import { crc32, inflateRawSync } from "node:zlib";
 // Đọc zip tối thiểu (không thêm thư viện): chỉ lưu thẳng (0) hoặc deflate (8), không zip64, không mã hóa.
 // Mục chỉ được giải nén khi gọi read(giới hạn), dừng ngay khi vượt giới hạn (chống zip bomb).
 
-export class ZipError extends Error {}
+/** reason "too_large": mục giải nén vượt giới hạn (kể cả khi kích thước khai trong zip là giả). */
+export class ZipError extends Error {
+  constructor(message: string, readonly reason: "invalid" | "too_large" = "invalid") {
+    super(message);
+  }
+}
 
 export type ZipEntry = { name: string; size: number; read(maxBytes: number): Buffer };
 
@@ -59,7 +64,7 @@ export function readZip(bytes: Buffer, { maxEntries = 200, counter }: { maxEntri
       read(maxBytes: number): Buffer {
         if (flags & 0x1) throw new ZipError(`Mục bị mã hóa: ${name}`);
         if (method !== 0 && method !== 8) throw new ZipError(`Kiểu nén không hỗ trợ: ${name}`);
-        if (size > maxBytes) throw new ZipError(`Mục quá lớn: ${name}`);
+        if (size > maxBytes) throw new ZipError(`Mục quá lớn: ${name}`, "too_large");
         if (localOffset + 30 > buf.length || buf.readUInt32LE(localOffset) !== LOCAL) throw new ZipError("Zip hỏng");
         const start = localOffset + 30 + buf.readUInt16LE(localOffset + 26) + buf.readUInt16LE(localOffset + 28);
         if (start + compressed > buf.length) throw new ZipError("Zip hỏng");
@@ -73,7 +78,8 @@ export function readZip(bytes: Buffer, { maxEntries = 200, counter }: { maxEntri
             // maxOutputLength chặn cả khi kích thước khai trong zip là giả.
             data = inflateRawSync(body, { maxOutputLength: maxBytes });
           } catch (error) {
-            throw new ZipError(`Không giải nén được ${name}: ${(error as Error).message}`);
+            const tooLarge = (error as { code?: string }).code === "ERR_BUFFER_TOO_LARGE";
+            throw new ZipError(`Không giải nén được ${name}: ${(error as Error).message}`, tooLarge ? "too_large" : "invalid");
           }
         }
         if (data.length !== size || crc32(data) !== crc) throw new ZipError(`Zip hỏng (sai kích thước hoặc CRC): ${name}`);

@@ -227,8 +227,8 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
       // Bài chủ thêm trên web hoặc từ file Excel (không có trong học liệu): giữ, nối sau các bài của bộ nhập, đúng thứ tự cũ
       // (docs/superpowers/plans/2026-11-08-course-modules.md).
       const imported = new Set(members.map((m) => m.externalId));
-      const authored = await sql.query<{ external_id: string; id: string; content_hash: string }>(
-        `SELECT l.external_id, lv.id::text AS id, lv.content_hash FROM courses c
+      const authored = await sql.query<{ external_id: string; id: string; content_hash: string; topic: string | null }>(
+        `SELECT l.external_id, lv.id::text AS id, lv.content_hash, lv.content ->> 'module_id' AS topic FROM courses c
          JOIN course_version_lessons cvl ON cvl.course_version_id = c.current_version_id
          JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id JOIN lessons l ON l.id = lv.lesson_id
          WHERE c.slug = $1 AND lv.content ->> 'source_kind' IN ('web_editor', 'excel') ORDER BY cvl.position`,
@@ -236,15 +236,19 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
       );
       for (const a of authored) if (!imported.has(a.external_id)) members.push({ externalId: a.external_id, id: a.id, hash: a.content_hash });
       const sourceHash = sha256(JSON.stringify(members.map((m) => [m.externalId, m.hash])));
-      const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null; title_vi: string; title_en: string }>(
-        `SELECT id::text AS id, status, current_version_id::text AS current_version_id, title_vi, title_en FROM courses WHERE slug = $1 FOR UPDATE`,
+      const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null; title_vi: string; title_en: string; topics: { id: string }[] }>(
+        `SELECT id::text AS id, status, current_version_id::text AS current_version_id, title_vi, title_en, topics FROM courses WHERE slug = $1 FOR UPDATE`,
         [course.id],
       );
+      // Chủ đề do file Excel thêm (không có trong học liệu) mà bài giữ lại còn dùng: giữ, nối sau chủ đề của học liệu.
+      const topics: { id: string }[] = courseTopics(p.topics, course.lesson_ids);
+      const keptTopics = new Set(authored.filter((a) => !imported.has(a.external_id) && a.topic).map((a) => a.topic));
+      for (const t of before?.topics ?? []) if (keptTopics.has(t.id) && !topics.some((x) => x.id === t.id)) topics.push(t);
       const [c] = await sql.query<{ id: string; status: string }>(
         `INSERT INTO courses (slug, title_vi, title_en, topics) VALUES ($1, $2, $3, $4::jsonb)
          ON CONFLICT (slug) DO UPDATE SET title_vi = EXCLUDED.title_vi, title_en = EXCLUDED.title_en, topics = EXCLUDED.topics, updated_at = now()
          RETURNING id::text AS id, status`,
-        [course.id, course.title.vi, course.title.en, JSON.stringify(courseTopics(p.topics, course.lesson_ids))],
+        [course.id, course.title.vi, course.title.en, JSON.stringify(topics)],
       );
       const [existing] = await sql.query<{ id: string }>(
         `SELECT id::text AS id FROM course_versions WHERE course_id = $1::uuid AND source_hash = $2`,

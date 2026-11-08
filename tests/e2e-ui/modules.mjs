@@ -4,6 +4,7 @@
 // Mỗi IP chỉ đăng ký được 5 tài khoản mỗi giờ: chạy lại nhiều lần thì xóa password_attempts trên DB dev trước.
 import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
+import { resolve } from "node:path";
 import pg from "pg";
 import { openBrowser, PAGE_CHECKS } from "./lib.mjs";
 
@@ -137,6 +138,20 @@ try {
   await ui.press("Xóa module: Kinh nghiệm phỏng vấn");
   check("quản trị: xóa module rỗng", await a.see("Đã xóa module “Kinh nghiệm phỏng vấn”.", 15000) && !(await a.text()).includes("Module 2 ·")
     && (await db.query(`SELECT count(*)::int AS n FROM course_modules WHERE course_id = $1`, [course.id])).rows[0].n === 1);
+  // Khung bài giảng Excel (Task 8): tải khung về, tải lên chính khung mẫu, xem trước, thêm 2 bài.
+  const template = await admin.evaluate(`fetch("/api/quan-tri/content/template").then(async (r) => ({ status: r.status, head: new Uint8Array(await r.arrayBuffer()).slice(0, 2).join(",") }))`);
+  check("excel: tải khung về được (xlsx)", template.status === 200 && template.head === "80,75", JSON.stringify(template));
+  check("excel: có nút tải khung", await a.see("Tải khung bài giảng (Excel)"));
+  {
+    const { result: { root } } = await admin.send("DOM.getDocument", { depth: -1 });
+    const { result: { nodeId } } = await admin.send("DOM.querySelector", { nodeId: root.nodeId, selector: 'input[type=file][accept^=".xlsx"]' });
+    await admin.send("DOM.setFileInputFiles", { nodeId, files: [resolve("src/assets/khung-bai-giang-mau.xlsx")] });
+  }
+  await ui.press("Xem trước");
+  check("excel: xem trước 2 bài, 2 module mới", await a.see("2 bài sẽ được thêm vào cuối khóa. Module mới: Kinh nghiệm phỏng vấn, Kinh nghiệm vận hành sửa chữa."));
+  await ui.press("Thêm 2 bài");
+  check("excel: đã thêm 2 bài", await a.see("Đã thêm 2 bài từ file Excel."));
+  check("excel: bài tự luận vào đúng module", (await inModule(`${SLUG}-b4`)) === "Kinh nghiệm vận hành sửa chữa" && (await inModule(`${SLUG}-b3`)) === "Kinh nghiệm phỏng vấn");
   for (const w of [1280, 360]) {
     await admin.width(w, 900);
     await sleep(300);
@@ -146,7 +161,7 @@ try {
   }
   await admin.width(1280, 900);
 
-  // Bài 3, 4 (hỏi–đáp) để khóa có bài không học thử: trang công khai không được lộ câu hỏi bài 4.
+  // Bài 5, 6 (hỏi–đáp) vào module đầu: trang công khai không được lộ câu hỏi của bài không học thử.
   const { rows: [mod] } = await db.query(`SELECT id::text AS id FROM course_modules WHERE course_id = $1 ORDER BY position LIMIT 1`, [course.id]);
   for (const q of ["How do you check the purifier?", HIDDEN_QUESTION]) {
     const { rows: [{ v }] } = await db.query(`SELECT current_version_id::text AS v FROM courses WHERE id = $1`, [course.id]);
@@ -165,12 +180,15 @@ try {
     // Trang khóa (khách): chỉ module; bài không học thử là dòng mờ, câu hỏi thật không có trong trang (Task 7).
     await g.go(`${BASE}/khoa-hoc`);
     const html = await g.evaluate(`fetch("/khoa-hoc/${SLUG}").then((r) => r.text())`);
-    check("trang khóa: HTML không có câu hỏi bài 4", html.length > 1000 && !html.includes(HIDDEN_QUESTION));
-    check("API công khai: không có câu hỏi bài 4", !(await g.evaluate(`fetch("/api/public/courses/${SLUG}").then((r) => r.text())`)).includes(HIDDEN_QUESTION));
+    const publicApi = await g.evaluate(`fetch("/api/public/courses/${SLUG}").then((r) => r.text())`);
+    for (const hidden of [HIDDEN_QUESTION, "What is a marine diesel engine"]) {
+      check(`trang khóa: HTML không có câu hỏi bài không học thử (${hidden.slice(0, 20)}…)`, html.length > 1000 && !html.includes(hidden));
+      check(`API công khai: không có câu hỏi bài không học thử (${hidden.slice(0, 20)}…)`, !publicApi.includes(hidden));
+    }
     await g.go(`${BASE}/khoa-hoc/${SLUG}`);
     check("trang khóa: thấy module", await gh.see("Kinh nghiệm vận hành"));
     check("trang khóa: 3 nút Học thử", await g.evaluate(`[...document.querySelectorAll("main a")].filter((e) => e.textContent.trim() === "Học thử").length`) === 3);
-    check("trang khóa: có dòng mờ và lời mời mua", await g.evaluate(`!!document.querySelector("li[aria-hidden=true]")`) && (await gh.text()).includes("Mua khóa để mở 1 bài còn lại."));
+    check("trang khóa: có dòng mờ và lời mời mua", await g.evaluate(`!!document.querySelector("li[aria-hidden=true]")`) && (await gh.text()).includes("Mua khóa để mở 2 bài còn lại."));
     for (const w of [1280, 390]) {
       await g.width(w, 900);
       await sleep(300);

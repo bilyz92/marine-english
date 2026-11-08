@@ -23,6 +23,7 @@
 /* Nút chọn (khoảng ngày, bộ lọc) đang bật: đảo màu, để màu vàng dành cho việc chính. */
 .btn[aria-pressed="true"] { background: var(--color-text); border-color: var(--color-text); color: var(--color-bg); }
 .btnMain { composes: btn; background: var(--color-action); border-color: var(--color-action-edge); color: var(--color-action-ink); }
+.btnLink { composes: btn; display: inline-flex; align-items: center; text-decoration: none; }
 .btnDanger { composes: btn; background: var(--color-danger); border-color: var(--color-danger); color: var(--color-bg); }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field span { font-weight: 600; font-size: var(--font-small); }
