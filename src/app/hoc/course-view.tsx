@@ -8,7 +8,7 @@ import {
 import { canOpenLesson } from "@/lib/offline/access";
 import { downloadPanel } from "@/lib/offline/downloads";
 import { nowSeconds } from "@/lib/offline/engine";
-import { groupByTopic } from "@/lib/offline/topics";
+import { groupByModule, groupByTopic, type TopicGroup } from "@/lib/offline/topics";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
 
@@ -47,7 +47,9 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
   // Chưa biết trạng thái trên máy thì chưa hiện nút, tránh nháy nút tải với khóa đã tải đủ.
   const panel = saved ? downloadPanel({ provisional: manifest.provisional === true, complete: saved.complete, everDownloaded: saved.everDownloaded }) : "hidden";
 
-  const groups = groupByTopic(manifest.topics, manifest.lessons);
+  // Khóa đã chia module: Module → Chủ đề → Bài; chưa chia (hoặc manifest cũ trên máy): theo chủ đề như trước.
+  const modules = groupByModule(manifest.modules, manifest.topics, manifest.lessons);
+  const groups = modules ? null : groupByTopic(manifest.topics, manifest.lessons);
 
   /** Một dòng bài: trong nhóm chủ đề thì có cột mã bài (A022), danh sách phẳng thì số thứ tự như trước. */
   function row(l: Manifest["lessons"][number], coded: boolean) {
@@ -57,12 +59,28 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
     return (
       <button className={coded ? styles.lessonRow : styles.row} disabled={blocked} onClick={() => go({ khoa: slug, bai: l.position })}>
         {coded && <span className={styles.lessonId}>{l.externalId}</span>}
-        <span className={styles.rowTitle}>{coded ? l.title : `${l.position}. ${l.title}`}</span>
+        <span className={styles.rowTitle}>
+          {coded ? l.title : `${l.position}. ${l.title}`}
+          {l.lessonType === "essay" && <> <span className={styles.tagEssay}>Tự luận</span></>}
+        </span>
         {l.status === "completed" ? <span className={styles.tagDone}>Đã xong</span>
           : l.status === "in_progress" ? <span className={styles.tagDoing}>Đang học</span>
           : l.isFreeTrial ? <span className={styles.tagTrial}>Học thử</span> : null}
       </button>
     );
+  }
+
+  /** Các chủ đề gập mở được, mỗi chủ đề là danh sách bài có mã. */
+  function topicList(list: TopicGroup<Manifest["lessons"][number]>[]) {
+    return list.map((g) => (
+      <details key={g.id ?? "khac"} className={styles.topic} open={g.open}>
+        <summary>
+          {g.id && <span className={styles.topicCode}>{g.id}</span>}
+          <span className={styles.topicTitle}>{g.titleVi}<span className={styles.topicCount}>{g.done}/{g.lessons.length} bài</span></span>
+        </summary>
+        <ul className={styles.lessonRows}>{g.lessons.map((l) => <li key={l.lessonVersionId}>{row(l, true)}</li>)}</ul>
+      </details>
+    ));
   }
 
   async function download() {
@@ -104,18 +122,22 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
           {error && <p className={styles.bannerDanger}>{error}</p>}
         </div>
       )}
-      {groups ? (
+      {modules ? (
+        modules.map((m, i) => (
+          <section key={m.id ?? "khac"} className={styles.card} aria-label={m.titleVi}>
+            <details className={styles.module} open={m.open}>
+              <summary>
+                <span className={styles.moduleTitle}>{m.id ? `Module ${i + 1} · ${m.titleVi}` : m.titleVi}</span>
+                <span className={styles.topicCount}>{m.done}/{m.total} bài</span>
+              </summary>
+              {m.topics ? topicList(m.topics) : <ul className={styles.lessonRows}>{m.lessons.map((l) => <li key={l.lessonVersionId}>{row(l, true)}</li>)}</ul>}
+            </details>
+          </section>
+        ))
+      ) : groups ? (
         <section className={styles.card} aria-label="Danh sách bài">
           <h2 className={styles.h2}>Danh sách bài</h2>
-          {groups.map((g) => (
-            <details key={g.id ?? "khac"} className={styles.topic} open={g.open}>
-              <summary>
-                {g.id && <span className={styles.topicCode}>{g.id}</span>}
-                <span className={styles.topicTitle}>{g.titleVi}<span className={styles.topicCount}>{g.done}/{g.lessons.length} bài</span></span>
-              </summary>
-              <ul className={styles.lessonRows}>{g.lessons.map((l) => <li key={l.lessonVersionId}>{row(l, true)}</li>)}</ul>
-            </details>
-          ))}
+          {topicList(groups)}
         </section>
       ) : (
         <ul className={styles.list}>{manifest.lessons.map((l) => <li key={l.lessonVersionId}>{row(l, false)}</li>)}</ul>

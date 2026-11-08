@@ -86,3 +86,11 @@
   .lessonRow > :nth-child(3) { grid-column: 2; justify-self: start; }
 }
 @media (max-width: 760px) { .bar .barRight { gap: 8px; } }
+/* Module (2026-11-08-course-modules): khối lớn nhất, bên trong là chủ đề. */
+.module > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 56px; list-style: none; cursor: pointer; }
+.module > summary::-webkit-details-marker { display: none; }
+.module > summary::after { content: "+"; margin-left: auto; width: 28px; text-align: center; font-size: 26px; font-weight: 700; line-height: 1; }
+.module[open] > summary::after { content: "\2212"; }
+.moduleTitle { font-size: 20px; font-weight: 700; line-height: 1.3; }
+.module[open] > summary { margin-bottom: 8px; border-bottom: 2px solid var(--color-border); padding-bottom: 8px; }
+.tagEssay { composes: tag; background: var(--color-primary-soft); color: var(--color-primary-dark); }

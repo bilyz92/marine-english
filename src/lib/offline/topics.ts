@@ -19,3 +19,38 @@ export function groupByTopic<L extends Lesson>(topics: { id: string; titleVi: st
   if (current) current.open = true;
   return shown;
 }
+
+type ModuleLesson = Lesson & { moduleId?: string | null };
+export type ModuleGroup<L> = { id: string | null; titleVi: string; done: number; total: number; open: boolean; topics: TopicGroup<L>[] | null; lessons: L[] };
+
+/**
+ * Module → Chủ đề → Bài (docs/superpowers/plans/2026-11-08-course-modules.md, Task 3). Khóa chưa chia module (hoặc manifest cũ) → null,
+ * hiện theo chủ đề như trước. Bài chưa xếp module vào nhóm "Bài khác" ở cuối; module không có bài thì bỏ. Trong mỗi module, bài chia theo
+ * chủ đề; module không có bài nào thuộc chủ đề (bài soạn trên web) → `topics: null`, hiện bài phẳng. Mở sẵn module có bài đang học,
+ * nếu không thì module đầu còn bài chưa xong.
+ */
+export function groupByModule<L extends ModuleLesson>(
+  modules: { id: string; titleVi: string }[] | undefined,
+  topics: { id: string; titleVi: string }[] | undefined,
+  lessons: L[],
+): ModuleGroup<L>[] | null {
+  if (!modules?.length) return null;
+  const known = new Set(modules.map((m) => m.id));
+  const topicIds = new Set((topics ?? []).map((t) => t.id));
+  const buckets = new Map<string | null, L[]>([...modules.map((m) => [m.id, []] as [string, L[]]), [null, []]]);
+  for (const l of lessons) buckets.get(l.moduleId && known.has(l.moduleId) ? l.moduleId : null)!.push(l);
+  const shown = [...modules, { id: null, titleVi: "Bài khác" }]
+    .map((m) => {
+      const own = buckets.get(m.id)!;
+      const hasTopic = own.some((l) => l.topic && topicIds.has(l.topic));
+      return {
+        id: m.id, titleVi: m.titleVi, lessons: own, total: own.length, open: false,
+        done: own.filter((l) => l.status === "completed").length,
+        topics: hasTopic ? groupByTopic(topics, own) : null,
+      };
+    })
+    .filter((g) => g.total > 0);
+  const current = shown.find((g) => g.lessons.some((l) => l.status === "in_progress")) ?? shown.find((g) => g.done < g.total) ?? shown[0];
+  if (current) current.open = true;
+  return shown;
+}
