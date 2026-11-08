@@ -787,3 +787,27 @@ model OrderTermsAcceptance {
 
   @@map("order_terms_acceptances")
 }
+
+/// Module của khóa (chủ tạo trên trang quản trị). Không theo phiên bản khóa.
+model CourseModule {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId  String   @map("course_id") @db.Uuid
+  titleVi   String   @map("title_vi")
+  position  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([courseId, position], map: "course_modules_course_position_key")
+  @@unique([courseId, id], map: "course_modules_course_id_id_key")
+  @@map("course_modules")
+}
+
+/// Bài (theo lessons.id) thuộc module nào trong một khóa.
+model CourseLessonModule {
+  courseId String @map("course_id") @db.Uuid
+  lessonId String @map("lesson_id") @db.Uuid
+  moduleId String @map("module_id") @db.Uuid
+
+  @@id([courseId, lessonId])
+  @@index([moduleId], map: "course_lesson_modules_module_idx")
+  @@map("course_lesson_modules")
+}
