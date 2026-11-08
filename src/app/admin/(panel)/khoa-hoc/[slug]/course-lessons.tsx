@@ -3,23 +3,31 @@
 import Link from "next/link";
 import { use, useState } from "react";
 import { adminApi, can, Field, LoadState, messageFor, useAdmin, useLoad } from "../../admin-lib";
+import { CourseModules, type CourseModule } from "./course-modules";
 import { LessonAudio } from "./lesson-audio";
 import styles from "../../admin.module.css";
 
-// Danh sách bài của phiên bản hiện tại; chủ sửa bài hoặc thêm bài cuối khóa. Mỗi lần lưu tạo phiên bản mới.
+// Danh sách bài của phiên bản hiện tại, chia theo module; chủ sửa bài hoặc thêm bài cuối khóa. Mỗi lần lưu tạo phiên bản mới.
 
-type Row = { position: number; externalId: string; questionEn: string; questionVi: string; isFreeTrial: boolean; hasAnswer: boolean };
-type Listing = { course: { slug: string; titleVi: string; status: string; currentVersionId: string | null }; lessons: Row[] };
+type LessonType = "qa" | "essay";
+type Row = {
+  position: number; externalId: string; questionEn: string; questionVi: string; isFreeTrial: boolean; hasAnswer: boolean;
+  moduleId: string | null; lessonType: LessonType;
+};
+type Listing = { course: { slug: string; titleVi: string; status: string; currentVersionId: string | null }; modules: CourseModule[]; lessons: Row[] };
 type Pair = { id?: string; en: string; vi: string };
-type Form = { questionEn: string; questionVi: string; keyPoints: Pair[]; vocabulary: Pair[]; modelAnswerEn: string; modelAnswerVi: string; followUps: Pair[] };
+type Form = {
+  lessonType: LessonType; questionEn: string; questionVi: string; keyPoints: Pair[]; vocabulary: Pair[]; modelAnswerEn: string; modelAnswerVi: string; followUps: Pair[];
+};
 type Bi = { en?: string; vi?: string };
 
-const EMPTY: Form = { questionEn: "", questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [] };
+const EMPTY: Form = { lessonType: "qa", questionEn: "", questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [] };
 const pairOf = (t: Bi | undefined, id?: unknown): Pair => ({ ...(typeof id === "string" ? { id } : {}), en: t?.en ?? "", vi: t?.vi ?? "" });
 
 function formOf(c: Record<string, unknown>): Form {
   const list = (key: string) => ((c[key] as Record<string, unknown>[] | undefined) ?? []);
   return {
+    lessonType: c.lesson_type === "essay" ? "essay" : "qa",
     questionEn: pairOf((c.question as { text?: Bi })?.text).en,
     questionVi: pairOf((c.question as { text?: Bi })?.text).vi,
     // Giữ mã từng mục để máy chủ ghép đúng dữ liệu kèm theo khi bỏ hoặc thêm mục.
@@ -53,7 +61,7 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
   const { slug } = use(params);
   const me = useAdmin();
   const { data, reload, ...state } = useLoad<Listing>(`/api/quan-tri/content/courses/${slug}`);
-  const [editing, setEditing] = useState<{ externalId: string | null; form: Form } | null>(null);
+  const [editing, setEditing] = useState<{ externalId: string | null; form: Form; moduleId: string } | null>(null);
   const [confirmLive, setConfirmLive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -68,7 +76,7 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
     setSaved(null);
     setConfirmLive(false);
     if (!externalId) {
-      setEditing({ externalId: null, form: EMPTY });
+      setEditing({ externalId: null, form: EMPTY, moduleId: "" });
       return true;
     }
     const r = await adminApi<{ content: Record<string, unknown> }>(`/api/quan-tri/content/courses/${slug}/lessons/${encodeURIComponent(externalId)}`);
@@ -76,7 +84,7 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
       setProblem(messageFor(r.data.error));
       return false;
     }
-    setEditing({ externalId, form: formOf(r.data.content) });
+    setEditing({ externalId, form: formOf(r.data.content), moduleId: "" });
     return true;
   }
 
@@ -85,7 +93,8 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
     if (!editing || !data) return;
     setBusy(true);
     setProblem(null);
-    const body = { ...editing.form, expectedVersionId: data.course.currentVersionId, confirmLive };
+    // Tự luận chỉ ẩn ô câu hỏi phụ, không xóa: đổi lại Hỏi–đáp thì câu hỏi phụ cũ vẫn còn.
+    const body = { ...editing.form, expectedVersionId: data.course.currentVersionId, confirmLive, ...(!editing.externalId && editing.moduleId ? { moduleId: editing.moduleId } : {}) };
     const r = editing.externalId
       ? await adminApi<{ externalId: string }>(`/api/quan-tri/content/courses/${slug}/lessons/${encodeURIComponent(editing.externalId)}`, { method: "PUT", body })
       : await adminApi<{ externalId: string }>(`/api/quan-tri/content/courses/${slug}/lessons`, { method: "POST", body });
@@ -114,33 +123,83 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
 
   const setForm = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
 
+  async function moveLesson(externalId: string, moduleId: string) {
+    setProblem(null);
+    setSaved(null);
+    const r = await adminApi(`/api/quan-tri/content/courses/${slug}/lessons/${encodeURIComponent(externalId)}/module`, { method: "PUT", body: { moduleId } });
+    if (!r.ok) return setProblem(messageFor(r.data.error));
+    const title = data?.modules.find((m) => m.id === moduleId)?.titleVi ?? "";
+    setSaved(`Đã chuyển bài ${externalId} sang “${title}”.`);
+    await reload();
+  }
+
+  async function modulesChanged(message: string) {
+    setProblem(null);
+    setSaved(message);
+    await reload();
+  }
+
+  function lessonRow(l: Row) {
+    return (
+      <div key={l.externalId} className={styles.item}>
+        <div className={styles.itemText}>
+          <span>{l.position}. {l.questionVi || l.questionEn}</span>
+          <span className={styles.muted}>
+            {l.externalId}{l.lessonType === "essay" ? " · Tự luận" : " · Hỏi–đáp"}{l.isFreeTrial ? " · học thử" : ""}{l.hasAnswer ? "" : " · chưa có đáp án mẫu"}
+          </span>
+        </div>
+        <div className={styles.actions}>
+          {canEdit && data!.modules.length > 0 && (
+            <Field label={`Module của bài ${l.externalId}`}>
+              <select className={styles.input} value={l.moduleId ?? ""} onChange={(e) => e.target.value && void moveLesson(l.externalId, e.target.value)}>
+                {!l.moduleId && <option value="">Chưa xếp</option>}
+                {data!.modules.map((m) => <option key={m.id} value={m.id}>{m.titleVi}</option>)}
+              </select>
+            </Field>
+          )}
+          <button className={styles.btn} aria-expanded={audioOf === l.externalId} onClick={() => setAudioOf(audioOf === l.externalId ? null : l.externalId)}>
+            {audioOf === l.externalId ? "Ẩn ghi âm" : "Ghi âm"}
+          </button>
+          {canEdit && <button className={styles.btn} onClick={() => void open(l.externalId)}>Sửa</button>}
+        </div>
+        {audioOf === l.externalId && <LessonAudio slug={slug} externalId={l.externalId} canEdit={canEdit} />}
+      </div>
+    );
+  }
+
+  // Bài theo module (đúng thứ tự module); bài chưa xếp đứng cuối. Khóa chưa chia module: một danh sách phẳng.
+  const groups = data && data.modules.length > 0
+    ? [
+        ...data.modules.map((m, i) => ({ key: m.id, title: `Module ${i + 1} · ${m.titleVi}`, lessons: data.lessons.filter((l) => l.moduleId === m.id) })),
+        { key: "none", title: "Bài chưa xếp module", lessons: data.lessons.filter((l) => !l.moduleId || !data.modules.some((m) => m.id === l.moduleId)) },
+      ].filter((g) => g.key !== "none" || g.lessons.length > 0)
+    : null;
+  const essay = editing?.form.lessonType === "essay";
+  const prompt = essay ? "Đề bài" : "Câu hỏi";
+
   return (
     <>
       <p><Link href="/admin/khoa-hoc">← Khóa học</Link></p>
       <h1 className={styles.h1}>{data?.course.titleVi ?? slug}</h1>
       <LoadState {...state} reload={reload} />
       {saved && <p className={styles.ok} role="status">{saved}</p>}
+      {data && <CourseModules slug={slug} modules={data.modules} canEdit={canEdit} onChanged={modulesChanged}
+        lessonCount={(id) => data.lessons.filter((l) => l.moduleId === id).length} />}
       {data && (
         <section className={styles.card}>
           <p className={styles.muted}>
             {data.course.slug} · {data.lessons.length} bài · {live ? "Đang mở bán: học viên thấy nội dung mới ở lần mở bài sau." : "Nháp: học viên chưa thấy."}
           </p>
           {data.lessons.length === 0 && <p className={styles.muted}>Khóa chưa có bài.</p>}
-          {data.lessons.map((l) => (
-            <div key={l.externalId} className={styles.item}>
-              <div className={styles.itemText}>
-                <span>{l.position}. {l.questionVi || l.questionEn}</span>
-                <span className={styles.muted}>{l.externalId}{l.isFreeTrial ? " · học thử" : ""}{l.hasAnswer ? "" : " · chưa có đáp án mẫu"}</span>
-              </div>
-              <div className={styles.actions}>
-                <button className={styles.btn} aria-expanded={audioOf === l.externalId} onClick={() => setAudioOf(audioOf === l.externalId ? null : l.externalId)}>
-                  {audioOf === l.externalId ? "Ẩn ghi âm" : "Ghi âm"}
-                </button>
-                {canEdit && <button className={styles.btn} onClick={() => void open(l.externalId)}>Sửa</button>}
-              </div>
-              {audioOf === l.externalId && <LessonAudio slug={slug} externalId={l.externalId} canEdit={canEdit} />}
-            </div>
-          ))}
+          {groups
+            ? groups.map((g) => (
+                <div key={g.key}>
+                  <h3 className={styles.h2}>{g.title} <span className={styles.muted}>({g.lessons.length} bài)</span></h3>
+                  {g.lessons.length === 0 && <p className={styles.muted}>Chưa có bài.</p>}
+                  {g.lessons.map(lessonRow)}
+                </div>
+              ))
+            : data.lessons.map(lessonRow)}
           {canEdit && <div className={styles.actions}><button className={styles.btnMain} onClick={() => void open(null)}>Thêm bài</button></div>}
           {!editing && problem && <p className={styles.error} role="alert">{problem}</p>}
         </section>
@@ -150,13 +209,28 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
         <form className={styles.card} onSubmit={(e) => void save(e)} aria-label="Soạn bài">
           <h2 className={styles.h2}>{editing.externalId ? `Sửa bài ${editing.externalId}` : "Thêm bài cuối khóa"}</h2>
           <p className={styles.muted}>Phần học từng câu nhỏ (Mức 1), bài tập và nguồn của bài giữ nguyên, không tự đổi theo nội dung sửa.</p>
-          <Field label="Câu hỏi · tiếng Anh *"><textarea className={styles.input} required rows={2} value={editing.form.questionEn} onChange={(e) => setForm({ questionEn: e.target.value })} /></Field>
-          <Field label="Câu hỏi · tiếng Việt"><textarea className={styles.input} rows={2} value={editing.form.questionVi} onChange={(e) => setForm({ questionVi: e.target.value })} /></Field>
+          <Field label="Loại bài">
+            <select className={styles.input} value={editing.form.lessonType} onChange={(e) => setForm({ lessonType: e.target.value as LessonType })}>
+              <option value="qa">Hỏi–đáp</option>
+              <option value="essay">Tự luận</option>
+            </select>
+          </Field>
+          {essay && <p className={styles.muted}>Tự luận: học viên tự viết câu trả lời rồi mở đáp án mẫu để tự so. Cần có đáp án mẫu tiếng Anh.</p>}
+          {!editing.externalId && data && data.modules.length > 0 && (
+            <Field label="Xếp vào module *">
+              <select className={styles.input} required value={editing.moduleId} onChange={(e) => setEditing({ ...editing, moduleId: e.target.value })}>
+                <option value="">Chọn module</option>
+                {data.modules.map((m) => <option key={m.id} value={m.id}>{m.titleVi}</option>)}
+              </select>
+            </Field>
+          )}
+          <Field label={`${prompt} · tiếng Anh *`}><textarea className={styles.input} required rows={2} value={editing.form.questionEn} onChange={(e) => setForm({ questionEn: e.target.value })} /></Field>
+          <Field label={`${prompt} · tiếng Việt`}><textarea className={styles.input} rows={2} value={editing.form.questionVi} onChange={(e) => setForm({ questionVi: e.target.value })} /></Field>
           <Pairs label="Ý chính" items={editing.form.keyPoints} onChange={(keyPoints) => setForm({ keyPoints })} addLabel="Thêm ý chính" />
           <Pairs label="Từ vựng" items={editing.form.vocabulary} onChange={(vocabulary) => setForm({ vocabulary })} addLabel="Thêm từ" />
-          <Field label="Đáp án mẫu · tiếng Anh (để trống nếu chưa có)"><textarea className={styles.input} rows={4} value={editing.form.modelAnswerEn} onChange={(e) => setForm({ modelAnswerEn: e.target.value })} /></Field>
+          <Field label={essay ? "Đáp án mẫu · tiếng Anh *" : "Đáp án mẫu · tiếng Anh (để trống nếu chưa có)"}><textarea className={styles.input} required={essay} rows={4} value={editing.form.modelAnswerEn} onChange={(e) => setForm({ modelAnswerEn: e.target.value })} /></Field>
           <Field label="Đáp án mẫu · tiếng Việt"><textarea className={styles.input} rows={4} value={editing.form.modelAnswerVi} onChange={(e) => setForm({ modelAnswerVi: e.target.value })} /></Field>
-          <Pairs label="Câu hỏi phụ" items={editing.form.followUps} onChange={(followUps) => setForm({ followUps })} addLabel="Thêm câu hỏi phụ" />
+          {!essay && <Pairs label="Câu hỏi phụ" items={editing.form.followUps} onChange={(followUps) => setForm({ followUps })} addLabel="Thêm câu hỏi phụ" />}
           {live && (
             <label className={styles.notice}>
               <input type="checkbox" checked={confirmLive} onChange={(e) => setConfirmLive(e.target.checked)} /> Khóa đang bán: tôi hiểu học viên sẽ thấy nội dung mới.

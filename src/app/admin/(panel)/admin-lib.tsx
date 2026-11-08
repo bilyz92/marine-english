@@ -42,6 +42,9 @@ const MESSAGES: Record<string, string> = {
   needs_confirm: "Có khóa đang bán sẽ đổi nội dung: tích ô xác nhận rồi làm lại.",
   stale: "Bài hoặc khóa vừa được sửa ở chỗ khác. Tải lại rồi làm lại.",
   busy: "Đang có thao tác nội dung khác, thử lại sau ít giây.",
+  module_not_empty: "Module còn bài: chuyển các bài sang module khác rồi mới xóa được.",
+  module_required: "Chọn module cho bài mới.",
+  essay_needs_answer: "Bài tự luận cần có đáp án mẫu tiếng Anh.",
 };
 export const messageFor = (code: unknown) => (typeof code === "string" && MESSAGES[code]) || (typeof code === "string" && code) || "Có lỗi, thử lại sau.";
 

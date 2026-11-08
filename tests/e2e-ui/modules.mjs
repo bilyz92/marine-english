@@ -72,6 +72,79 @@ try {
   });
   check("thêm bài tự luận", added.status === 200, JSON.stringify(added));
   const { rows: [course] } = await db.query(`SELECT id FROM courses WHERE slug = $1`, [SLUG]);
+
+  // Trang quản trị (Task 5): tạo module, bài cũ vào module đầu; thêm bài tự luận vào module 2; đổi thứ tự; xóa module còn bài bị báo.
+  const ui = {
+    fill: (label, value) => admin.evaluate(`(() => {
+      const field = [...document.querySelectorAll("label")].find((l) => l.textContent.trim().startsWith(${JSON.stringify(label)}));
+      const el = field?.querySelector("input,textarea");
+      if (!el) return false;
+      const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement : HTMLInputElement;
+      Object.getOwnPropertyDescriptor(proto.prototype, "value").set.call(el, ${JSON.stringify(value)});
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    })()`),
+    choose: (label, option) => admin.evaluate(`(() => {
+      const field = [...document.querySelectorAll("label")].find((l) => l.textContent.trim().startsWith(${JSON.stringify(label)}));
+      const el = field?.querySelector("select");
+      const opt = el && [...el.options].find((o) => o.textContent.trim() === ${JSON.stringify(option)});
+      if (!opt) return false;
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, opt.value);
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    })()`),
+    press: (label) => a.waitFor(() => admin.evaluate(`(() => {
+      const el = [...document.querySelectorAll("main button")].find((e) => (e.getAttribute("aria-label") ?? e.textContent.trim()) === ${JSON.stringify(label)} && !e.disabled);
+      if (!el || !Object.keys(el).some((k) => k.startsWith("__reactProps"))) return false;
+      el.click();
+      return true;
+    })()`), 30000),
+    labels: () => admin.evaluate(`[...document.querySelectorAll("main label")].map((l) => l.textContent.trim())`),
+  };
+  const inModule = async (externalId) => (await db.query(
+    `SELECT m.title_vi FROM course_lesson_modules clm JOIN course_modules m ON m.id = clm.module_id JOIN lessons l ON l.id = clm.lesson_id WHERE clm.course_id = $1 AND l.external_id = $2`,
+    [course.id, externalId])).rows[0]?.title_vi ?? null;
+  await admin.go(`${BASE}/admin/khoa-hoc/${SLUG}`);
+  check("quản trị: chưa có module thì có lời dặn", await a.see("Tạo module đầu tiên: mọi bài hiện có sẽ vào module này."));
+  await ui.fill("Tên module mới", "Kinh nghiệm phỏng vấn");
+  await ui.press("Thêm module");
+  check("quản trị: tạo module 1", await a.see("Module 1 · Kinh nghiệm phỏng vấn"));
+  check("quản trị: bài cũ vào module 1", await a.waitFor(async () => (await inModule(`${SLUG}-b1`)) === "Kinh nghiệm phỏng vấn", 10000));
+  await ui.fill("Tên module mới", "Kinh nghiệm vận hành");
+  await ui.press("Thêm module");
+  check("quản trị: tạo module 2", await a.see("Module 2 · Kinh nghiệm vận hành"));
+  await ui.press("Thêm bài");
+  await a.see("Thêm bài cuối khóa");
+  check("quản trị: chọn loại Tự luận", await ui.choose("Loại bài", "Tự luận"));
+  check("quản trị: tự luận thì hỏi Đề bài, không có câu hỏi phụ", await a.waitFor(async () => {
+    const labels = await ui.labels();
+    return labels.some((t) => t.startsWith("Đề bài · tiếng Anh")) && !(await a.text()).includes("Thêm câu hỏi phụ");
+  }, 10000));
+  await ui.fill("Đề bài · tiếng Anh", "Explain how you would stop the main engine in an emergency.");
+  await ui.fill("Đáp án mẫu · tiếng Anh", "I would inform the bridge and follow the emergency stop procedure.");
+  check("quản trị: chọn module cho bài mới", await ui.choose("Xếp vào module", "Kinh nghiệm vận hành"));
+  await ui.press("Lưu bài");
+  check("quản trị: thêm bài tự luận vào module 2", await a.see(`Đã thêm bài ${SLUG}-b2`) && (await inModule(`${SLUG}-b2`)) === "Kinh nghiệm vận hành");
+  check("quản trị: bài mới là tự luận", (await db.query(
+    `SELECT lv.content->>'lesson_type' AS t FROM lesson_versions lv JOIN lessons l ON l.id = lv.lesson_id WHERE l.external_id = $1 ORDER BY lv.created_at DESC LIMIT 1`, [`${SLUG}-b2`])).rows[0]?.t === "essay");
+  await ui.press("Đưa lên: Kinh nghiệm vận hành");
+  check("quản trị: đổi thứ tự module", await a.see("Module 1 · Kinh nghiệm vận hành"));
+  await ui.press("Xóa module: Kinh nghiệm phỏng vấn");
+  check("quản trị: xóa module còn bài bị báo", await a.see("Module còn bài"));
+  check("quản trị: đổi module của bài", await ui.choose(`Module của bài ${SLUG}-b1`, "Kinh nghiệm vận hành"));
+  check("quản trị: báo đã chuyển bài", await a.see(`Đã chuyển bài ${SLUG}-b1`) && (await inModule(`${SLUG}-b1`)) === "Kinh nghiệm vận hành");
+  await ui.press("Xóa module: Kinh nghiệm phỏng vấn");
+  check("quản trị: xóa module rỗng", await a.see("Đã xóa module “Kinh nghiệm phỏng vấn”.", 15000) && !(await a.text()).includes("Module 2 ·")
+    && (await db.query(`SELECT count(*)::int AS n FROM course_modules WHERE course_id = $1`, [course.id])).rows[0].n === 1);
+  for (const w of [1280, 360]) {
+    await admin.width(w, 900);
+    await sleep(300);
+    const problems = await admin.evaluate(PAGE_CHECKS);
+    check(`quản trị: không lỗi giao diện @${w}`, problems.length === 0, JSON.stringify(problems));
+    await admin.shot(`${OUT}/quan-tri-module-${w}.png`);
+  }
+  await admin.width(1280, 900);
+
   check("mở bán", (await api(admin, "admin", "PATCH", `/api/quan-tri/courses/${course.id}`, { priceVnd: 99000, status: "published" })).status === 200);
 
   // (a) Học thử bài tự luận (khách, sessionStorage).
