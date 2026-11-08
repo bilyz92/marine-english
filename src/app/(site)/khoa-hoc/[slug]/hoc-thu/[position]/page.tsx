@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import { LessonStudy } from "@/components/study/lesson-study";
+import { EssayLesson } from "@/components/study/essay-lesson";
 import { hasLevels, type StudyLesson } from "@/lib/study/levels";
 import { GUEST } from "@/lib/study/storage";
 import ui from "@/components/ui.module.css";
@@ -21,7 +22,9 @@ async function Trial({ params }: { params: Promise<{ slug: string; position: str
   if (!lesson) notFound();
   return (
     <>
-      {hasLevels(lesson.content as StudyLesson)
+      {(lesson.content as { lesson_type?: string }).lesson_type === "essay"
+        ? <EssayLesson externalId={lesson.externalId} content={lesson.content as LessonContent} who={GUEST} />
+        : hasLevels(lesson.content as StudyLesson)
         ? <LessonStudy externalId={lesson.externalId} lesson={lesson.content as StudyLesson} who={GUEST} />
         : <LessonBody externalId={lesson.externalId} content={lesson.content as LessonContent} />}
       <div className={ui.row}>

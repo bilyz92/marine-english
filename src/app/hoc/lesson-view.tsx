@@ -9,6 +9,7 @@ import { canOpenLesson } from "@/lib/offline/access";
 import { licenseStatus, nowSeconds } from "@/lib/offline/engine";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import { LessonStudy } from "@/components/study/lesson-study";
+import { EssayLesson } from "@/components/study/essay-lesson";
 import { groupActivities, hasLevels, type StudyLesson } from "@/lib/study/levels";
 import { go } from "./learn-app";
 import styles from "./learn.module.css";
@@ -115,7 +116,11 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
       <div className={styles.actions}>
         <button className={styles.secondary} onClick={() => go({ khoa: slug })}>← Danh sách bài</button>
       </div>
-      {hasLevels(content as StudyLesson) ? (
+      {(content as { lesson_type?: string }).lesson_type === "essay" ? (
+        <EssayLesson externalId={lesson.externalId} content={content} who={identity.userId}>
+          {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
+        </EssayLesson>
+      ) : hasLevels(content as StudyLesson) ? (
         <LessonStudy externalId={lesson.externalId} lesson={content as StudyLesson} who={identity.userId}>
           {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
         </LessonStudy>

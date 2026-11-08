@@ -1,0 +1,137 @@
+// Module khóa học + bài tự luận (docs/superpowers/plans/2026-11-08-course-modules.md).
+// node tests/e2e-ui/modules.mjs <địa chỉ gốc> <thư mục ảnh>. Chạy với bản build thật (`pnpm build` rồi `next start`): bản dev không mở lại
+// được trang /hoc khi mất mạng. Cần MIGRATOR_DATABASE_URL và biến môi trường của CLI (SESSION_KEY_ADMIN, APP_ORIGIN) để in link đăng nhập admin.
+// Mỗi IP chỉ đăng ký được 5 tài khoản mỗi giờ: chạy lại nhiều lần thì xóa password_attempts trên DB dev trước.
+import { execSync } from "node:child_process";
+import { mkdirSync } from "node:fs";
+import pg from "pg";
+import { openBrowser, PAGE_CHECKS } from "./lib.mjs";
+
+const [BASE, OUT] = process.argv.slice(2);
+mkdirSync(OUT, { recursive: true });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const failures = [];
+const check = (name, ok, extra = "") => { console.log(ok ? "✓" : "✗", name, ok ? "" : extra); if (!ok) failures.push(name); };
+const db = new pg.Client({ connectionString: process.env.MIGRATOR_DATABASE_URL });
+await db.connect();
+const stamp = String(Date.now()).slice(-7);
+const SLUG = `tu_luan_${stamp}`;
+const QUESTION = "Describe how you prepare the main engine before departure.";
+const ANSWER = "First, I check the lube oil level and the cooling water.";
+
+function helpers(b) {
+  const text = () => b.evaluate(`document.body?.innerText ?? ""`).catch(() => "");
+  const waitFor = async (fn, ms = 120000) => { for (let i = 0; i < ms / 250; i++) { if (await fn().catch(() => false)) return true; await sleep(250); } return false; };
+  const see = (s, ms) => waitFor(async () => (await text()).includes(s), ms);
+  const button = (label) => `[...document.querySelectorAll("main button")].find((e) => e.textContent.trim() === ${JSON.stringify(label)})`;
+  const typeEssay = (value) => b.evaluate(`(() => {
+    const el = document.querySelector("main textarea");
+    if (!el || !Object.keys(el).some((k) => k.startsWith("__reactProps"))) return false;
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(el, ${JSON.stringify(value)});
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  })()`);
+  return { text, waitFor, see, button, typeEssay };
+}
+/** Gọi API trong trang (cookie và CSRF của khu vực đó). */
+const api = (b, realm, method, path, body) => b.evaluate(`(async () => {
+  const csrf = document.cookie.split("; ").find((c) => c.startsWith("__Host-me_csrf_${realm}="))?.split("=")[1];
+  const r = await fetch(${JSON.stringify(path)}, { method: ${JSON.stringify(method)}, headers: { "content-type": "application/json", ...(csrf ? { "x-csrf-token": csrf } : {}) }, body: ${body === undefined ? "undefined" : JSON.stringify(JSON.stringify(body))} });
+  return { status: r.status, body: await r.json().catch(() => null) };
+})()`);
+async function learner(b, name) {
+  await b.go(`${BASE}/khoa-hoc`);
+  return b.evaluate(`(async () => {
+    const dk = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/, "");
+    const reg = await fetch("/api/auth/learner/password/register", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ phone: "09" + String(Date.now()).slice(-8), password: "mat-khau-thu-123", displayName: ${JSON.stringify(name)}, rank: null, deviceKey: dk, deviceLabel: "Máy thử" }) });
+    if (!reg.ok) return null;
+    return (await (await fetch("/api/me/session")).json()).userId ?? null;
+  })()`);
+}
+
+const admin = await openBrowser({ port: 9483 });
+const a = helpers(admin);
+try {
+  // Chủ: khóa mới, một bài tự luận (bài 1 nên là bài học thử), mở bán.
+  const ownerEmail = `chu-mod${stamp}@x.vn`;
+  await db.query(`INSERT INTO admin_users (email_lower, role, status, invited_at, invite_expires_at, activated_at) VALUES ($1,'owner','active',now(),now()+interval '7 days',now())`, [ownerEmail]);
+  await admin.width(1280, 900);
+  await admin.go(`${BASE}/admin/dang-nhap`);
+  await a.waitFor(() => admin.evaluate(`Object.keys(document.querySelector("button") ?? {}).some((k) => k.startsWith("__react"))`));
+  // Link đăng nhập lấy từ CLI (chạy được cả với bản build thật, không cần hộp thư giả).
+  const link = execSync(`pnpm -s cli admin:login-link ${ownerEmail}`, { env: process.env }).toString().match(/https?:\S+/)?.[0];
+  await admin.go("about:blank");
+  await admin.go(link);
+  await a.waitFor(() => admin.evaluate(`(() => { const e = ${a.button("Vào trang quản trị")}; if (!e || !Object.keys(e).some((k) => k.startsWith("__reactProps"))) return false; e.click(); return true; })()`));
+  check("chủ đăng nhập", await a.waitFor(async () => (await admin.evaluate("location.pathname")) === "/admin"));
+  check("tạo khóa", (await api(admin, "admin", "POST", "/api/quan-tri/content/courses", { slug: SLUG, titleVi: "Khóa tự luận thử", titleEn: "Essay test course" })).status === 200);
+  const added = await api(admin, "admin", "POST", `/api/quan-tri/content/courses/${SLUG}/lessons`, {
+    expectedVersionId: null, lessonType: "essay", questionEn: QUESTION, questionVi: "Mô tả cách chuẩn bị máy chính trước khi tàu chạy.",
+    keyPoints: [{ en: "Lube oil", vi: "Dầu bôi trơn" }], vocabulary: [], modelAnswerEn: ANSWER, modelAnswerVi: "Trước hết tôi kiểm tra dầu bôi trơn.", followUps: [],
+  });
+  check("thêm bài tự luận", added.status === 200, JSON.stringify(added));
+  const { rows: [course] } = await db.query(`SELECT id FROM courses WHERE slug = $1`, [SLUG]);
+  check("mở bán", (await api(admin, "admin", "PATCH", `/api/quan-tri/courses/${course.id}`, { priceVnd: 99000, status: "published" })).status === 200);
+
+  // (a) Học thử bài tự luận (khách, sessionStorage).
+  const g = await openBrowser({ port: 9484 });
+  const gh = helpers(g);
+  try {
+    await g.width(390, 900);
+    await g.go(`${BASE}/khoa-hoc/${SLUG}/hoc-thu/1`);
+    check("học thử: thấy đề tự luận", await gh.see(QUESTION));
+    check("học thử: nhãn Tự luận", (await gh.text()).includes("Tự luận"));
+    check("học thử: chưa viết thì nút đối chiếu khóa", await g.evaluate(`${gh.button("Đối chiếu đáp án mẫu")}?.disabled === true`));
+    check("học thử: gõ được bài", await gh.waitFor(() => gh.typeEssay("I check the oil.")));
+    await sleep(300);
+    await g.evaluate(`${gh.button("Đối chiếu đáp án mẫu")}?.click()`);
+    check("học thử: viết rồi mở được đáp án", await gh.see(ANSWER, 10000));
+    const problems = await g.evaluate(PAGE_CHECKS);
+    check("học thử: không lỗi giao diện @390", problems.length === 0, JSON.stringify(problems));
+    await g.shot(`${OUT}/tu-luan-hoc-thu-390.png`);
+    await g.go(`${BASE}/khoa-hoc/${SLUG}/hoc-thu/1`);
+    check("học thử: tải lại trang vẫn còn nháp", await gh.waitFor(() => g.evaluate(`document.querySelector("main textarea")?.value === "I check the oil."`)));
+  } finally {
+    g.close();
+  }
+
+  // (b) Học viên A: tải khóa về máy, viết nháp, mất mạng vẫn mở bài và còn nháp; học viên B cùng máy không thấy nháp của A.
+  const l = await openBrowser({ port: 9485 });
+  const lh = helpers(l);
+  try {
+    await l.width(390, 900);
+    const userA = await learner(l, "Học viên A");
+    check("học viên A", !!userA);
+    check("cấp khóa cho A", (await api(admin, "admin", "POST", "/api/quan-tri/grants", { userId: userA, courseId: course.id, reason: "Kiểm thử tự luận" })).status === 201);
+    await l.go(`${BASE}/hoc?khoa=${SLUG}`);
+    check("A thấy nút tải khóa", await lh.see("Tải khóa về máy"), `${await l.evaluate("location.href")} · ${(await lh.text()).slice(0, 400)}`);
+    await lh.waitFor(() => l.evaluate(`(() => { const e = [...document.querySelectorAll("main button")].find((x) => x.textContent.trim() === "Tải khóa về máy" && Object.keys(x).some((k) => k.startsWith("__reactProps"))); e?.click(); return !!e; })()`));
+    check("A tải xong (khối tải biến mất)", await lh.waitFor(async () => !(await lh.text()).includes("Tải khóa về máy")));
+    await l.go(`${BASE}/hoc?khoa=${SLUG}&bai=1`);
+    check("A mở bài tự luận", await lh.see(QUESTION));
+    check("A gõ nháp", await lh.waitFor(() => lh.typeEssay("Nháp của A")));
+    await sleep(500);
+    await l.send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await l.go(`${BASE}/hoc?khoa=${SLUG}&bai=1`);
+    check("mất mạng: bài vẫn mở", await lh.see(QUESTION, 60000), (await lh.text()).slice(0, 400));
+    await l.shot(`${OUT}/tu-luan-mat-mang.png`);
+    check("mất mạng: còn nháp", await lh.waitFor(() => l.evaluate(`document.querySelector("main textarea")?.value === "Nháp của A"`), 30000));
+    await l.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+
+    await l.send("Network.clearBrowserCookies");
+    const userB = await learner(l, "Học viên B");
+    check("cấp khóa cho B", (await api(admin, "admin", "POST", "/api/quan-tri/grants", { userId: userB, courseId: course.id, reason: "Kiểm thử tự luận" })).status === 201);
+    await l.go(`${BASE}/hoc?khoa=${SLUG}&bai=1`);
+    check("B mở bài tự luận", await lh.see(QUESTION));
+    check("B: ô viết có và trống", await lh.waitFor(() => l.evaluate(`document.querySelector("main textarea")?.value === ""`), 30000));
+    check("không lỗi trang (học viên)", l.events.errors.filter((e) => !String(e).includes("Failed to fetch")).length === 0, JSON.stringify(l.events.errors.slice(0, 3)));
+  } finally {
+    l.close();
+  }
+} finally {
+  admin.close();
+  await db.end();
+}
+console.log(failures.length ? `KHÔNG ĐẠT: ${failures.join("; ")}` : "ĐẠT");
+process.exit(failures.length ? 1 : 0);
