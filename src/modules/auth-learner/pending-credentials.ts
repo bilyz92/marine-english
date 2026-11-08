@@ -2,6 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { prisma, type Tx } from "@/lib/db";
 import { env } from "@/lib/env";
 import { mergeGroupIds } from "@/modules/enrollments/access";
+import { learnerEmail } from "@/modules/mail/recipient";
 import type { LearnerCtx } from "@/modules/sessions/guards";
 
 // Mật khẩu tạm của khách mua không cần đăng nhập (chủ 09/11/2026, docs/superpowers/plans/2026-11-09-checkout-credentials.md):
@@ -68,12 +69,16 @@ export async function prunePendingCredentials(): Promise<number> {
  * Bước 3: chỉ khi đơn thuộc nhóm tài khoản của người hỏi và đang ở bước 3 (đã báo chuyển khoản còn mở, hoặc đã thanh toán).
  * Mọi trường hợp khác trả null, không lộ đơn có tồn tại hay không.
  */
-export async function credentialsForOrder(ctx: LearnerCtx, orderCode: string): Promise<{ phone: string; password: string } | null> {
+export async function credentialsForOrder(ctx: LearnerCtx, orderCode: string): Promise<{ phone: string; password: string; email: string | null } | null> {
   const group = await mergeGroupIds(null, ctx.userId);
-  const [order] = await prisma().$queryRaw<{ ok: boolean }[]>`
-    SELECT (o.status = 'paid' OR EXISTS (
+  const [order] = await prisma().$queryRaw<{ ok: boolean; user_id: string }[]>`
+    SELECT o.user_id::text AS user_id, (o.status = 'paid' OR EXISTS (
       SELECT 1 FROM enrollments e WHERE e.claim_order_id = o.id AND e.revoked_at IS NULL)) AS ok
     FROM orders o WHERE o.code = ${orderCode.trim().toUpperCase()} AND o.user_id = ANY(${group}::uuid[])`;
   if (!order?.ok) return null;
-  return readPendingCredentials(ctx.userId);
+  const creds = await readPendingCredentials(ctx.userId);
+  if (!creds) return null;
+  // Email sẽ nhận thư thông tin đăng nhập: hiện ra để khách tự soát nếu gõ sai.
+  // Cùng cách tìm người nhận như lúc gửi thư "đơn đã thanh toán" (theo chủ đơn), để email hiện ở đây đúng là email nhận thư.
+  return { ...creds, email: await learnerEmail(order.user_id) };
 }

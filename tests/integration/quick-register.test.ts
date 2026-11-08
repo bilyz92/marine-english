@@ -60,7 +60,7 @@ describe("đăng ký nhanh ở trang mua", () => {
 
   it("email trùng email đã xác minh của tài khoản khác → 409 email_taken, không tạo tài khoản", async () => {
     await withTx((tx) => createUserWithIdentity(tx, { kind: "email", value: "co-tai-khoan@x.vn", displayName: "Có email", rank: null }));
-    const r = await quick({ phone: "0912000444", email: " Co-Tai-Khoan@X.vn " });
+    const r = await quick({ phone: "0912000444", email: " Co-Tai-Khoan@X.vn ", emailConfirm: "co-tai-khoan@x.vn" });
     expect(r.status).toBe(409);
     expect(r.body).toEqual({ error: "email_taken" });
     const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM password_logins WHERE phone_canonical = '+84912000444'`);
@@ -68,7 +68,7 @@ describe("đăng ký nhanh ở trang mua", () => {
   });
 
   it("email mới → tạo tài khoản; email chưa xác minh nên không lưu vào user_identities", async () => {
-    const r = await quick({ phone: "0912000555", email: "moi@x.vn" });
+    const r = await quick({ phone: "0912000555", email: "moi@x.vn", emailConfirm: "moi@x.vn" });
     expect(r.status).toBe(200);
     const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM user_identities WHERE value_canonical = 'moi@x.vn'`);
     expect(rows[0].n).toBe(0);

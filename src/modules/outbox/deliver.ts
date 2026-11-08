@@ -5,6 +5,7 @@ import { emailMessage, telegramMessage } from "./messages";
 import { enqueueOutbox } from "./outbox";
 import { NotConfiguredError, telegramSender, type TelegramSender } from "./telegram";
 import { markCredentialsEmailed, readPendingCredentials } from "@/modules/auth-learner/pending-credentials";
+import { learnerEmail } from "@/modules/mail/recipient";
 
 export interface OutboxEmailSender {
   send(to: string, subject: string, body: string): Promise<void>;
@@ -86,30 +87,16 @@ async function markDead(event: Claimed, error: string) {
 }
 
 /**
- * Email của học viên; tài khoản đã gộp thì định danh nằm ở tài khoản đích nên tra ngược lên theo merged_into_id. Không có email đã
- * xác minh thì dùng email liên hệ khách nhập ở trang mua (chưa xác minh, chỉ để gửi thư).
- */
-async function learnerEmail(userId: string): Promise<string | null> {
-  const rows = await prisma().$queryRaw<{ email: string }[]>`
-    WITH RECURSIVE up(id, merged_into_id) AS (
-      SELECT id, merged_into_id FROM users WHERE id = ${userId}::uuid
-      UNION
-      SELECT u.id, u.merged_into_id FROM users u JOIN up ON u.id = up.merged_into_id
-    )
-    SELECT i.value_canonical AS email FROM up JOIN user_identities i ON i.user_id = up.id
-    WHERE i.kind = 'email' ORDER BY i.verified_at DESC LIMIT 1`;
-  if (rows[0]) return rows[0].email;
-  const [contact] = await prisma().$queryRaw<{ email: string }[]>`SELECT email FROM learner_contact_emails WHERE user_id = ${userId}::uuid`;
-  return contact?.email ?? null;
-}
-
-/**
  * Thư "đơn đã thanh toán" của khách tạo tài khoản ở trang mua: thêm thông tin đăng nhập, dựng lúc gửi (mật khẩu không bao giờ
  * nằm trong outbox). Đã đổi mật khẩu thì chỉ nhắc số điện thoại.
  */
 async function withLoginInfo(userId: string, body: string): Promise<{ body: string; issued: boolean }> {
   const creds = await readPendingCredentials(userId);
-  if (creds) {
+  // Mật khẩu chỉ đi trong thư đầu tiên; thư sau (mua khóa khác) chỉ nhắc số điện thoại.
+  const [sent] = creds
+    ? await prisma().$queryRaw<{ emailed: boolean }[]>`SELECT emailed_at IS NOT NULL AS emailed FROM learner_pending_credentials WHERE user_id = ${userId}::uuid`
+    : [];
+  if (creds && !sent?.emailed) {
     return {
       body: `${body}\n\nThông tin đăng nhập: số điện thoại ${creds.phone}, mật khẩu tạm ${creds.password}. `
         + "Lần đầu đăng nhập bạn sẽ đặt mật khẩu mới.",

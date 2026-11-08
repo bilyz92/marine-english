@@ -13,6 +13,8 @@ const Body = z.object({
   displayName: z.string().trim().min(1).max(100),
   phone: z.string().max(40),
   email: z.string().max(254).optional(),
+  /** Nhập lại email: email gõ sai thì thư có mật khẩu tạm tới người lạ, nên phải khớp. */
+  emailConfirm: z.string().max(254).optional(),
   deviceKey: z.string(),
   deviceLabel: z.string().trim().min(1).max(100),
 });
@@ -29,6 +31,7 @@ export const POST = route(async (req: Request) => {
   if (body.email?.trim()) {
     const canonical = canonicalizeEmail(body.email);
     if (!canonical) return json({ error: "invalid_email" }, { status: 400, headers: NO_STORE });
+    if (canonicalizeEmail(body.emailConfirm ?? "") !== canonical) return json({ error: "email_mismatch" }, { status: 400, headers: NO_STORE });
     email = canonical;
   }
   const password = generatedPassword();

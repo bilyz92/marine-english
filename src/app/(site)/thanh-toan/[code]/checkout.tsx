@@ -134,13 +134,13 @@ function ClaimButton({ code, onDone }: { code: string; onDone: () => void }) {
  * Máy chủ chỉ trả khi đơn đã báo chuyển khoản hoặc đã thanh toán; tài khoản tự đặt mật khẩu thì không có gì để hiện.
  */
 function AccountInfo({ code, paid }: { code: string; paid: boolean }) {
-  const [info, setInfo] = useState<{ phone: string; password: string } | null>(null);
+  const [info, setInfo] = useState<{ phone: string; password: string; email: string | null } | null>(null);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     let live = true;
     void fetch(`/api/me/credentials?order=${encodeURIComponent(code)}`, { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as { available: boolean; phone?: string; password?: string }) : null))
-      .then((r) => { if (live && r?.available) setInfo({ phone: r.phone!, password: r.password! }); })
+      .then(async (res) => (res.ok ? ((await res.json()) as { available: boolean; phone?: string; password?: string; email?: string | null }) : null))
+      .then((r) => { if (live && r?.available) setInfo({ phone: r.phone!, password: r.password!, email: r.email ?? null }); })
       .catch(() => undefined);
     return () => { live = false; };
   }, [code]);
@@ -151,6 +151,7 @@ function AccountInfo({ code, paid }: { code: string; paid: boolean }) {
       <dl className={styles.accountList}>
         <div><dt>Số điện thoại</dt><dd>{info.phone}</dd></div>
         <div><dt>Mật khẩu tạm</dt><dd className={styles.accountPassword}>{info.password}</dd></div>
+        {info.email && <div><dt>Email nhận thư</dt><dd>{info.email}</dd></div>}
       </dl>
       <button type="button" className={ui.outline} onClick={() => void navigator.clipboard?.writeText(info.password).then(() => setCopied(true), () => undefined)}>
         {copied ? "Đã sao chép" : "Sao chép mật khẩu"}

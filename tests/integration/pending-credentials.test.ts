@@ -6,6 +6,9 @@ import { POST as orderRoute } from "@/app/api/me/orders/route";
 import { POST as claimRoute } from "@/app/api/me/orders/[code]/claim/route";
 import { GET as credentialsRoute } from "@/app/api/me/credentials/route";
 import { approveTransfer } from "@/modules/orders/claims";
+import { adminResetPassword } from "@/modules/auth-learner/password";
+import { readPendingCredentials } from "@/modules/auth-learner/pending-credentials";
+import { mergeAccounts } from "@/modules/enrollments/merge";
 import { adminCtx } from "../helpers/admin-ctx";
 import { publish, seedContent } from "../helpers/content";
 import { cookieValue, newDeviceKey, ORIGIN } from "../helpers/learner";
@@ -29,16 +32,16 @@ afterEach(() => {
   resetEnvForTest();
 });
 
-async function guest(phone: string, email?: string): Promise<{ who: TestLearner; body: Record<string, unknown> }> {
+async function guest(phone: string, email?: string, emailConfirm = email): Promise<{ who: TestLearner; body: Record<string, unknown>; status: number }> {
   const res = await quickRoute(new Request(`${ORIGIN}/api/auth/learner/password/quick-register`, {
     method: "POST",
     headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": freshIp() },
-    body: JSON.stringify({ displayName: "Khách", phone, deviceKey: newDeviceKey(), deviceLabel: "Máy", ...(email ? { email } : {}) }),
+    body: JSON.stringify({ displayName: "Khách", phone, deviceKey: newDeviceKey(), deviceLabel: "Máy", ...(email ? { email, emailConfirm } : {}) }),
   }));
   const body = (await res.json()) as Record<string, unknown>;
   const token = cookieValue(res, "__Host-me_learn")!;
   const csrf = cookieValue(res, "__Host-me_csrf_learner")!;
-  return { who: { token, csrf } as TestLearner, body };
+  return { who: { token, csrf } as TestLearner, body, status: res.status };
 }
 /** Như trình duyệt: phiên đổi mã thì dùng cookie mới cho lần gọi sau. */
 function follow(who: TestLearner, res: Response): Response {
@@ -56,7 +59,7 @@ const claim = async (who: TestLearner, code: string) =>
   follow(who, await claimRoute(learnerRequest(`/api/me/orders/${code}/claim`, who, { method: "POST", body: {} }), { params: Promise.resolve({ code }) }));
 async function credentials(who: TestLearner, code: string) {
   const res = follow(who, await credentialsRoute(learnerRequest(`/api/me/credentials?order=${code}`, who)));
-  return { cache: res.headers.get("cache-control") ?? "", body: (await res.json()) as { available: boolean; phone?: string; password?: string } };
+  return { cache: res.headers.get("cache-control") ?? "", body: (await res.json()) as { available: boolean; phone?: string; password?: string; email?: string | null } };
 }
 async function login(phone: string, password: string, newPassword?: string) {
   const res = await loginRoute(new Request(`${ORIGIN}/api/auth/learner/password/login`, {
@@ -90,7 +93,7 @@ describe("thông tin tài khoản ở bước 3", () => {
     expect((await claim(who, code)).status).toBe(200);
     const shown = await credentials(who, code);
     expect(shown.cache).toContain("no-store");
-    expect(shown.body).toMatchObject({ available: true, phone: "0915000202" });
+    expect(shown.body).toMatchObject({ available: true, phone: "0915000202", email: null });
     expect(shown.body.password).toMatch(/^[A-HJKMNP-Za-hjkmnp-z2-9]{10}$/);
     const pending = await sqlAsMigrator(`SELECT password_enc FROM learner_pending_credentials`);
     expect(JSON.stringify(pending.rows)).not.toContain(shown.body.password);
@@ -143,5 +146,45 @@ describe("thông tin tài khoản ở bước 3", () => {
     expect(contact.rows).toEqual([{ email: "khach.moi@x.vn" }]);
     const ids = await sqlAsMigrator(`SELECT count(*)::int AS n FROM user_identities WHERE value_canonical = 'khach.moi@x.vn'`);
     expect(ids.rows[0].n).toBe(0);
+  });
+
+  it("email nhập lại không khớp → 400 email_mismatch, không tạo tài khoản (email sai thì người lạ nhận mật khẩu)", async () => {
+    await seedContent();
+    const r = await guest("0915000606", "dung@x.vn", "dug@x.vn");
+    expect([r.status, r.body]).toEqual([400, { error: "email_mismatch" }]);
+    const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM password_logins WHERE phone_canonical = '+84915000606'`);
+    expect(rows[0].n).toBe(0);
+  });
+
+  it("chủ đặt mật khẩu tạm mới → bản chờ cũ bị bỏ", async () => {
+    await seedContent();
+    await guest("0915000707");
+    const { rows: [u] } = await sqlAsMigrator(`SELECT user_id FROM password_logins WHERE phone_canonical = '+84915000707'`);
+    expect(await readPendingCredentials(u.user_id)).not.toBeNull();
+    const r = await adminResetPassword(await adminCtx("owner"), u.user_id, { reason: "Khách quên", evidence: "Gọi điện xác nhận" });
+    expect(r.kind).toBe("ok");
+    expect(await readPendingCredentials(u.user_id)).toBeNull();
+  });
+
+  it("gộp tài khoản (nguồn có số + mật khẩu tạm, đích chưa có) → bản chờ của nguồn bị bỏ", async () => {
+    await seedContent();
+    await guest("0915000808");
+    const { rows: [u] } = await sqlAsMigrator(`SELECT user_id FROM password_logins WHERE phone_canonical = '+84915000808'`);
+    const target = await testLearner("Tài khoản chính");
+    expect(await mergeAccounts(await adminCtx("owner"), { sourceUserId: u.user_id, targetUserId: target.userId, reason: "khách có hai tài khoản", preview: false })).toBe("merged");
+    expect(await readPendingCredentials(u.user_id)).toBeNull();
+    expect(await readPendingCredentials(target.userId)).toBeNull();
+  });
+
+  it("bước 3 hiện đúng email sẽ nhận thư: email đã xác minh được ưu tiên hơn email liên hệ", async () => {
+    await seedContent();
+    await publish(SLUG);
+    const { who } = await guest("0915000909", "lienhe@x.vn");
+    const { code } = await order(who);
+    await claim(who, code);
+    expect((await credentials(who, code)).body.email).toBe("lienhe@x.vn");
+    const { rows: [u] } = await sqlAsMigrator(`SELECT user_id FROM password_logins WHERE phone_canonical = '+84915000909'`);
+    await sqlAsMigrator(`INSERT INTO user_identities (user_id, kind, value_canonical, verified_at) VALUES ($1, 'email', 'da-xac-minh@x.vn', now())`, [u.user_id]);
+    expect((await credentials(who, code)).body.email).toBe("da-xac-minh@x.vn");
   });
 });

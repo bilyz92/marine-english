@@ -51,6 +51,7 @@ try {
   await fill("Họ và tên *", "Khách Mua Nhanh");
   await fill("Số điện thoại *", phone);
   await fill("Email (không bắt buộc)", `khach${stamp}@x.vn`);
+  await waitFor(() => fill("Nhập lại email", `khach${stamp}@x.vn`), 10000);
   await press("Tạo tài khoản và tiếp tục");
   check("chưa đồng ý điều khoản → báo", await see("Cần đồng ý điều khoản", 10000));
   await tick("Tôi đồng ý");
@@ -63,9 +64,9 @@ try {
   // 3. Bước 3: báo đã chuyển khoản → hiện tài khoản (số + mật khẩu tạm), nhắc email.
   await waitFor(() => b.evaluate(`(() => { const e = [...document.querySelectorAll("main button")].find((x) => x.textContent.trim() === "Tôi đã chuyển khoản" && Object.keys(x).some((k) => k.startsWith("__reactProps"))); e?.click(); return !!e; })()`), 60000);
   check("bước 3 hiện Tài khoản của bạn", await see("Tài khoản của bạn"));
-  const password = await b.evaluate(`[...document.querySelectorAll('[aria-label="Tài khoản của bạn"] dd')].pop()?.textContent.trim()`);
+  const password = await b.evaluate(`[...document.querySelectorAll('[aria-label="Tài khoản của bạn"] dd')][1]?.textContent.trim()`);
   check("bước 3 có số điện thoại và mật khẩu tạm 10 ký tự", (await text()).includes(phone) && /^[A-Za-z0-9]{10}$/.test(password ?? ""), String(password));
-  check("bước 3 nhắc sẽ gửi email khi thanh toán xong", (await text()).includes("gửi vào email"));
+  check("bước 3 nhắc sẽ gửi email khi thanh toán xong, hiện đúng email nhận thư", (await text()).includes("gửi vào email") && (await text()).includes(`khach${stamp}@x.vn`));
   await problems("bước 3 @390");
   await b.shot(`${OUT}/2-buoc-3.png`);
 
@@ -100,6 +101,7 @@ try {
   await fill("Họ và tên *", "Người Có Email");
   await fill("Số điện thoại *", `094${stamp}`);
   await fill("Email (không bắt buộc)", takenEmail);
+  await waitFor(() => fill("Nhập lại email", takenEmail), 10000);
   await tick("Tôi đồng ý");
   await press("Tạo tài khoản và tiếp tục");
   check("email trùng → báo đã có tài khoản", await see("Email này đã có tài khoản"));

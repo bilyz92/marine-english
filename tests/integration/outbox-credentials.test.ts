@@ -15,7 +15,7 @@ const freshIp = () => `10.11.${Math.floor(++seq / 250)}.${(seq % 250) + 1}`;
 async function guest(phone: string, email?: string): Promise<string> {
   await quickRoute(new Request(`${ORIGIN}/api/auth/learner/password/quick-register`, {
     method: "POST", headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": freshIp() },
-    body: JSON.stringify({ displayName: "Khách", phone, deviceKey: newDeviceKey(), deviceLabel: "Máy", ...(email ? { email } : {}) }),
+    body: JSON.stringify({ displayName: "Khách", phone, deviceKey: newDeviceKey(), deviceLabel: "Máy", ...(email ? { email, emailConfirm: email } : {}) }),
   }));
   const { rows } = await sqlAsMigrator(`SELECT user_id FROM password_logins WHERE phone_canonical = $1`, [`+84${phone.slice(1)}`]);
   return rows[0].user_id as string;
@@ -91,5 +91,28 @@ describe("email thông tin đăng nhập khi thanh toán xong", () => {
     await sqlAsMigrator(`UPDATE learner_pending_credentials SET created_at = now() - interval '31 days' WHERE user_id = $1`, [userId]);
     expect(await readPendingCredentials(userId)).toBeNull();
     expect(await prunePendingCredentials()).toBe(1);
+  });
+
+  it("thư đã thanh toán thứ hai (mua khóa khác) không gửi lại mật khẩu", async () => {
+    const userId = await guest("0916000505", "khach5@x.vn");
+    const creds = await readPendingCredentials(userId);
+    await paidEmail(userId);
+    await deliverBatch(fakes().senders);
+    await paidEmail(userId);
+    const f = fakes();
+    await deliverBatch(f.senders);
+    expect(f.mail[0]!.body).toContain("0916000505");
+    expect(f.mail[0]!.body).not.toContain(creds!.password);
+  });
+
+  it("tài khoản đã gộp vào tài khoản khác: thư tới email liên hệ của tài khoản trong nhóm gộp", async () => {
+    const source = await guest("0916000606", "khach6@x.vn");
+    const { rows: [t] } = await sqlAsMigrator(`INSERT INTO users (display_name) VALUES ('Đích') RETURNING id`);
+    await sqlAsMigrator(`UPDATE users SET merged_into_id = $2, status = 'merged' WHERE id = $1`, [source, t.id]);
+    // Đơn mới của tài khoản đích (đích không có email nào): dùng email liên hệ của tài khoản nguồn đã gộp vào.
+    await paidEmail(t.id);
+    const f = fakes();
+    await deliverBatch(f.senders);
+    expect(f.mail[0]?.to).toBe("khach6@x.vn");
   });
 });

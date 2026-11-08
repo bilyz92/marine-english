@@ -23,6 +23,7 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [emailConfirm, setEmailConfirm] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [mustSetPassword, setMustSetPassword] = useState(false);
@@ -53,10 +54,12 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
     event.preventDefault();
     if (!name.trim()) return setError("Nhập họ và tên.");
     if (!phone.trim()) return setError("Nhập số điện thoại.");
+    // Email gõ sai thì thư có mật khẩu tạm tới người lạ: phải nhập lại cho khớp.
+    if (email.trim() && email.trim().toLowerCase() !== emailConfirm.trim().toLowerCase()) return setError("Hai lần nhập email chưa giống nhau.");
     if (!termsAccepted) return onBlocked();
     return run(async () => {
       const r = await postJson<Answer>("/api/auth/learner/password/quick-register", {
-        displayName: name.trim(), phone, ...(email.trim() ? { email: email.trim() } : {}), deviceKey: await getDeviceKey(), deviceLabel: deviceLabel(),
+        displayName: name.trim(), phone, ...(email.trim() ? { email: email.trim(), emailConfirm: emailConfirm.trim() } : {}), deviceKey: await getDeviceKey(), deviceLabel: deviceLabel(),
       });
       if (r.status === 0) return setError(MESSAGE.network!);
       // Chủ 09/11/2026: mật khẩu tạm không hiện ở bước này; hiện ở bước 3 và gửi email khi thanh toán xong.
@@ -65,6 +68,7 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
       if (r.data.error === "phone_taken") return setStep("login");
       if (r.data.error === "email_taken") return setStep("email_taken");
       if (r.data.error === "invalid_email") return setError("Email không đúng dạng. Bỏ trống nếu không dùng email.");
+      if (r.data.error === "email_mismatch") return setError("Hai lần nhập email chưa giống nhau.");
       setError(MESSAGE[r.data.error ?? ""] ?? "Không tạo được tài khoản, thử lại sau.");
     });
   };
@@ -93,7 +97,7 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
     return (
       <div className={ui.notice} role="alert">
         <p>Email này đã có tài khoản. Đăng nhập tài khoản đó để mua tiếp.</p>
-        <p><Link href={loginHref}>Đăng nhập bằng email</Link> · <button type="button" className={styles.linkButton} onClick={() => { setEmail(""); setStep("form"); }}>Dùng không email</button></p>
+        <p><Link href={loginHref}>Đăng nhập bằng email</Link> · <button type="button" className={styles.linkButton} onClick={() => { setEmail(""); setEmailConfirm(""); setStep("form"); }}>Dùng không email</button></p>
         <p className={ui.muted}>Không đăng nhập được? <Link href="/lien-he">Liên hệ hỗ trợ</Link>.</p>
       </div>
     );
@@ -141,6 +145,12 @@ export function GuestForm({ slug, terms, termsAccepted, onBlocked, onSignedIn }:
         <input className={styles.input} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <small className={ui.muted}>Nhận thông tin đăng nhập khi thanh toán xong. Không có email thì xem ở bước 3.</small>
       </label>
+      {email.trim() && (
+        <label className={styles.field}>
+          <span>Nhập lại email</span>
+          <input className={styles.input} type="email" autoComplete="off" value={emailConfirm} onChange={(e) => setEmailConfirm(e.target.value)} />
+        </label>
+      )}
       {terms}
       {error && <p className={ui.error} role="alert">{error}</p>}
       <button className={ui.action} disabled={busy}>{busy ? "Đang tạo tài khoản…" : "Tạo tài khoản và tiếp tục"}</button>
