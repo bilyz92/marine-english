@@ -329,6 +329,7 @@ model Course {
   versions         CourseVersion[] @relation("CourseVersions")
   orderItems       OrderItem[]
   enrollments      Enrollment[]
+  modules          CourseModule[]
   learningEvents   LearningEvent[]
 
   @@map("courses")
@@ -358,6 +359,7 @@ model Lesson {
   versions     LessonVersion[]
   progress     LearningProgress[]
   quizAttempts QuizAttempt[]
+  moduleAssignments CourseLessonModule[]
 
   @@map("lessons")
 }
@@ -795,6 +797,8 @@ model CourseModule {
   titleVi   String   @map("title_vi")
   position  Int
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  lessons   CourseLessonModule[]
 
   @@unique([courseId, position], map: "course_modules_course_position_key")
   @@unique([courseId, id], map: "course_modules_course_id_id_key")
@@ -806,6 +810,8 @@ model CourseLessonModule {
   courseId String @map("course_id") @db.Uuid
   lessonId String @map("lesson_id") @db.Uuid
   moduleId String @map("module_id") @db.Uuid
+  lesson   Lesson       @relation(fields: [lessonId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  module   CourseModule @relation(fields: [courseId, moduleId], references: [courseId, id], onDelete: Restrict, onUpdate: NoAction)
 
   @@id([courseId, lessonId])
   @@index([moduleId], map: "course_lesson_modules_module_idx")

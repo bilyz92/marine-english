@@ -10,6 +10,6 @@ export const PUT = route(async (req: Request, { params }: { params: Promise<{ sl
   const ctx = await requireAdmin(req);
   const { slug, externalId } = await params;
   const body = await readJson(req, Body);
-  await setLessonModule(ctx, slug, decodeURIComponent(externalId), body.moduleId);
+  await setLessonModule(ctx, slug, externalId, body.moduleId);
   return json({ ok: true });
 });
