@@ -82,6 +82,16 @@ describe("quyền học", () => {
     const t2 = m as unknown as { topics: { id: string; titleVi: string }[]; lessons: { topic: string | null }[] };
     expect(t2.topics).toEqual([{ id: "A1", titleVi: "Học vấn và mục tiêu nghề nghiệp" }, { id: "B1", titleVi: "Tàu dầu và hóa chất" }]);
     expect(t2.lessons.map((x) => x.topic)).toEqual(["A1", "A1", "A1", "B1"]);
+    // Module (2026-11-08-course-modules): chưa có module → rỗng, bài cũ là hỏi–đáp.
+    const t3 = m as unknown as { modules: { id: string; titleVi: string }[]; lessons: { moduleId: string | null; lessonType: string }[] };
+    expect(t3.modules).toEqual([]);
+    expect(t3.lessons.every((x) => x.moduleId === null && x.lessonType === "qa")).toBe(true);
+    const { rows: [course] } = await sqlAsMigrator(`SELECT id FROM courses WHERE slug = $1`, [SLUG]);
+    const { rows: [mod] } = await sqlAsMigrator(`INSERT INTO course_modules (course_id, title_vi, position) VALUES ($1, 'Kinh nghiệm phỏng vấn', 1) RETURNING id`, [course.id]);
+    await sqlAsMigrator(`INSERT INTO course_lesson_modules (course_id, lesson_id, module_id) SELECT $1, id, $2 FROM lessons WHERE external_id IN ('A001', 'A002')`, [course.id, mod.id]);
+    const m2 = (await (await manifest(l)).json()) as typeof t3;
+    expect(m2.modules).toEqual([{ id: mod.id, titleVi: "Kinh nghiệm phỏng vấn" }]);
+    expect(m2.lessons.map((x) => x.moduleId)).toEqual([mod.id, mod.id, null, null]);
 
     const owner = await adminCtx("owner");
     const r = await requestFullRefund(owner, { orderCode: s.code, reason: "hoàn", payout: TEST_PAYOUT });

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access";
 import type { LearnerCtx } from "@/modules/sessions/guards";
 import { entitledCourses } from "./entitlements";
+import { modulesFor } from "@/modules/content/modules";
 
 // Manifest có phiên bản của một khóa: danh sách bài và tệp để tải về học offline.
 
@@ -14,7 +15,12 @@ export type Manifest = {
   provisional: boolean;
   /** Chủ đề của học liệu theo thứ tự (A1, A2…); rỗng thì danh sách bài là một danh sách phẳng. */
   topics: { id: string; titleVi: string }[];
-  lessons: { position: number; lessonVersionId: string; externalId: string; title: string; topic: string | null; contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[] }[];
+  /** Module do chủ tạo (docs/superpowers/plans/2026-11-08-course-modules.md); rỗng thì hiện theo chủ đề như trước. */
+  modules: { id: string; titleVi: string }[];
+  lessons: {
+    position: number; lessonVersionId: string; externalId: string; title: string; topic: string | null; moduleId: string | null; lessonType: "qa" | "essay";
+    contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[];
+  }[];
   assets: { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string; visibility: "public" | "protected"; url: string }[];
   totalBytes: number;
 };
@@ -28,12 +34,12 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
 
   const lessons = await db.$queryRaw<
     {
-      position: number; lesson_version_id: string; external_id: string; title: string | null; module_id: string | null; content_hash: string; is_free_trial: boolean;
+      position: number; lesson_version_id: string; lesson_id: string; external_id: string; title: string | null; module_id: string | null; lesson_type: string | null; content_hash: string; is_free_trial: boolean;
       status: "in_progress" | "completed" | null; completed_activities: string[] | null;
     }[]
   >`
     SELECT cvl.position, cvl.lesson_version_id, l.external_id, cvl.is_free_trial, lv.content_hash, lp.status, lp.completed_activities,
-           lv.content ->> 'module_id' AS module_id,
+           lv.content ->> 'module_id' AS module_id, lv.content ->> 'lesson_type' AS lesson_type, l.id::text AS lesson_id,
            coalesce(lv.content #>> '{question,text,vi}', lv.content #>> '{question,text,en}') AS title
     FROM course_version_lessons cvl
     JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id
@@ -53,6 +59,7 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
   // Một tệp dùng ở nhiều bài chỉ tải một lần.
   const bytesById = new Map(assets.map((a) => [a.id, a.bytes]));
   const topics = course.topics.map((t) => ({ id: t.id, titleVi: t.titleVi }));
+  const { modules, lessonModule } = await modulesFor(db, course.id, course.current_version_id);
   const topicIds = new Set(topics.map((t) => t.id));
   return {
     courseId: course.id,
@@ -60,10 +67,12 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
     titleVi: course.title_vi,
     versionId: course.current_version_id,
     topics,
+    modules,
     provisional: (await entitledCourses(ctx.userId, db)).find((c) => c.courseId === course.id)?.provisional ?? false,
     lessons: lessons.map((l) => ({
       position: l.position, lessonVersionId: l.lesson_version_id, externalId: l.external_id,
-      title: l.title ?? l.external_id, topic: l.module_id && topicIds.has(l.module_id) ? l.module_id : null, contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
+      title: l.title ?? l.external_id, topic: l.module_id && topicIds.has(l.module_id) ? l.module_id : null,
+      moduleId: lessonModule.get(l.lesson_id) ?? null, lessonType: l.lesson_type === "essay" ? "essay" : "qa", contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
       status: l.status, completedActivities: l.completed_activities ?? [],
     })),
     // Tệp công khai tải theo đường dẫn ổn định (Caddy phục vụ ở production); tệp bảo vệ chỉ qua API có kiểm quyền.

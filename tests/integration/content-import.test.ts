@@ -3,6 +3,11 @@ import { describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { ContentImportError, importContent, importDatasets, pgSql } from "@/worker/content-import";
 import { errCode, pgAs } from "../helpers/pg";
+import { POST as createModuleRoute } from "@/app/api/quan-tri/content/courses/[slug]/modules/route";
+import { POST as addLessonRoute } from "@/app/api/quan-tri/content/courses/[slug]/lessons/route";
+import { adminSess, callAdmin } from "../helpers/admin-call";
+import { sqlAsMigrator } from "../helpers/otp";
+import { seedContent } from "../helpers/content";
 
 type Fixture = { publication: { importable: boolean }; lessons: { id: string; question: { text: { vi: string } } }[] };
 const fixture = () => JSON.parse(readFileSync("tests/fixtures/content-mini.json", "utf8")) as Fixture;
@@ -183,5 +188,31 @@ describe("nhập nội dung", () => {
     const mini = (await q(`SELECT lv.content FROM lesson_versions lv JOIN lessons l ON l.id = lv.lesson_id WHERE l.external_id = 'T001' ORDER BY lv.version DESC LIMIT 1`))[0].content;
     expect(mini).not.toHaveProperty("exercises");
   }, 240_000);
-});
 
+  it("nhập lại học liệu giữ bài chủ thêm trên web (tự luận), ở cuối khóa, vẫn đúng module", async () => {
+    await seedContent();
+    const owner = await adminSess("owner");
+    await callAdmin(createModuleRoute, owner, "POST", "/x", { titleVi: "Phỏng vấn" }, { slug: "engine_cadet_tanker" });
+    const two = ((await (await callAdmin(createModuleRoute, owner, "POST", "/x", { titleVi: "Vận hành" }, { slug: "engine_cadet_tanker" })).json()) as { id: string }).id;
+    const { rows: [c] } = await sqlAsMigrator(`SELECT current_version_id FROM courses WHERE slug = 'engine_cadet_tanker'`);
+    const added = await callAdmin(addLessonRoute, owner, "POST", "/x", {
+      expectedVersionId: c.current_version_id, lessonType: "essay", moduleId: two, questionEn: "Describe a bunkering checklist.", questionVi: "",
+      keyPoints: [], vocabulary: [], modelAnswerEn: "First, ...", modelAnswerVi: "", followUps: [],
+    }, { slug: "engine_cadet_tanker" });
+    expect(added.status).toBe(200);
+    const client = await pgAs("migrator");
+    try {
+      await importContent(client, JSON.parse(readFileSync("tests/fixtures/content-mini.json", "utf8")));
+    } finally {
+      await client.end();
+    }
+    const { rows } = await sqlAsMigrator(`
+      SELECT l.external_id, clm.module_id::text AS module_id FROM courses co
+      JOIN course_version_lessons cvl ON cvl.course_version_id = co.current_version_id
+      JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id JOIN lessons l ON l.id = lv.lesson_id
+      LEFT JOIN course_lesson_modules clm ON clm.course_id = co.id AND clm.lesson_id = l.id
+      WHERE co.slug = 'engine_cadet_tanker' ORDER BY cvl.position`);
+    expect(rows.map((r) => r.external_id)).toEqual(["A001", "A002", "A003-1", "T001", "engine_cadet_tanker-b5"]);
+    expect(rows.at(-1).module_id).toBe(two);
+  });
+});

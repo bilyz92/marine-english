@@ -9,7 +9,8 @@ import type { Profile } from "./personalize";
 export type LessonState = {
   level?: LevelId;
   step?: number;
-  drafts?: Partial<Record<LevelId, string>>;
+  /** Bản nháp theo mức; `essay` là bài tự luận (2026-11-08-course-modules). */
+  drafts?: Partial<Record<LevelId | "essay", string>>;
   said?: Partial<Record<LevelId, boolean>>;
   /** Bài tập: câu trả lời và đã bấm Kiểm tra chưa, theo mã bài tập. */
   exercises?: Record<string, { value: string; checked: boolean }>;
@@ -36,6 +37,12 @@ export const loadProfile = (who: string) => read<Profile>(who, `me.profile.${who
 export const saveProfile = (who: string, profile: Profile) => write(who, `me.profile.${who}`, profile);
 export const loadLessonState = (who: string, lessonId: string) => read<LessonState>(who, `me.study.${who}.${lessonId}`, {});
 export const saveLessonState = (who: string, lessonId: string, state: LessonState) => write(who, `me.study.${who}.${lessonId}`, state);
+/** Ghép thay đổi vào trạng thái đang lưu (giữ mức, bước, bài tập…), không ghi đè cả bài. */
+export function updateLessonState(who: string, lessonId: string, patch: Partial<LessonState>): LessonState {
+  const next = { ...loadLessonState(who, lessonId), ...patch };
+  saveLessonState(who, lessonId, next);
+  return next;
+}
 export const loadAccountLevel = (who: string) => read<string | null>(who, `me.study.${who}.level`, null);
 export const saveAccountLevel = (who: string, level: LevelId) => write(who, `me.study.${who}.level`, level);
 

@@ -3,6 +3,7 @@ import { POST as createCourse } from "@/app/api/quan-tri/content/courses/route";
 import { GET as courseLessons } from "@/app/api/quan-tri/content/courses/[slug]/route";
 import { POST as addLesson } from "@/app/api/quan-tri/content/courses/[slug]/lessons/route";
 import { GET as getLesson, PUT as putLesson } from "@/app/api/quan-tri/content/courses/[slug]/lessons/[externalId]/route";
+import { POST as createModuleRoute } from "@/app/api/quan-tri/content/courses/[slug]/modules/route";
 import { adminSess, callAdmin, type AdminSess } from "../helpers/admin-call";
 import { auditRows } from "../helpers/admin";
 import { publish, seedContent } from "../helpers/content";
@@ -189,5 +190,48 @@ describe("soạn bài trên web", () => {
     expect(json).not.toContain('"A001.probe.1"');
     expect(json).toContain('"A001.kp.2"');
   });
-});
 
+  // Module khóa học + bài tự luận (docs/superpowers/plans/2026-11-08-course-modules.md, Task 2).
+  it("thêm bài tự luận vào module 2: nội dung có lesson_type essay, nằm ở module 2, nhật ký có moduleId", async () => {
+    await seedContent();
+    const owner = await adminSess("owner");
+    await callAdmin(createModuleRoute, owner, "POST", "/x", { titleVi: "Phỏng vấn" }, { slug: "engine_cadet_tanker" });
+    const two = ((await (await callAdmin(createModuleRoute, owner, "POST", "/x", { titleVi: "Vận hành" }, { slug: "engine_cadet_tanker" })).json()) as { id: string }).id;
+    const v = (await listing(owner, "engine_cadet_tanker")).course.currentVersionId;
+    const res = await add(owner, "engine_cadet_tanker", { expectedVersionId: v, lessonType: "essay", moduleId: two, ...fields("Describe how you start the main engine.") });
+    expect(res.status).toBe(200);
+    const { externalId } = (await res.json()) as { externalId: string };
+    const l = (await listing(owner, "engine_cadet_tanker")) as Listing & { modules: { id: string }[]; lessons: { externalId: string; moduleId: string | null; lessonType: string }[] };
+    expect(l.modules).toHaveLength(2);
+    expect(l.lessons.find((x) => x.externalId === externalId)).toMatchObject({ moduleId: two, lessonType: "essay" });
+    expect(l.lessons.find((x) => x.externalId === "A001")).toMatchObject({ lessonType: "qa" });
+    const lesson = (await (await callAdmin(getLesson, owner, "GET", "/x", undefined, { slug: "engine_cadet_tanker", externalId })).json()) as Lesson;
+    expect(lesson.content.lesson_type).toBe("essay");
+    const { rows } = await sqlAsMigrator(`SELECT after FROM admin_audit_log WHERE action = 'lesson_add' ORDER BY at DESC LIMIT 1`);
+    expect(rows[0].after).toMatchObject({ moduleId: two });
+  });
+
+  it("khóa có module, thêm bài không chọn module → 400 module_required; tự luận thiếu đáp án mẫu → 400 essay_needs_answer", async () => {
+    await seedContent();
+    const owner = await adminSess("owner");
+    const one = ((await (await callAdmin(createModuleRoute, owner, "POST", "/x", { titleVi: "Một" }, { slug: "engine_cadet_tanker" })).json()) as { id: string }).id;
+    const v = (await listing(owner, "engine_cadet_tanker")).course.currentVersionId;
+    const noModule = await add(owner, "engine_cadet_tanker", { expectedVersionId: v, ...fields("New?") });
+    expect([noModule.status, ((await noModule.json()) as { error: string }).error]).toEqual([400, "module_required"]);
+    const noAnswer = await add(owner, "engine_cadet_tanker", { expectedVersionId: v, lessonType: "essay", moduleId: one, ...fields("Essay?", { modelAnswerEn: "" }) });
+    expect([noAnswer.status, ((await noAnswer.json()) as { error: string }).error]).toEqual([400, "essay_needs_answer"]);
+    // Khóa chưa có module (dry_cargo) mà gửi module của khóa khác → 404, không thêm bài.
+    const dv = (await listing(owner, "engine_cadet_dry_cargo")).course.currentVersionId;
+    expect((await add(owner, "engine_cadet_dry_cargo", { expectedVersionId: dv, moduleId: one, ...fields("Foreign module?") })).status).toBe(404);
+    expect((await listing(owner, "engine_cadet_dry_cargo")).course.currentVersionId).toBe(dv);
+  });
+
+  it("sửa bài hỏi–đáp cũ giữ loại hỏi–đáp: nội dung không có lesson_type", async () => {
+    await seedContent();
+    const owner = await adminSess("owner");
+    const v = (await listing(owner, "engine_cadet_tanker")).course.currentVersionId;
+    expect((await put(owner, "engine_cadet_tanker", "A002", { expectedVersionId: v, ...fields("Why did you choose engineering?") })).status).toBe(200);
+    const lesson = (await (await callAdmin(getLesson, owner, "GET", "/x", undefined, { slug: "engine_cadet_tanker", externalId: "A002" })).json()) as Lesson;
+    expect("lesson_type" in lesson.content).toBe(false);
+  });
+});

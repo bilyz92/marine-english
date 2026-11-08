@@ -14,10 +14,14 @@ export type ManifestLesson = {
   status: "in_progress" | "completed" | null; completedActivities: string[];
   /** Chủ đề (A1…); không có ở manifest cũ đã lưu trên máy. */
   topic?: string | null;
+  /** Module và loại bài (2026-11-08-course-modules); không có ở manifest cũ. */
+  moduleId?: string | null;
+  lessonType?: "qa" | "essay";
 };
 export type Manifest = {
   courseId: string; slug: string; titleVi: string; versionId: string; provisional?: boolean; lessons: ManifestLesson[]; assets: ManifestAsset[]; totalBytes: number;
   topics?: { id: string; titleVi: string }[];
+  modules?: { id: string; titleVi: string }[];
 };
 export type MyCourse = { slug: string; titleVi: string; sources: string[] };
 type StoredLesson = { lessonVersionId: string; contentHash: string; content: unknown };

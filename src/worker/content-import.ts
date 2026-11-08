@@ -224,6 +224,17 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
         if (!v) throw new ContentImportError(`Khóa ${course.id} trỏ tới bài không có: ${externalId}`);
         return { externalId, ...v };
       });
+      // Bài chủ thêm trên web hoặc từ file Excel (không có trong học liệu): giữ, nối sau các bài của bộ nhập, đúng thứ tự cũ
+      // (docs/superpowers/plans/2026-11-08-course-modules.md).
+      const imported = new Set(members.map((m) => m.externalId));
+      const authored = await sql.query<{ external_id: string; id: string; content_hash: string }>(
+        `SELECT l.external_id, lv.id::text AS id, lv.content_hash FROM courses c
+         JOIN course_version_lessons cvl ON cvl.course_version_id = c.current_version_id
+         JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id JOIN lessons l ON l.id = lv.lesson_id
+         WHERE c.slug = $1 AND lv.content ->> 'source_kind' IN ('web_editor', 'excel') ORDER BY cvl.position`,
+        [course.id],
+      );
+      for (const a of authored) if (!imported.has(a.external_id)) members.push({ externalId: a.external_id, id: a.id, hash: a.content_hash });
       const sourceHash = sha256(JSON.stringify(members.map((m) => [m.externalId, m.hash])));
       const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null; title_vi: string; title_en: string }>(
         `SELECT id::text AS id, status, current_version_id::text AS current_version_id, title_vi, title_en FROM courses WHERE slug = $1 FOR UPDATE`,

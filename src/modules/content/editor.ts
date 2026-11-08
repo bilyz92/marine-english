@@ -7,6 +7,7 @@ import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
 import { canonical, contentHash } from "@/worker/content-import";
 import { ContentConflict } from "./authoring";
+import { modulesFor } from "./modules";
 
 // Chủ sửa và thêm bài trên web (docs/superpowers/plans/2026-11-02-content-authoring.md, bước 5).
 // Phiên bản bất biến: sửa = phiên bản bài mới + phiên bản khóa mới thay bài đó tại chỗ; chỉ đổi khóa đang mở.
@@ -24,8 +25,15 @@ export const LessonFields = z.object({
   modelAnswerEn: text.optional().default(""),
   modelAnswerVi: text.optional().default(""),
   followUps: z.array(pair).max(20).default([]),
+  /** Loại bài (docs/superpowers/plans/2026-11-08-course-modules.md): hỏi–đáp (mặc định, không ghi vào nội dung) hoặc tự luận. */
+  lessonType: z.enum(["qa", "essay"]).default("qa"),
 });
-export const SaveLesson = LessonFields.extend({ expectedVersionId: z.uuid().nullable(), confirmLive: z.boolean().optional().default(false) });
+export const SaveLesson = LessonFields.extend({
+  expectedVersionId: z.uuid().nullable(),
+  confirmLive: z.boolean().optional().default(false),
+  /** Thêm bài vào khóa đã có module: bắt buộc chọn module. Sửa bài: đổi module ở danh sách bài, không qua đây. */
+  moduleId: z.uuid().optional(),
+});
 export type SaveLessonInput = z.infer<typeof SaveLesson>;
 
 export const CreateCourse = z.object({
@@ -35,18 +43,18 @@ export const CreateCourse = z.object({
 });
 
 type Json = Record<string, unknown>;
-type Member = { position: number; isFreeTrial: boolean; lessonVersionId: string; externalId: string; hash: string; content: Json };
+type Member = { position: number; isFreeTrial: boolean; lessonVersionId: string; lessonId: string; externalId: string; hash: string; content: Json };
 type CourseRow = { id: string; slug: string; title_vi: string; title_en: string; status: string; current_version_id: string | null };
 
 const bilingual = (en: string, vi: string) => (vi ? { en, vi } : { en });
 
 async function members(db: Tx | ReturnType<typeof prisma>, versionId: string | null): Promise<Member[]> {
   if (!versionId) return [];
-  const rows = await db.$queryRaw<{ position: number; is_free_trial: boolean; lesson_version_id: string; external_id: string; content_hash: string; content: Json }[]>`
-    SELECT cvl.position, cvl.is_free_trial, lv.id::text AS lesson_version_id, l.external_id, lv.content_hash, lv.content
+  const rows = await db.$queryRaw<{ position: number; is_free_trial: boolean; lesson_version_id: string; lesson_id: string; external_id: string; content_hash: string; content: Json }[]>`
+    SELECT cvl.position, cvl.is_free_trial, lv.id::text AS lesson_version_id, l.id::text AS lesson_id, l.external_id, lv.content_hash, lv.content
     FROM course_version_lessons cvl JOIN lesson_versions lv ON lv.id = cvl.lesson_version_id JOIN lessons l ON l.id = lv.lesson_id
     WHERE cvl.course_version_id = ${versionId}::uuid ORDER BY cvl.position`;
-  return rows.map((r) => ({ position: r.position, isFreeTrial: r.is_free_trial, lessonVersionId: r.lesson_version_id, externalId: r.external_id, hash: r.content_hash, content: r.content }));
+  return rows.map((r) => ({ position: r.position, isFreeTrial: r.is_free_trial, lessonVersionId: r.lesson_version_id, lessonId: r.lesson_id, externalId: r.external_id, hash: r.content_hash, content: r.content }));
 }
 
 async function courseBySlug(db: Tx | ReturnType<typeof prisma>, slug: string, lock = false): Promise<CourseRow> {
@@ -63,9 +71,15 @@ export async function courseLessons(ctx: AdminCtx, slug: string) {
   await authorize(ctx, "orders.view", { action: "content_view", resource: { type: "course", id: slug } });
   const course = await courseBySlug(prisma(), slug);
   const list = await members(prisma(), course.current_version_id);
+  const { modules, lessonModule } = await modulesFor(prisma(), course.id, course.current_version_id);
   return {
     course: { slug: course.slug, titleVi: course.title_vi, titleEn: course.title_en, status: course.status, currentVersionId: course.current_version_id },
-    lessons: list.map((m) => ({ position: m.position, externalId: m.externalId, questionEn: questionOf(m.content).en ?? "", questionVi: questionOf(m.content).vi ?? "", isFreeTrial: m.isFreeTrial, hasAnswer: !!(m.content.model_answer as Json | undefined) })),
+    modules,
+    lessons: list.map((m) => ({
+      position: m.position, externalId: m.externalId, questionEn: questionOf(m.content).en ?? "", questionVi: questionOf(m.content).vi ?? "",
+      isFreeTrial: m.isFreeTrial, hasAnswer: !!(m.content.model_answer as Json | undefined),
+      moduleId: lessonModule.get(m.lessonId) ?? null, lessonType: lessonTypeOf(m.content),
+    })),
   };
 }
 
@@ -114,8 +128,11 @@ function dropRefs(value: unknown, removed: Set<string>): unknown {
   return value;
 }
 
+/** Loại bài: chỉ bài tự luận ghi `lesson_type`; vắng là hỏi–đáp (bài nhập từ học liệu giữ nguyên mã băm). */
+export const lessonTypeOf = (c: Json): "qa" | "essay" => (c.lesson_type === "essay" ? "essay" : "qa");
+
 /** Ghép trường soạn được vào nội dung cũ; giữ nguyên mọi trường khác (học liệu ba mức, hoạt động, nguồn…). */
-export function applyFields(base: Json, id: string, f: z.infer<typeof LessonFields>): Json {
+export function applyFields(base: Json, id: string, f: Omit<z.infer<typeof LessonFields>, "lessonType"> & { lessonType?: "qa" | "essay" }): Json {
   const old = (key: string) => ((base[key] as Json[] | undefined) ?? []);
   const next: Json = {
     ...base,
@@ -127,6 +144,8 @@ export function applyFields(base: Json, id: string, f: z.infer<typeof LessonFiel
   };
   if (f.modelAnswerEn) next.model_answer = { ...(base.model_answer as Json | undefined), id: (base.model_answer as Json | undefined)?.id ?? `${id}.answer`, text: bilingual(f.modelAnswerEn, f.modelAnswerVi) };
   else delete next.model_answer;
+  if (f.lessonType === "essay") next.lesson_type = "essay";
+  else delete next.lesson_type;
   // Mã ý chính / câu phụ đã bỏ: xóa mọi tham chiếu tới nó trong phần còn lại của bài (mục tiêu, đánh giá, cách hỏi, mức,
   // đáp án mẫu…). Làm sau cùng để phần dựng lại từ nội dung cũ (đáp án mẫu) cũng được dọn.
   const before = new Set([...old("key_points"), ...old("follow_up_questions")].map((x) => String(x.id)));
@@ -154,6 +173,8 @@ async function lessonVersionFor(tx: Tx, externalId: string, content: Json): Prom
 /** Sửa bài (externalId có sẵn) hoặc thêm bài cuối khóa (externalId null). */
 export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string | null, input: SaveLessonInput) {
   await authorize(ctx, "content.edit", { action: externalId ? "lesson_edit" : "lesson_add", resource: { type: "course", id: slug } });
+  // Tự luận: học viên viết rồi tự đối chiếu, nên phải có đáp án mẫu.
+  if (input.lessonType === "essay" && !input.modelAnswerEn.trim()) throw new HttpError(400, "essay_needs_answer");
   try {
     return await withTx(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext('content-import'))`;
@@ -161,6 +182,19 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
       if (course.current_version_id !== input.expectedVersionId) throw new ContentConflict("stale");
       if (course.status === "published" && !input.confirmLive) throw new ContentConflict("needs_confirm", [slug]);
       const list = await members(tx, course.current_version_id);
+      // Thêm bài vào khóa đã chia module: phải chọn module của chính khóa đó.
+      let moduleId: string | null = null;
+      if (!externalId) {
+        if (input.moduleId) {
+          // Module gửi lên luôn phải thuộc đúng khóa này (khóa chưa có module thì mọi module đều sai).
+          const [m] = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM course_modules WHERE id = ${input.moduleId}::uuid AND course_id = ${course.id}::uuid`;
+          if (!m) throw new HttpError(404, "not_found");
+          moduleId = m.id;
+        } else {
+          const [{ n }] = (await tx.$queryRaw<{ n: number }[]>`SELECT count(*)::int AS n FROM course_modules WHERE course_id = ${course.id}::uuid`) as [{ n: number }];
+          if (n > 0) throw new HttpError(400, "module_required");
+        }
+      }
       let id = externalId;
       let base: Json = {};
       if (id) {
@@ -184,7 +218,7 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
       }
       const next = externalId
         ? list.map((m) => (m.externalId === id ? { ...m, lessonVersionId: lv.id, hash: lv.hash } : m))
-        : [...list, { position: list.length + 1, isFreeTrial: list.length < FREE_TRIAL_LESSONS, lessonVersionId: lv.id, externalId: id, hash: lv.hash, content }];
+        : [...list, { position: list.length + 1, isFreeTrial: list.length < FREE_TRIAL_LESSONS, lessonVersionId: lv.id, lessonId: "", externalId: id, hash: lv.hash, content }];
       const sourceHash = createHash("sha256").update(JSON.stringify(next.map((m) => [m.externalId, m.hash]))).digest("hex");
       const [existing] = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM course_versions WHERE course_id = ${course.id}::uuid AND source_hash = ${sourceHash}`;
       let versionId = existing?.id;
@@ -199,6 +233,12 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
             VALUES (${versionId}::uuid, ${m.lessonVersionId}::uuid, ${m.position}, ${m.isFreeTrial})`;
         }
       }
+      if (moduleId) {
+        await tx.$executeRaw`
+          INSERT INTO course_lesson_modules (course_id, lesson_id, module_id)
+          SELECT ${course.id}::uuid, id, ${moduleId}::uuid FROM lessons WHERE external_id = ${id}
+          ON CONFLICT (course_id, lesson_id) DO UPDATE SET module_id = EXCLUDED.module_id`;
+      }
       if (versionId !== course.current_version_id) {
         await tx.$executeRaw`UPDATE courses SET current_version_id = ${versionId}::uuid, updated_at = now() WHERE id = ${course.id}::uuid`;
         await audit(tx, {
@@ -207,7 +247,7 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
           targetType: "lesson",
           targetId: `${slug}/${id}`,
           before: { courseVersion: course.current_version_id },
-          after: { courseVersion: versionId, lessonVersion: lv.id, live: course.status === "published" },
+          after: { courseVersion: versionId, lessonVersion: lv.id, live: course.status === "published", ...(moduleId ? { moduleId } : {}) },
           result: "ok",
           ip: ctx.ip,
         });

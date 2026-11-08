@@ -124,4 +124,20 @@ describe("module khóa học", () => {
     await reimport((d) => { d.courses.find((c) => c.id === T)!.lesson_ids = d.courses.find((c) => c.id === T)!.lesson_ids.filter((x) => x !== "T001"); });
     expect((await remove(owner, two)).status).toBe(200);
   });
+
+  it("sửa bài A002 trên web rồi nhập lại học liệu: A002 vẫn ở module 2 (xếp theo bài, không theo phiên bản)", async () => {
+    await seedContent();
+    const owner = await adminSess("owner");
+    await create(owner, "Một");
+    const two = (await create(owner, "Hai")).body.id!;
+    await assign(owner, "A002", two);
+    const { rows: [c] } = await sqlAsMigrator(`SELECT current_version_id FROM courses WHERE slug = $1`, [T]);
+    const { PUT: putLesson } = await import("@/app/api/quan-tri/content/courses/[slug]/lessons/[externalId]/route");
+    const res = await callAdmin(putLesson, owner, "PUT", "/x", {
+      expectedVersionId: c.current_version_id, questionEn: "Why did you choose marine engineering?", questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [],
+    }, { slug: T, externalId: "A002" });
+    expect(res.status).toBe(200);
+    await reimport(() => undefined);
+    expect((await list(owner)).modules.map((m) => m.lessonCount)).toEqual([3, 1]);
+  });
 });
