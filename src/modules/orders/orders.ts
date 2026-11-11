@@ -1,7 +1,7 @@
 import { prisma, withTx, type Tx } from "@/lib/db";
 import { lockActiveUser } from "@/modules/auth-learner/devices";
 import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access";
-import { listQueue, orderNeedsManual } from "@/modules/ledger/queue";
+import { listQueue, orderManualState, type ManualTransfer } from "@/modules/ledger/queue";
 import type { LearnerCtx } from "@/modules/sessions/guards";
 import { newOrderCode } from "./codes";
 import { env } from "@/lib/env";
@@ -101,6 +101,8 @@ export type CheckoutView = OrderView & {
   paymentUnavailable: boolean;
   enrolled: boolean;
   needsManual: boolean;
+  /** Khoản chuyển của đơn đang chờ đối chiếu tay (số tiền, lý do), để báo chuyển thiếu/thừa/muộn. */
+  manualTransfers: ManualTransfer[];
   /** Khách đã bấm "Tôi đã chuyển khoản" chưa và chủ đã duyệt/khóa lại chưa. */
   claim: ClaimView;
   /** Còn bấm "Tôi đã chuyển khoản" được (chưa có SePay, đơn chưa quá 24 giờ). */
@@ -127,6 +129,7 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
   const open = row.status === "pending" && row.expires_at > serverNow;
   const claim = await claimView(prisma(), row.id);
   const info = open ? paymentInfo() : null;
+  const manual = await orderManualState(row.id, row.code);
   return {
     ...toView(row),
     // Có mã BIN: QR dựng cho đúng đơn này (số tiền và mã đơn đã điền sẵn); không thì ảnh QR tĩnh.
@@ -138,7 +141,8 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
     },
     paymentUnavailable: open && !info,
     enrolled: await hasActiveEnrollment(prisma(), group, row.course_id),
-    needsManual: await orderNeedsManual(row.id, row.code),
+    needsManual: manual.needsManual,
+    manualTransfers: manual.transfers,
     claim,
     claimable: await claimable(prisma(), row.id, claim),
     serverNow,

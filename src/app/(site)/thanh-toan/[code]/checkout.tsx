@@ -21,6 +21,8 @@ type Order = {
   courseTitleVi: string;
   enrolled: boolean;
   needsManual: boolean;
+  /** Khoản chuyển của chính đơn này đang chờ đối chiếu tay; lý do null khi giao dịch chưa xác minh. */
+  manualTransfers: { amountVnd: number; reason: string | null }[];
   paymentUnavailable: boolean;
   payment: { bankName: string; accountNo: string; accountName: string; qrImageUrl: string | null; qrPayload: string | null; autoConfirm: boolean } | null;
   claim: { status: "none" | "open" | "approved" | "rejected"; rejectionReason: string | null; proofs: number };
@@ -162,6 +164,25 @@ function AccountInfo({ code, paid }: { code: string; paid: boolean }) {
   );
 }
 
+/** Tiền đã về nhưng chưa tự mở khóa được: nói rõ đã nhận bao nhiêu, đơn cần bao nhiêu, và đừng chuyển lại. */
+function ManualState({ order }: { order: Order }) {
+  const received = order.manualTransfers.reduce((sum, t) => sum + t.amountVnd, 0);
+  const one = order.manualTransfers.length === 1 ? order.manualTransfers[0]!.reason : null;
+  const due = order.amountDueVnd;
+  const detail =
+    one === "amount_short" ? `Còn thiếu ${formatVnd(due - received)}. Chủ khóa học sẽ liên hệ để xử lý phần thiếu; đừng chuyển thêm khi chưa được hướng dẫn.`
+    : one === "amount_over" ? `Thừa ${formatVnd(received - due)}. Chủ khóa học sẽ đối chiếu, mở khóa và liên hệ về phần thừa.`
+    : one === "late" ? "Tiền về sau khi đơn hết hạn. Chủ khóa học sẽ đối chiếu và mở khóa."
+    : "Chủ khóa học sẽ đối chiếu và mở khóa.";
+  return (
+    <div className={ui.card} role="status">
+      <h2 className={ui.h3}>Đã nhận tiền, đang đối chiếu</h2>
+      {received > 0 && <p className={ui.lead}>Đã nhận {formatVnd(received)}, đơn {order.code} cần {formatVnd(due)}.</p>}
+      <p className={ui.notice}>{received > 0 ? detail : "Hệ thống đã ghi nhận một khoản chuyển cho đơn này nhưng cần đối chiếu tay."} Đừng chuyển lại cả đơn.</p>
+    </div>
+  );
+}
+
 function ClaimState({ order, onChanged }: { order: Order; onChanged: () => void }) {
   if (order.claim.status === "open") {
     return (
@@ -297,9 +318,7 @@ export function Checkout({ code }: { code: string }) {
     <>
       {state === "offline" && <p className={ui.notice} role="status">Đang mất kết nối, trang sẽ tự thử lại.</p>}
       {state === "server" && <p className={ui.notice} role="status">Máy chủ đang gặp lỗi, trang sẽ tự thử lại.</p>}
-      {order.needsManual && !finished && (
-        <p className={ui.notice} role="status">Hệ thống đã ghi nhận một khoản chuyển cho đơn này nhưng cần đối chiếu tay. Đừng chuyển lại.</p>
-      )}
+      {order.needsManual && !finished && <ManualState order={order} />}
       {order.status === "paid" && <BuySteps current={3} />}
       {order.status === "paid" && (
         <div className={ui.card} role="status">
@@ -317,7 +336,8 @@ export function Checkout({ code }: { code: string }) {
         </div>
       )}
       {!finished && (order.claim.status === "open" || order.claim.status === "rejected") && <ClaimState order={order} onChanged={() => void load()} />}
-      {!finished && order.claim.status === "none" && order.payment && <Pending order={order} clockOffsetMs={clockOffsetMs} onExpire={() => void load()} />}
+      {/* Tiền của đơn đã về, chờ đối chiếu: ẩn QR để không ai chuyển thêm cả đơn lần nữa. */}
+      {!finished && order.claim.status === "none" && order.payment && order.manualTransfers.length === 0 && <Pending order={order} clockOffsetMs={clockOffsetMs} onExpire={() => void load()} />}
       {!finished && order.paymentUnavailable && (
         <div className={ui.card}>
           <h1 className={ui.h2}>Tạm ngừng nhận thanh toán</h1>

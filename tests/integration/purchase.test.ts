@@ -175,7 +175,7 @@ describe("trạng thái đơn", () => {
     const order = await orderOf(code);
     await ingest(report({ content: `${code} NGUYEN VAN A`, amountVnd: PRICE - 1000, bankTime: new Date(order.createdAt.getTime() + 60_000) }));
     const { body } = await read(l, code);
-    expect(body).toMatchObject({ status: "pending", needsManual: true });
+    expect(body).toMatchObject({ status: "pending", needsManual: true, manualTransfers: [{ amountVnd: PRICE - 1000, reason: "amount_short" }] });
     expect(JSON.stringify(body)).not.toContain("NGUYEN VAN A");
     const bt = await prisma().bankTransaction.findFirstOrThrow();
     await setDisposition(await adminCtx("owner"), bt.id, { kind: "ignored", reason: "thử" });
@@ -216,7 +216,8 @@ describe("đơn gần đây của khóa", () => {
     const code = await bought(l);
     const order = await orderOf(code);
     await ingest(report({ content: `${code} MEZZZZZZZZ`, bankTime: new Date(order.createdAt.getTime() + 60_000) }));
-    expect((await read(l, code)).body.needsManual).toBe(true);
+    // Khoản ghi nhiều mã có thể là tiền của người khác: chỉ báo cần đối chiếu, không lộ số tiền.
+    expect((await read(l, code)).body).toMatchObject({ needsManual: true, manualTransfers: [] });
     await sqlAsMigrator(`ALTER TABLE orders DISABLE TRIGGER USER`);
     await sqlAsMigrator(`UPDATE orders SET created_at = created_at - interval '5 days', expires_at = expires_at - interval '5 days', status = 'expired', expired_at = now()`);
     await sqlAsMigrator(`ALTER TABLE orders ENABLE TRIGGER USER`);

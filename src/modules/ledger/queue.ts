@@ -56,6 +56,22 @@ export async function orderNeedsManual(orderId: string, orderCode: string): Prom
   return (await openRows()).some((r) => r.candidate_order_id === orderId || (r.candidate_codes ?? []).includes(orderCode));
 }
 
+export type ManualTransfer = { amountVnd: number; reason: QueueReason | null };
+
+/**
+ * Cờ "cần xử lý tay" và các khoản chờ đối chiếu của đúng đơn này, đọc cùng một lần (không lệch nhau), để trang thanh toán báo
+ * "đã nhận X, đơn cần Y". Chỉ khoản mà lần phân loại gần nhất trỏ thẳng tới đơn; khoản ghi nhiều mã có thể là tiền của người
+ * khác nên chỉ bật cờ, không lộ số tiền. Lý do chỉ có khi giao dịch đã được xác minh.
+ */
+export async function orderManualState(orderId: string, orderCode: string): Promise<{ needsManual: boolean; transfers: ManualTransfer[] }> {
+  const rows = (await openRows()).filter((r) => r.candidate_order_id === orderId || (r.candidate_codes ?? []).includes(orderCode));
+  return {
+    needsManual: rows.length > 0,
+    transfers: rows.filter((r) => r.candidate_order_id === orderId).map((r) => ({ amountVnd: r.amount_vnd, reason: r.verified ? r.reason : null })),
+  };
+}
+
+
 export type UnresolvedRow = { observationId: string; source: string; reason: "missing_ref" | "missing_time"; receivedAt: Date; payload?: unknown };
 
 /** Báo cáo thiếu mã tham chiếu/thời điểm chưa được dòng nhập tay nào giải quyết. */
