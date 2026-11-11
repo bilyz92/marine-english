@@ -66,6 +66,8 @@ const schema = z
           .map((part) => part.slice(part.indexOf(":") + 1))
           .filter((secret) => secret.length > 0),
       ),
+    // API Token của SePay (my.sepay.vn → Cấu hình công ty → API Access) cho job đối soát mỗi giờ. Rỗng = job bỏ qua.
+    SEPAY_API_TOKEN: z.string().trim().optional().transform((v) => v || undefined),
     // Job giám sát gọi địa chỉ này để biết app còn sống (trong Compose: http://app:3000/api/health).
     APP_HEALTH_URL: z.url().optional(),
     // Sao lưu [G8]: vai trò chỉ đọc me_backup, thư mục sao lưu, thư mục khóa (mỗi khóa một tệp, quyền 600), khóa hiện tại, nơi lưu ngoài (rclone).

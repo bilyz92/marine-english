@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
+import { resetEnvForTest } from "@/lib/env";
 import { JOBS } from "@/modules/jobs/definitions";
 import { acquireLease, LeaseLostError, type Lease } from "@/modules/jobs/lease";
 import { runJob } from "@/modules/jobs/runner";
@@ -110,6 +111,38 @@ describe("đối soát SePay", () => {
     expect(await runJob(job, "w1")).toMatchObject({ status: "skipped" });
     expect(await prisma().jobRun.findFirstOrThrow({ where: { jobName: job.name } })).toMatchObject({ status: "skipped", stats: { skippedReason: "not_configured" } });
     expect(await prisma().outboxEvent.count({ where: { kind: "job_failed" } })).toBe(0);
+  });
+
+  describe("SePay API v2 thật (fetch giả)", () => {
+    afterEach(() => {
+      delete process.env.SEPAY_API_TOKEN;
+      resetEnvForTest();
+      vi.unstubAllGlobals();
+    });
+    const apiPage = (items: Record<string, unknown>[]) => ({ status: "success", data: items, meta: { pagination: { has_more: false } } });
+    const apiItem = (patch: Record<string, unknown>) => ({
+      id: `uuid-${++seq}`, bank_brand_name: "VCB", account_number: "0123456789", transfer_type: "in", amount_in: 50_000, amount_out: 0,
+      transaction_content: "khong co ma", reference_number: `APIREF${seq}`, transaction_date: "2026-10-31T10:00:00+07:00", ...patch,
+    });
+
+    it("có SEPAY_API_TOKEN → job gọi SePay, tiền khớp đơn mở quyền học; tiền webhook đã ghi không thành dòng thứ hai", async () => {
+      const s = await paidCourseSetup();
+      const paid = apiItem({ amount_in: PRICE, transaction_content: s.code, transaction_date: new Date(s.createdAt.getTime() + 60_000).toISOString() });
+      const seen = apiItem({});
+      await ingest(report({ bankRef: seen.reference_number as string, amountVnd: 50_000, bankTime: new Date("2026-10-31T10:00:00+07:00"), content: "khong co ma" }));
+      const calls: string[] = [];
+      vi.stubGlobal("fetch", async (url: URL, init: RequestInit) => {
+        calls.push(`${new Headers(init.headers).get("authorization")} ${url.pathname}`);
+        return new Response(JSON.stringify(apiPage([paid, seen])), { status: 200 });
+      });
+      process.env.SEPAY_API_TOKEN = "tok-test";
+      resetEnvForTest();
+      const job = JOBS.find((j) => j.name === "me.sepay.reconcile")!;
+      expect(await runJob(job, "w1")).toMatchObject({ status: "success" });
+      expect(calls).toEqual(["Bearer tok-test /v2/transactions"]);
+      expect((await prisma().order.findUniqueOrThrow({ where: { id: s.orderId } })).status).toBe("paid");
+      expect((await counts()).ledger).toBe(2);
+    });
   });
 });
 

@@ -160,6 +160,20 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 
 **Không nhận được tin nào cả** cũng là dấu hiệu: worker hoặc Telegram có thể đã chết. Dịch vụ theo dõi bên ngoài (G8) gọi `/api/health` và `/api/health/worker` để báo trong trường hợp này.
 
+## 6C. Bật thanh toán tự động SePay (G4)
+
+Khi chưa bật, học viên bấm "Tôi đã chuyển khoản" và chủ duyệt tay ("Đã nhận"/"Chưa nhận"). Bật SePay thì tiền khớp mã đơn và đúng số tiền sẽ tự mở khóa; khi đó nút "Tôi đã chuyển khoản" bị tắt.
+
+1. Trên my.sepay.vn: liên kết đúng tài khoản nhận tiền (`SEPAY_BANK_CODE`, `SEPAY_ACCOUNT_NO` trong `deploy/prod.env`, hiện là BIDV).
+2. Cấu hình mã thanh toán: tiền tố `ME`, phần sau 8 ký tự, gồm chữ và số.
+3. Thêm webhook: địa chỉ `https://conghung.ce-tanker.vn/api/payments/sepay/webhook`, sự kiện "Có tiền vào", xác thực **HMAC-SHA256**, bật gửi lại khi lỗi, **không** chọn "chỉ gửi khi có mã thanh toán" (tiền thiếu mã vẫn phải vào hàng chờ xử lý tay). Lấy Secret Key.
+4. (Nên có) Tạo API Token (Cấu hình công ty → API Access) để job `me.sepay.reconcile` mỗi giờ đọc lại giao dịch qua SePay API v2, bắt các khoản webhook bỏ sót. Cùng một khoản về qua cả hai đường chỉ được ghi một lần (khóa: ngân hàng + số tài khoản + số tham chiếu).
+5. Trên máy chủ, sửa `deploy/prod.env`: `SEPAY_WEBHOOK_SECRETS=k1:<Secret Key>` và `SEPAY_API_TOKEN=<API Token>`. Không gửi hai giá trị này qua chat hay commit vào git.
+6. `ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml deploy/deploy.sh deploy/prod.env <tag hiện tại> --skip-build --skip-migrate` để app và worker đọc cấu hình mới.
+7. Kiểm: trên SePay bấm gửi thử webhook (phải nhận `{"success": true}`); chuyển thật một đơn nhỏ, đơn chuyển "Đã thanh toán" trong vài giây; ở /admin → Job, `me.sepay.reconcile` lần chạy sau là "success" chứ không còn "skipped".
+
+Tắt lại: để trống `SEPAY_WEBHOOK_SECRETS` (webhook trả 503, nút "Tôi đã chuyển khoản" hiện lại) và `SEPAY_API_TOKEN` (job bỏ qua), deploy như bước 6.
+
 ## 6A. Thêm và sửa nội dung khóa học (từ 02/11/2026)
 
 - Chỉ chủ, đăng nhập trong 10 phút gần đây. `/admin/noi-dung`: chọn tệp `.zip` (gói học liệu như `docs/07_Oiler.zip`), `.json` (tệp `*_Learning_Data_*.json`) hoặc `.docx` (ngân hàng câu hỏi Word, chỉ có câu hỏi tiếng Anh) → **Xem trước** → **Nhập vào hệ thống**. Tối đa 16 MB, mỗi lúc một lần nhập.

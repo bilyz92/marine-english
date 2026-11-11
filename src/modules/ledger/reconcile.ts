@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { withFence, type Lease } from "@/modules/jobs/lease";
 import { ingestInTx, type IngestOutcome } from "./ingest";
 import { toBankReport } from "./sepay";
+import { createSepayApi } from "./sepay-api";
 
 const PROVIDER = "sepay";
 const OVERLAP_MS = 2 * 3_600_000;
@@ -13,9 +14,11 @@ export interface SepayApi {
 
 export type ReconcileResult = { pages: number; ingested: number; outcomes: Partial<Record<IngestOutcome, number>> };
 
-/** API liệt kê giao dịch của SePay: chờ cổng G4 (chưa rõ có API, phân trang, giới hạn gọi); chưa có thì job bỏ qua. */
+/** SePay API v2 (sepay-api.ts) khi có API Token và tài khoản nhận tiền; thiếu thì job bỏ qua (not_configured). */
 export function sepayApi(): SepayApi | null {
-  return null;
+  const { SEPAY_API_TOKEN, SEPAY_BANK_CODE, SEPAY_ACCOUNT_NO } = env();
+  if (!SEPAY_API_TOKEN || !SEPAY_BANK_CODE || !SEPAY_ACCOUNT_NO) return null;
+  return createSepayApi({ token: SEPAY_API_TOKEN });
 }
 
 /**
