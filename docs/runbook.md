@@ -164,7 +164,7 @@ Tệp `deploy/prod.env` và thư mục khóa sao lưu **không** nằm trong b�
 
 Khi chưa bật, học viên bấm "Tôi đã chuyển khoản" và chủ duyệt tay ("Đã nhận"/"Chưa nhận"). Bật SePay thì tiền khớp mã đơn và đúng số tiền sẽ tự mở khóa; khi đó nút "Tôi đã chuyển khoản" bị tắt.
 
-1. Trên my.sepay.vn: liên kết đúng tài khoản nhận tiền (`SEPAY_BANK_CODE`, `SEPAY_ACCOUNT_NO` trong `deploy/prod.env`, hiện là BIDV).
+1. Trên my.sepay.vn: liên kết đúng tài khoản nhận tiền. BIDV qua SePay (API Banking) **chỉ báo tiền vào tài khoản ảo (VA)**: khách phải chuyển vào số VA, webhook gửi số tài khoản chính. Vì vậy trong `deploy/prod.env`: `SEPAY_BANK_CODE=BIDV`, `SEPAY_ACCOUNT_NO=<tài khoản chính>` (hiện 2201189792, để đối chiếu webhook), `CHECKOUT_ACCOUNT_NO=<số VA>` (hiện 962473XSFY, in trên trang thanh toán và QR), `CHECKOUT_ACCOUNT_NAME` đúng tên chủ tài khoản. Không dùng số tài khoản dạng số điện thoại: SePay không thấy tiền vào số đó.
 2. Cấu hình mã thanh toán: tiền tố `ME`, phần sau 8 ký tự, gồm chữ và số.
 3. Thêm webhook: địa chỉ `https://conghung.ce-tanker.vn/api/payments/sepay/webhook`, sự kiện "Có tiền vào", xác thực **HMAC-SHA256**, bật gửi lại khi lỗi, **không** chọn "chỉ gửi khi có mã thanh toán" (tiền thiếu mã vẫn phải vào hàng chờ xử lý tay). Lấy Secret Key.
 4. (Nên có) Tạo API Token (Cấu hình công ty → API Access) để job `me.sepay.reconcile` mỗi giờ đọc lại giao dịch qua SePay API v2, bắt các khoản webhook bỏ sót. Cùng một khoản về qua cả hai đường chỉ được ghi một lần (khóa: ngân hàng + số tài khoản + số tham chiếu).

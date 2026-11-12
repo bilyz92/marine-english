@@ -29,6 +29,12 @@ describe("buildPaymentInfo", () => {
     expect(sepayEnabled({ SEPAY_WEBHOOK_SECRETS: [], SEPAY_BANK_CODE: "MB", SEPAY_ACCOUNT_NO: "0123" })).toBe(false);
   });
 
+  it("tài khoản ảo (VA) của SePay: trang thanh toán và QR dùng số VA, webhook vẫn đối chiếu theo tài khoản chính", () => {
+    // BIDV qua SePay chỉ báo tiền vào VA (chủ 12/11/2026: VA 962473XSFY, tài khoản chính 2201189792).
+    expect(buildPaymentInfo({ ...full, SEPAY_ACCOUNT_NO: "2201189792", CHECKOUT_ACCOUNT_NO: "962473XSFY", CHECKOUT_QR_IMAGE: undefined, CHECKOUT_BANK_BIN: "970418" }))
+      .toMatchObject({ accountNo: "962473XSFY", bankBin: "970418", qrImageUrl: null });
+  });
+
   it("không có cả mã BIN lẫn ảnh QR → không bán", () => {
     expect(buildPaymentInfo({ ...full, CHECKOUT_QR_IMAGE: undefined, CHECKOUT_BANK_BIN: undefined })).toBeNull();
   });
