@@ -8,6 +8,8 @@ export async function addMedia(
   client: pg.Client,
   input: { externalLessonId: string; filePath: string; role: "audio" | "image" | "attachment"; visibility: Visibility; root: string },
 ): Promise<{ attached: number }> {
+  // Tệp video chỉ qua route tải lên có kiểm byte đầu và luôn bảo vệ (docs/superpowers/plans/2026-11-12-video-lessons.md).
+  if (!["audio", "image", "attachment"].includes(input.role)) throw new Error(`Vai tệp không hỗ trợ: ${input.role}`);
   const ext = path.extname(input.filePath).slice(1).toLowerCase();
   const mime = MIME_BY_EXT[ext];
   if (!mime) throw new Error(`Đuôi tệp không hỗ trợ: .${ext}`);

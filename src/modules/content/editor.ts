@@ -7,6 +7,7 @@ import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
 import { canonical, contentHash } from "@/worker/content-import";
 import { ContentConflict } from "./authoring";
+import { parseYouTubeId } from "./video-format";
 import { modulesFor } from "./modules";
 
 // Chủ sửa và thêm bài trên web (docs/superpowers/plans/2026-11-02-content-authoring.md, bước 5).
@@ -25,8 +26,10 @@ export const LessonFields = z.object({
   modelAnswerEn: text.optional().default(""),
   modelAnswerVi: text.optional().default(""),
   followUps: z.array(pair).max(20).default([]),
-  /** Loại bài (docs/superpowers/plans/2026-11-08-course-modules.md): hỏi–đáp (mặc định, không ghi vào nội dung) hoặc tự luận. */
-  lessonType: z.enum(["qa", "essay"]).default("qa"),
+  /** Loại bài (docs/superpowers/plans/2026-11-08-course-modules.md): hỏi–đáp (mặc định, không ghi vào nội dung), tự luận hoặc video. */
+  lessonType: z.enum(["qa", "essay", "video"]).default("qa"),
+  /** Bài video: link YouTube chủ dán (để trống nếu chỉ dùng tệp tải lên); chỉ lưu mã 11 ký tự. */
+  youtubeUrl: z.string().trim().max(500).optional().default(""),
 });
 export const SaveLesson = LessonFields.extend({
   expectedVersionId: z.uuid().nullable(),
@@ -71,6 +74,10 @@ export async function courseLessons(ctx: AdminCtx, slug: string) {
   await authorize(ctx, "orders.view", { action: "content_view", resource: { type: "course", id: slug } });
   const course = await courseBySlug(prisma(), slug);
   const list = await members(prisma(), course.current_version_id);
+  const withVideoFile = new Set(list.length ? (await prisma().$queryRaw<{ id: string }[]>`
+    SELECT DISTINCT lva.lesson_version_id::text AS id FROM lesson_version_assets lva
+    JOIN course_version_lessons cvl ON cvl.lesson_version_id = lva.lesson_version_id
+    WHERE cvl.course_version_id = ${course.current_version_id}::uuid AND lva.role = 'video'`).map((r) => r.id) : []);
   const { modules, lessonModule } = await modulesFor(prisma(), course.id, course.current_version_id);
   return {
     course: { slug: course.slug, titleVi: course.title_vi, titleEn: course.title_en, status: course.status, currentVersionId: course.current_version_id },
@@ -79,6 +86,7 @@ export async function courseLessons(ctx: AdminCtx, slug: string) {
       position: m.position, externalId: m.externalId, questionEn: questionOf(m.content).en ?? "", questionVi: questionOf(m.content).vi ?? "",
       isFreeTrial: m.isFreeTrial, hasAnswer: !!(m.content.model_answer as Json | undefined),
       moduleId: lessonModule.get(m.lessonId) ?? null, lessonType: lessonTypeOf(m.content),
+      hasVideo: withVideoFile.has(m.lessonVersionId) || !!(m.content.video as Json | undefined)?.youtube_id,
     })),
   };
 }
@@ -128,11 +136,14 @@ function dropRefs(value: unknown, removed: Set<string>): unknown {
   return value;
 }
 
-/** Loại bài: chỉ bài tự luận ghi `lesson_type`; vắng là hỏi–đáp (bài nhập từ học liệu giữ nguyên mã băm). */
-export const lessonTypeOf = (c: Json): "qa" | "essay" => (c.lesson_type === "essay" ? "essay" : "qa");
+/** Loại bài: chỉ bài tự luận và bài video ghi `lesson_type`; vắng là hỏi–đáp (bài nhập từ học liệu giữ nguyên mã băm). */
+export const lessonTypeOf = (c: Json): "qa" | "essay" | "video" => (c.lesson_type === "essay" || c.lesson_type === "video" ? c.lesson_type : "qa");
 
 /** Ghép trường soạn được vào nội dung cũ; giữ nguyên mọi trường khác (học liệu ba mức, hoạt động, nguồn…). */
-export function applyFields(base: Json, id: string, f: Omit<z.infer<typeof LessonFields>, "lessonType"> & { lessonType?: "qa" | "essay" }): Json {
+export function applyFields(
+  base: Json, id: string,
+  f: Omit<z.infer<typeof LessonFields>, "lessonType" | "youtubeUrl"> & { lessonType?: "qa" | "essay" | "video"; youtubeUrl?: string },
+): Json {
   const old = (key: string) => ((base[key] as Json[] | undefined) ?? []);
   const next: Json = {
     ...base,
@@ -144,8 +155,12 @@ export function applyFields(base: Json, id: string, f: Omit<z.infer<typeof Lesso
   };
   if (f.modelAnswerEn) next.model_answer = { ...(base.model_answer as Json | undefined), id: (base.model_answer as Json | undefined)?.id ?? `${id}.answer`, text: bilingual(f.modelAnswerEn, f.modelAnswerVi) };
   else delete next.model_answer;
-  if (f.lessonType === "essay") next.lesson_type = "essay";
+  if (f.lessonType === "essay" || f.lessonType === "video") next.lesson_type = f.lessonType;
   else delete next.lesson_type;
+  // Bài video: chỉ lưu mã YouTube (saveLesson đã kiểm link); loại khác hoặc không có link thì bỏ.
+  const youtubeId = f.lessonType === "video" ? parseYouTubeId(f.youtubeUrl ?? "") : null;
+  if (youtubeId) next.video = { youtube_id: youtubeId };
+  else delete next.video;
   // Mã ý chính / câu phụ đã bỏ: xóa mọi tham chiếu tới nó trong phần còn lại của bài (mục tiêu, đánh giá, cách hỏi, mức,
   // đáp án mẫu…). Làm sau cùng để phần dựng lại từ nội dung cũ (đáp án mẫu) cũng được dọn.
   const before = new Set([...old("key_points"), ...old("follow_up_questions")].map((x) => String(x.id)));
@@ -199,6 +214,8 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
   await authorize(ctx, "content.edit", { action: externalId ? "lesson_edit" : "lesson_add", resource: { type: "course", id: slug } });
   // Tự luận: học viên viết rồi tự đối chiếu, nên phải có đáp án mẫu.
   if (input.lessonType === "essay" && !input.modelAnswerEn.trim()) throw new HttpError(400, "essay_needs_answer");
+  // Bài video: link YouTube không bắt buộc (có thể chỉ tải tệp), nhưng có thì phải là link YouTube hợp lệ.
+  if (input.lessonType === "video" && input.youtubeUrl && !parseYouTubeId(input.youtubeUrl)) throw new HttpError(400, "youtube_invalid");
   try {
     return await withTx(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext('content-import'))`;

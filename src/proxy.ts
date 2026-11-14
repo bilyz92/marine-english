@@ -27,6 +27,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  // Tải gói nội dung không qua proxy (proxy đệm thân request, giới hạn 10 MB); handler tự kiểm phiên, CSRF, quyền và kích thước.
-  matcher: ["/((?!_next/|favicon.ico|api/quan-tri/content/import$).*)"],
+  // Tải gói nội dung và tải video của một bài không qua proxy (proxy đệm thân request, giới hạn 10 MB); handler tự kiểm phiên,
+  // CSRF, quyền và kích thước.
+  matcher: ["/((?!_next/|favicon.ico|api/quan-tri/content/import$|api/quan-tri/content/courses/[^/]+/lessons/[^/]+/video$).*)"],
 };

@@ -18,7 +18,7 @@ export type Manifest = {
   /** Module do chủ tạo (docs/superpowers/plans/2026-11-08-course-modules.md); rỗng thì hiện theo chủ đề như trước. */
   modules: { id: string; titleVi: string }[];
   lessons: {
-    position: number; lessonVersionId: string; externalId: string; title: string; topic: string | null; moduleId: string | null; lessonType: "qa" | "essay";
+    position: number; lessonVersionId: string; externalId: string; title: string; topic: string | null; moduleId: string | null; lessonType: "qa" | "essay" | "video";
     contentHash: string; isFreeTrial: boolean; status: "in_progress" | "completed" | null; completedActivities: string[];
   }[];
   assets: { assetId: string; lessonVersionId: string; role: string; mime: string; bytes: number; sha256: string; visibility: "public" | "protected"; url: string }[];
@@ -72,7 +72,7 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
     lessons: lessons.map((l) => ({
       position: l.position, lessonVersionId: l.lesson_version_id, externalId: l.external_id,
       title: l.title ?? l.external_id, topic: l.module_id && topicIds.has(l.module_id) ? l.module_id : null,
-      moduleId: lessonModule.get(l.lesson_id) ?? null, lessonType: l.lesson_type === "essay" ? "essay" : "qa", contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
+      moduleId: lessonModule.get(l.lesson_id) ?? null, lessonType: l.lesson_type === "essay" || l.lesson_type === "video" ? l.lesson_type : "qa", contentHash: l.content_hash, isFreeTrial: l.is_free_trial,
       status: l.status, completedActivities: l.completed_activities ?? [],
     })),
     // Tệp công khai tải theo đường dẫn ổn định (Caddy phục vụ ở production); tệp bảo vệ chỉ qua API có kiểm quyền.

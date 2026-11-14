@@ -82,6 +82,16 @@ describe("proxy", () => {
     for (const p of ["/api/quan-tri/content/import/x", "/api/quan-tri/content/importer", "/api/quan-tri/admins", "/admin"]) expect(re.test(p)).toBe(true);
   });
 
+  it("đường dẫn tải video của một bài cũng bỏ qua proxy (thân tới 300 MB), các đường lân cận vẫn qua proxy", async () => {
+    const { config } = await import("@/proxy");
+    const re = new RegExp(`^${config.matcher[0]}$`);
+    expect(re.test("/api/quan-tri/content/courses/mea_x/lessons/A001/video")).toBe(false);
+    for (const p of [
+      "/api/quan-tri/content/courses/mea_x/lessons/A001/video/x", "/api/quan-tri/content/courses/mea_x/lessons/A001",
+      "/api/quan-tri/content/courses/mea_x/lessons/A001/audio", "/api/quan-tri/content/courses/a/b/lessons/A001/video",
+    ]) expect(re.test(p)).toBe(true);
+  });
+
   it("đường dẫn cũ /quan-tri/** chuyển hẳn sang /admin/**, giữ query; API /api/quan-tri không đổi", async () => {
     for (const [from, to] of [
       ["/quan-tri", "/admin"],

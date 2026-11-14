@@ -13,8 +13,8 @@ export function planDownloads<L extends ManifestLessonRef>(
   const lessonHash = new Map(have.lessons.map((l) => [l.lessonVersionId, l.contentHash]));
   const assetHash = new Map(have.assets.map((a) => [a.assetId, a.sha256]));
   const lessons = manifest.lessons.filter((l) => lessonHash.get(l.lessonVersionId) !== l.contentHash);
-  // Một tệp dùng ở nhiều bài chỉ tải một lần.
-  const unique = new Map(manifest.assets.map((a) => [a.assetId, a]));
+  // Một tệp dùng ở nhiều bài chỉ tải một lần. Video không tải cùng khóa: học viên tải riêng từng video (docs/superpowers/plans/2026-11-12-video-lessons.md).
+  const unique = new Map(manifest.assets.filter((a) => a.role !== "video").map((a) => [a.assetId, a]));
   const assets = [...unique.values()].filter((a) => assetHash.get(a.assetId) !== a.sha256);
   return {
     lessons,

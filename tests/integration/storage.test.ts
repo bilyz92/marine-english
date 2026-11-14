@@ -77,6 +77,26 @@ describe("lệnh media:add", () => {
     const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM lesson_version_assets`);
     expect(rows[0].n).toBe(1);
   });
+
+  it("không tạo được tệp video: vai video hoặc đuôi .mp4/.webm → lỗi, không ghi gì (video chỉ qua route tải lên có kiểm)", async () => {
+    await seedContent();
+    const dir = mkdtempSync(path.join(tmpdir(), "me-src-"));
+    const mp3 = path.join(dir, "A001.mp3");
+    writeFileSync(mp3, Buffer.from("mp3 giả"));
+    const client = await pgAs("migrator");
+    try {
+      await expect(addMedia(client, { externalLessonId: "A001", filePath: mp3, role: "video" as never, visibility: "protected", root })).rejects.toThrow();
+      for (const ext of ["mp4", "webm"]) {
+        const file = path.join(dir, `A001.${ext}`);
+        writeFileSync(file, Buffer.from("video giả"));
+        await expect(addMedia(client, { externalLessonId: "A001", filePath: file, role: "audio", visibility: "public", root })).rejects.toThrow();
+      }
+    } finally {
+      await client.end();
+    }
+    const { rows } = await sqlAsMigrator(`SELECT count(*)::int AS n FROM lesson_version_assets`);
+    expect(rows[0].n).toBe(0);
+  });
 });
 
 

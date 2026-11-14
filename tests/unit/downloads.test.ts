@@ -15,6 +15,15 @@ const manifest = {
 };
 
 describe("kế hoạch tải", () => {
+  it("tệp video không tải cùng khóa (tải riêng từng video): không có trong danh sách, không tính dung lượng, không chặn complete", () => {
+    const withVideo = { ...manifest, assets: [...manifest.assets, { assetId: "v1", lessonVersionId: "l2", role: "video", mime: "video/mp4", bytes: 300_000_000, sha256: "sv", visibility: "protected" as const, url: "/api/learn/files/v1" }] };
+    const plan = planDownloads(withVideo, { lessons: [], assets: [] });
+    expect(plan.assets.map((a) => a.assetId)).toEqual(["a1", "a2"]);
+    expect(plan.assetBytes).toBe(150);
+    const done = planDownloads(withVideo, { lessons: manifest.lessons, assets: [{ assetId: "a1", sha256: "s1" }, { assetId: "a2", sha256: "s2" }] });
+    expect(done.complete).toBe(true);
+  });
+
   it("chưa có gì: tải mọi bài, mỗi tệp một lần, tính đúng dung lượng", () => {
     const plan = planDownloads(manifest, { lessons: [], assets: [] });
     expect(plan.lessons.map((l) => l.lessonVersionId)).toEqual(["l1", "l2"]);
