@@ -60,10 +60,6 @@ function group(rows: Row[]): Grouped[] {
   return [...bySlug.values()];
 }
 
-export async function listPublishedCourses(): Promise<CourseCard[]> {
-  return group(await publishedRows()).map(({ lessons: _lessons, courseId: _courseId, ...card }) => card);
-}
-
 /** Danh mục của khóa trong danh sách công khai (chỉ danh sách; CourseCard và CourseDetail không đổi). */
 export type CatalogCourseCard = CourseCard & {
   category: { id: string; titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null } | null;

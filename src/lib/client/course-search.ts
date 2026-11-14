@@ -2,10 +2,14 @@
 
 const fold = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/\s+/g, " ").trim();
 
-export function matchesCourse(course: { titleVi: string; titleEn: string }, query: string): boolean {
+type SearchCategory = { titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null } | null;
+
+/** Tìm theo tên khóa và tên Việt/Anh của danh mục, danh mục cha (khóa có danh mục). */
+export function matchesCourse(course: { titleVi: string; titleEn: string; category?: SearchCategory }, query: string): boolean {
   const words = fold(query).split(" ").filter(Boolean);
   if (!words.length) return true;
-  const haystack = fold(`${course.titleVi} ${course.titleEn}`);
+  const c = course.category;
+  const haystack = fold([course.titleVi, course.titleEn, c?.titleVi, c?.titleEn, c?.parentTitleVi, c?.parentTitleEn].filter(Boolean).join(" "));
   return words.every((w) => haystack.includes(w));
 }
 

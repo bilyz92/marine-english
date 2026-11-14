@@ -50,6 +50,11 @@ const MESSAGES: Record<string, string> = {
   not_xlsx: "Tệp không phải Excel (.xlsx) hoặc bị hỏng. Lưu lại bằng Excel dạng .xlsx rồi tải lên.",
   file_too_complex: "Tệp Excel quá phức tạp hoặc quá lớn để đọc. Chỉ giữ hai trang của khung mẫu rồi thử lại.",
   file_too_large: "Tệp lớn hơn 2 MB.",
+  category_not_empty: "Danh mục còn khóa hoặc còn danh mục con (kể cả khóa nháp, đã ngừng bán): chuyển hết sang danh mục khác rồi mới xóa được.",
+  category_name_taken: "Đã có danh mục cùng tên ở cùng cấp.",
+  category_depth: "Danh mục con không có danh mục con được nữa (chỉ 2 cấp).",
+  image_format: "Ảnh cần là tệp jpg, png hoặc webp.",
+  image_too_large: "Ảnh lớn hơn 2 MB: thu nhỏ ảnh rồi tải lại.",
 };
 export const messageFor = (code: unknown) => (typeof code === "string" && MESSAGES[code]) || (typeof code === "string" && code) || "Có lỗi, thử lại sau.";
 

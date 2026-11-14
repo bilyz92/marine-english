@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import ui from "@/components/ui.module.css";
-import { listPublishedCourses } from "@/modules/content/catalog";
-import { CourseCard } from "./course-card";
+import { listPublishedCatalog } from "@/modules/content/catalog";
+import { CategoryTiles } from "./khoa-hoc/course-groups";
 import styles from "./home.module.css";
 
 // WEB-01 từ Home.dc.html, sửa theo Spec mục 10. Các câu chưa đúng với sản phẩm hiện tại đã bỏ: xem docs/noi-dung-can-chu-du-an.md.
@@ -30,9 +30,9 @@ const FAQ = [
 
 async function Courses() {
   await connection();
-  const courses = await listPublishedCourses();
-  if (courses.length === 0) return <p className={ui.notice}>Các khóa học sắp ra mắt.</p>;
-  return <div className={ui.grid}>{courses.map((c) => <CourseCard key={c.slug} course={c} />)}</div>;
+  const { groups } = await listPublishedCatalog();
+  if (groups.length === 0) return <p className={ui.notice}>Các khóa học sắp ra mắt.</p>;
+  return <CategoryTiles groups={groups} />;
 }
 
 export default function HomePage() {

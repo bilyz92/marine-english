@@ -14,6 +14,21 @@ describe("tìm khóa học", () => {
   });
 });
 
+describe("tìm theo danh mục (docs/superpowers/plans/2026-11-14-course-categories.md, Task 3)", () => {
+  const course = {
+    titleVi: "Phỏng vấn tàu dầu", titleEn: "Tanker interview",
+    category: { id: "c1", titleVi: "Nhóm thử", titleEn: "Test group", parentTitleVi: "Sĩ quan vận hành", parentTitleEn: "Fitter" },
+  };
+  it("từ chỉ có trong tên danh mục, danh mục cha, kể cả tên tiếng Anh, vẫn ra khóa", () => {
+    for (const q of ["vận hành", "nhom thu", "fitter", "test group", "fitter tanker"]) expect(matchesCourse(course, q)).toBe(true);
+    expect(matchesCourse(course, "container")).toBe(false);
+  });
+  it("khóa chưa có danh mục vẫn tìm như cũ", () => {
+    expect(matchesCourse({ ...course, category: null }, "fitter")).toBe(false);
+    expect(matchesCourse({ ...course, category: null }, "tanker")).toBe(true);
+  });
+});
+
 describe("nút trên thẻ khóa học (chủ yêu cầu 04/11/2026)", () => {
   it("khách chưa đăng nhập → Mua khóa", () => {
     expect(courseCardAction({ signedIn: false, owned: null, slug: "a" })).toBe("buy");
