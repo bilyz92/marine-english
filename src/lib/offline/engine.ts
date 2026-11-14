@@ -181,18 +181,46 @@ export async function syncNow(identity: Identity): Promise<SyncOutcome> {
   return { ok: true, revokedCourseIds: body.revokedCourseIds, remaining: keep.length };
 }
 
+type Manifests = Record<string, Manifest>;
+const MANIFEST_GEN_KEY = "manifestGen";
+
+/**
+ * Đọc–sửa–ghi bản đồ manifest trong MỘT giao dịch readwrite trên `kv`, nên hai lần tải manifest hay một lần thu hồi khóa chạy
+ * cùng lúc không ghi đè nhau bằng bản đọc cũ. `bump`: tăng số thế hệ (mỗi lần thu hồi), để lần tải manifest đang bay biết mà bỏ.
+ */
+function updateManifests<T>(db: IDBDatabase, mutate: (manifests: Manifests, gen: number) => { write: boolean; bump?: boolean; result: T }): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("kv", "readwrite");
+    const kv = tx.objectStore("kv");
+    let result: T;
+    const getM = kv.get("manifests");
+    const getG = kv.get(MANIFEST_GEN_KEY);
+    getG.onsuccess = () => {
+      const manifests = { ...((getM.result as Manifests | undefined) ?? {}) };
+      const gen = (getG.result as number | undefined) ?? 0;
+      const out = mutate(manifests, gen);
+      result = out.result;
+      if (out.write) kv.put(manifests, "manifests");
+      if (out.bump) kv.put(gen + 1, MANIFEST_GEN_KEY);
+    };
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
 async function removeCourseData(db: IDBDatabase, courseId: string): Promise<void> {
-  const manifests = (await dbGet<Record<string, Manifest>>(db, "kv", "manifests")) ?? {};
-  const removed = Object.values(manifests).filter((m) => m.courseId === courseId);
-  const remaining = Object.values(manifests).filter((m) => m.courseId !== courseId);
+  const { removed, remaining } = await updateManifests(db, (manifests) => {
+    const removed = Object.values(manifests).filter((m) => m.courseId === courseId);
+    for (const m of removed) delete manifests[m.slug];
+    return { write: removed.length > 0, bump: true, result: { removed, remaining: Object.values(manifests) } };
+  });
   const stillUsedLessons = new Set(remaining.flatMap((m) => m.lessons.map((l) => l.lessonVersionId)));
   const stillUsedAssets = new Set(remaining.flatMap((m) => m.assets.map((a) => a.assetId)));
   for (const m of removed) {
     for (const l of m.lessons) if (!stillUsedLessons.has(l.lessonVersionId)) await dbDelete(db, "lessons", l.lessonVersionId);
     for (const a of m.assets) if (!stillUsedAssets.has(a.assetId)) await dbDelete(db, "files", a.assetId);
-    delete manifests[m.slug];
   }
-  await dbPut(db, "kv", "manifests", manifests);
   await dbPut(db, "kv", DOWNLOADED_KEY, (await downloadedIds(db)).filter((id) => id !== courseId));
   await pruneVideos(db);
 }
@@ -218,16 +246,21 @@ export async function loadMyCourses(identity: Identity): Promise<MyCourse[] | nu
 
 export async function loadManifest(identity: Identity, slug: string): Promise<Manifest | null> {
   const db = await openOfflineDb(identity);
-  const manifests = (await dbGet<Record<string, Manifest>>(db, "kv", "manifests")) ?? {};
+  const manifests = (await dbGet<Manifests>(db, "kv", "manifests")) ?? {};
+  const gen0 = (await dbGet<number>(db, "kv", MANIFEST_GEN_KEY)) ?? 0;
   try {
     const res = await fetch(`/api/learn/courses/${encodeURIComponent(slug)}/manifest`, { signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS) });
     if (res.ok) {
       const manifest = (await res.json()) as Manifest;
       // Máy đã tải đủ bản cũ: ghi nhớ trước khi thay manifest, để bản mới hiện nút Cập nhật.
-      const old = manifests[slug];
+      const old = (await dbGet<Manifests>(db, "kv", "manifests"))?.[slug];
       if (old && !(await downloadedIds(db)).includes(old.courseId) && (await downloadPlan(db, old)).complete) await markDownloaded(db, old.courseId);
-      manifests[slug] = manifest;
-      await dbPut(db, "kv", "manifests", manifests);
+      // Có khóa bị thu hồi trong lúc chờ mạng: không lưu (có thể là chính khóa này), lần mở sau tải lại.
+      await updateManifests(db, (latest, gen) => {
+        if (gen !== gen0) return { write: false, result: undefined };
+        latest[slug] = manifest;
+        return { write: true, result: undefined };
+      });
       await pruneVideos(db);
       return manifest;
     }

@@ -27,24 +27,29 @@ export function VideoPanel({ identity, manifest, asset, externalId, content, chi
   const [error, setError] = useState<string | null>(null);
 
   const busy = useRef(false);
+  // URL blob đang dùng (nếu có): thu hồi khi rời bài, đổi video, hoặc ngay khi xóa video khỏi máy.
+  const blobUrl = useRef<string | null>(null);
+  const releaseBlobUrl = () => {
+    if (blobUrl.current) URL.revokeObjectURL(blobUrl.current);
+    blobUrl.current = null;
+  };
   const assetId = asset?.assetId ?? null;
   // Nguồn phát chọn một lần khi mở bài: đã tải xong → URL blob (thu hồi khi đổi bài/nguồn hoặc rời trang), chưa → API có kiểm quyền.
   // Tải xong giữa chừng không đổi nguồn (đổi nguồn sẽ phát lại từ đầu); lần mở sau mới phát từ máy.
   useEffect(() => {
     if (!asset) return;
     let stale = false;
-    let url: string | null = null;
     void (async () => {
       const current = await videoState(identity, asset);
       const blob = current === "done" ? await videoBlob(identity, asset) : null;
       if (stale) return;
       setState(blob ? "done" : current === "done" ? "partial" : current);
-      if (blob) url = URL.createObjectURL(blob);
-      setSrc(url ?? asset.url);
+      if (blob) blobUrl.current = URL.createObjectURL(blob);
+      setSrc(blobUrl.current ?? asset.url);
     })();
     return () => {
       stale = true;
-      if (url) URL.revokeObjectURL(url);
+      releaseBlobUrl();
     };
     // asset đọc theo assetId: manifest đọc lại (đổi giấy phép) tạo đối tượng mới nhưng cùng video thì không chọn lại nguồn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,6 +78,7 @@ export function VideoPanel({ identity, manifest, asset, externalId, content, chi
       setState("none");
       // Đang phát từ blob: các đoạn trên máy vừa bị xóa, chuyển về phát từ máy chủ.
       setSrc(asset.url);
+      releaseBlobUrl();
     } catch {
       setError("Chưa xóa được video khỏi máy. Thử lại.");
     }
