@@ -6,11 +6,13 @@ import { connection } from "next/server";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import { LessonStudy } from "@/components/study/lesson-study";
 import { EssayLesson } from "@/components/study/essay-lesson";
+import { VideoLesson, type VideoContent } from "@/components/study/video-lesson";
 import { hasLevels, type StudyLesson } from "@/lib/study/levels";
 import { GUEST } from "@/lib/study/storage";
 import ui from "@/components/ui.module.css";
 import { BuyOrLearn } from "../../buy-or-learn";
 import { getTrialLesson } from "@/modules/content/catalog";
+import { trialVideo } from "@/modules/content/lesson-video";
 
 export const metadata: Metadata = { title: "Học thử" };
 
@@ -22,7 +24,12 @@ async function Trial({ params }: { params: Promise<{ slug: string; position: str
   if (!lesson) notFound();
   return (
     <>
-      {(lesson.content as { lesson_type?: string }).lesson_type === "essay"
+      {(lesson.content as { lesson_type?: string }).lesson_type === "video"
+        ? <VideoLesson
+            externalId={lesson.externalId} content={lesson.content as VideoContent}
+            video={{ src: (await trialVideo(slug, Number(position))) ? `/api/public/courses/${encodeURIComponent(slug)}/trial/${Number(position)}/video` : null }}
+          />
+        : (lesson.content as { lesson_type?: string }).lesson_type === "essay"
         ? <EssayLesson externalId={lesson.externalId} content={lesson.content as LessonContent} who={GUEST} />
         : hasLevels(lesson.content as StudyLesson)
         ? <LessonStudy externalId={lesson.externalId} lesson={lesson.content as StudyLesson} who={GUEST} />

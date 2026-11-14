@@ -10,7 +10,7 @@ export const useAdmin = () => useContext(AdminContext);
 export const AdminReloadContext = createContext<() => void>(() => {});
 export const can = (me: AdminMe | null, permission: string) => Boolean(me?.permissions.includes(permission));
 
-function csrf(): Record<string, string> {
+export function csrf(): Record<string, string> {
   const token = document.cookie.split("; ").find((c) => c.startsWith("__Host-me_csrf_admin="))?.split("=")[1] ?? "";
   return { "x-csrf-token": token };
 }
@@ -45,6 +45,8 @@ const MESSAGES: Record<string, string> = {
   module_not_empty: "Module còn bài: chuyển các bài sang module khác rồi mới xóa được.",
   module_required: "Chọn module cho bài mới.",
   essay_needs_answer: "Bài tự luận cần có đáp án mẫu tiếng Anh.",
+  youtube_invalid: "Link YouTube chưa đúng. Dán link dạng https://www.youtube.com/watch?v=… hoặc https://youtu.be/…",
+  not_video_lesson: "Bài này không phải bài video. Đổi loại bài sang Video và lưu trước khi tải tệp video.",
   not_xlsx: "Tệp không phải Excel (.xlsx) hoặc bị hỏng. Lưu lại bằng Excel dạng .xlsx rồi tải lên.",
   file_too_complex: "Tệp Excel quá phức tạp hoặc quá lớn để đọc. Chỉ giữ hai trang của khung mẫu rồi thử lại.",
   file_too_large: "Tệp lớn hơn 2 MB.",

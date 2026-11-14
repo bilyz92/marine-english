@@ -6,29 +6,32 @@ import { adminApi, can, Field, LoadState, messageFor, useAdmin, useLoad } from "
 import { CourseModules, type CourseModule } from "./course-modules";
 import { ExcelUpload } from "./excel-upload";
 import { LessonAudio } from "./lesson-audio";
+import { LessonVideo } from "./lesson-video";
 import styles from "../../admin.module.css";
 
 // Danh sách bài của phiên bản hiện tại, chia theo module; chủ sửa bài hoặc thêm bài cuối khóa. Mỗi lần lưu tạo phiên bản mới.
 
-type LessonType = "qa" | "essay";
+type LessonType = "qa" | "essay" | "video";
 type Row = {
   position: number; externalId: string; questionEn: string; questionVi: string; isFreeTrial: boolean; hasAnswer: boolean;
-  moduleId: string | null; lessonType: LessonType;
+  moduleId: string | null; lessonType: LessonType; hasVideo: boolean;
 };
 type Listing = { course: { slug: string; titleVi: string; status: string; currentVersionId: string | null }; modules: CourseModule[]; lessons: Row[] };
 type Pair = { id?: string; en: string; vi: string };
 type Form = {
   lessonType: LessonType; questionEn: string; questionVi: string; keyPoints: Pair[]; vocabulary: Pair[]; modelAnswerEn: string; modelAnswerVi: string; followUps: Pair[];
+  youtubeUrl: string;
 };
 type Bi = { en?: string; vi?: string };
 
-const EMPTY: Form = { lessonType: "qa", questionEn: "", questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [] };
+const EMPTY: Form = { lessonType: "qa", questionEn: "", questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [], youtubeUrl: "" };
+const TYPE_LABEL: Record<LessonType, string> = { qa: " · Hỏi–đáp", essay: " · Tự luận", video: " · Video" };
 const pairOf = (t: Bi | undefined, id?: unknown): Pair => ({ ...(typeof id === "string" ? { id } : {}), en: t?.en ?? "", vi: t?.vi ?? "" });
 
 function formOf(c: Record<string, unknown>): Form {
   const list = (key: string) => ((c[key] as Record<string, unknown>[] | undefined) ?? []);
   return {
-    lessonType: c.lesson_type === "essay" ? "essay" : "qa",
+    lessonType: c.lesson_type === "essay" || c.lesson_type === "video" ? c.lesson_type : "qa",
     questionEn: pairOf((c.question as { text?: Bi })?.text).en,
     questionVi: pairOf((c.question as { text?: Bi })?.text).vi,
     // Giữ mã từng mục để máy chủ ghép đúng dữ liệu kèm theo khi bỏ hoặc thêm mục.
@@ -38,6 +41,8 @@ function formOf(c: Record<string, unknown>): Form {
     modelAnswerEn: pairOf((c.model_answer as { text?: Bi })?.text).en,
     modelAnswerVi: pairOf((c.model_answer as { text?: Bi })?.text).vi,
     followUps: list("follow_up_questions").map((q) => pairOf(q.prompt as Bi, q.id)),
+    // Nội dung chỉ lưu mã 11 ký tự; form hiện lại dạng link để chủ nhận ra.
+    youtubeUrl: (c.video as { youtube_id?: string } | undefined)?.youtube_id ? `https://www.youtube.com/watch?v=${(c.video as { youtube_id: string }).youtube_id}` : "",
   };
 }
 
@@ -68,6 +73,7 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
   const [problem, setProblem] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [audioOf, setAudioOf] = useState<string | null>(null);
+  const [videoOf, setVideoOf] = useState<string | null>(null);
   const canEdit = can(me, "content.edit");
   const live = data?.course.status === "published";
 
@@ -146,7 +152,8 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
         <div className={styles.itemText}>
           <span>{l.position}. {l.questionVi || l.questionEn}</span>
           <span className={styles.muted}>
-            {l.externalId}{l.lessonType === "essay" ? " · Tự luận" : " · Hỏi–đáp"}{l.isFreeTrial ? " · học thử" : ""}{l.hasAnswer ? "" : " · chưa có đáp án mẫu"}
+            {l.externalId}{TYPE_LABEL[l.lessonType]}{l.isFreeTrial ? " · học thử" : ""}
+            {l.lessonType === "video" ? (l.hasVideo ? "" : " · chưa có video") : l.hasAnswer ? "" : " · chưa có đáp án mẫu"}
           </span>
         </div>
         <div className={styles.actions}>
@@ -161,9 +168,15 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
           <button className={styles.btn} aria-expanded={audioOf === l.externalId} onClick={() => setAudioOf(audioOf === l.externalId ? null : l.externalId)}>
             {audioOf === l.externalId ? "Ẩn ghi âm" : "Ghi âm"}
           </button>
+          {l.lessonType === "video" && (
+            <button className={styles.btn} aria-expanded={videoOf === l.externalId} onClick={() => setVideoOf(videoOf === l.externalId ? null : l.externalId)}>
+              {videoOf === l.externalId ? "Ẩn video" : "Video"}
+            </button>
+          )}
           {canEdit && <button className={styles.btn} onClick={() => void open(l.externalId)}>Sửa</button>}
         </div>
         {audioOf === l.externalId && <LessonAudio slug={slug} externalId={l.externalId} canEdit={canEdit} />}
+        {videoOf === l.externalId && <LessonVideo slug={slug} externalId={l.externalId} canEdit={canEdit} onChanged={() => void reload()} />}
       </div>
     );
   }
@@ -176,7 +189,8 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
       ].filter((g) => g.key !== "none" || g.lessons.length > 0)
     : null;
   const essay = editing?.form.lessonType === "essay";
-  const prompt = essay ? "Đề bài" : "Câu hỏi";
+  const video = editing?.form.lessonType === "video";
+  const prompt = essay ? "Đề bài" : video ? "Tiêu đề video" : "Câu hỏi";
 
   return (
     <>
@@ -216,9 +230,11 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
             <select className={styles.input} value={editing.form.lessonType} onChange={(e) => setForm({ lessonType: e.target.value as LessonType })}>
               <option value="qa">Hỏi–đáp</option>
               <option value="essay">Tự luận</option>
+              <option value="video">Video</option>
             </select>
           </Field>
           {essay && <p className={styles.muted}>Tự luận: học viên tự viết câu trả lời rồi mở đáp án mẫu để tự so. Cần có đáp án mẫu tiếng Anh.</p>}
+          {video && <p className={styles.muted}>Video: lưu bài xong, bấm nút Video ở dòng bài để tải tệp video (mp4/webm, tối đa 300 MB). Có thể chỉ dán link YouTube; có cả hai thì học viên xem tệp đã tải lên.</p>}
           {!editing.externalId && data && data.modules.length > 0 && (
             <Field label="Xếp vào module *">
               <select className={styles.input} required value={editing.moduleId} onChange={(e) => setEditing({ ...editing, moduleId: e.target.value })}>
@@ -229,11 +245,16 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
           )}
           <Field label={`${prompt} · tiếng Anh *`}><textarea className={styles.input} required rows={2} value={editing.form.questionEn} onChange={(e) => setForm({ questionEn: e.target.value })} /></Field>
           <Field label={`${prompt} · tiếng Việt`}><textarea className={styles.input} rows={2} value={editing.form.questionVi} onChange={(e) => setForm({ questionVi: e.target.value })} /></Field>
+          {video && (
+            <Field label="Link YouTube (không bắt buộc nếu tải tệp video lên)">
+              <input className={styles.input} inputMode="url" placeholder="https://www.youtube.com/watch?v=…" value={editing.form.youtubeUrl} onChange={(e) => setForm({ youtubeUrl: e.target.value })} />
+            </Field>
+          )}
           <Pairs label="Ý chính" items={editing.form.keyPoints} onChange={(keyPoints) => setForm({ keyPoints })} addLabel="Thêm ý chính" />
           <Pairs label="Từ vựng" items={editing.form.vocabulary} onChange={(vocabulary) => setForm({ vocabulary })} addLabel="Thêm từ" />
-          <Field label={essay ? "Đáp án mẫu · tiếng Anh *" : "Đáp án mẫu · tiếng Anh (để trống nếu chưa có)"}><textarea className={styles.input} required={essay} rows={4} value={editing.form.modelAnswerEn} onChange={(e) => setForm({ modelAnswerEn: e.target.value })} /></Field>
-          <Field label="Đáp án mẫu · tiếng Việt"><textarea className={styles.input} rows={4} value={editing.form.modelAnswerVi} onChange={(e) => setForm({ modelAnswerVi: e.target.value })} /></Field>
-          {!essay && <Pairs label="Câu hỏi phụ" items={editing.form.followUps} onChange={(followUps) => setForm({ followUps })} addLabel="Thêm câu hỏi phụ" />}
+          {!video && <Field label={essay ? "Đáp án mẫu · tiếng Anh *" : "Đáp án mẫu · tiếng Anh (để trống nếu chưa có)"}><textarea className={styles.input} required={essay} rows={4} value={editing.form.modelAnswerEn} onChange={(e) => setForm({ modelAnswerEn: e.target.value })} /></Field>}
+          {!video && <Field label="Đáp án mẫu · tiếng Việt"><textarea className={styles.input} rows={4} value={editing.form.modelAnswerVi} onChange={(e) => setForm({ modelAnswerVi: e.target.value })} /></Field>}
+          {!essay && !video && <Pairs label="Câu hỏi phụ" items={editing.form.followUps} onChange={(followUps) => setForm({ followUps })} addLabel="Thêm câu hỏi phụ" />}
           {live && (
             <label className={styles.notice}>
               <input type="checkbox" checked={confirmLive} onChange={(e) => setConfirmLive(e.target.checked)} /> Khóa đang bán: tôi hiểu học viên sẽ thấy nội dung mới.

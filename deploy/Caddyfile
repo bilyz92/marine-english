@@ -2,12 +2,20 @@
 # mọi tệp đi qua app, tệp trả phí chỉ qua API có kiểm quyền.
 {$APP_DOMAIN} {
 	encode zstd gzip
-	# Chủ tải gói nội dung: 16 MB, khớp giới hạn của app; mọi đường dẫn khác 5 MB.
+	# Chủ tải gói nội dung: 16 MB, khớp giới hạn của app; tải video 300 MiB; mọi đường dẫn khác 5 MB.
 	@contentImport path /api/quan-tri/content/import
 	request_body @contentImport {
 		max_size 16MiB
 	}
-	@other not path /api/quan-tri/content/import
+	# Chủ tải tệp video của một bài: 300 MiB, khớp MAX_VIDEO_BYTES của app.
+	@videoUpload path_regexp ^/api/quan-tri/content/courses/[^/]+/lessons/[^/]+/video$
+	request_body @videoUpload {
+		max_size 300MiB
+	}
+	@other {
+		not path /api/quan-tri/content/import
+		not path_regexp ^/api/quan-tri/content/courses/[^/]+/lessons/[^/]+/video$
+	}
 	request_body @other {
 		max_size 5MB
 	}

@@ -1,7 +1,10 @@
 // Kho IndexedDB của một học viên trên một máy: tên DB gồm sub + did để dữ liệu người này không lẫn sang người khác.
 
-export type StoreName = "kv" | "lessons" | "files" | "queue" | "quarantine";
-const STORES: StoreName[] = ["kv", "lessons", "files", "queue", "quarantine"];
+// Phiên bản 2 thêm `videos` (bản ghi nhỏ mỗi video) và `videoParts` (đoạn 4 MB dạng Blob), tách khỏi `files` vì tải khóa đọc cả kho
+// `files` vào bộ nhớ (docs/superpowers/plans/2026-11-12-video-lessons.md, Task 3).
+export type StoreName = "kv" | "lessons" | "files" | "queue" | "quarantine" | "videos" | "videoParts";
+const STORES: StoreName[] = ["kv", "lessons", "files", "queue", "quarantine", "videos", "videoParts"];
+const DB_VERSION = 2;
 
 export type Identity = { userId: string; deviceId: string; displayName: string };
 
@@ -22,9 +25,10 @@ export function openOfflineDb(who: { userId: string; deviceId: string }): Promis
   let pending = connections.get(name);
   if (!pending) {
     pending = new Promise((resolve, reject) => {
-      const req = indexedDB.open(name, 1);
+      const req = indexedDB.open(name, DB_VERSION);
       req.onupgradeneeded = () => {
-        for (const store of STORES) req.result.createObjectStore(store);
+        // Chỉ tạo kho còn thiếu: lên phiên bản giữ nguyên dữ liệu đã tải.
+        for (const store of STORES) if (!req.result.objectStoreNames.contains(store)) req.result.createObjectStore(store);
       };
       req.onsuccess = () => {
         const db = req.result;

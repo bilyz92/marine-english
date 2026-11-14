@@ -184,6 +184,39 @@ Tắt lại: để trống `SEPAY_WEBHOOK_SECRETS` (webhook trả 503, nút "Tô
 - Kiểm gói lớn trước khi tải: `node --import ./src/worker/alias-loader.mjs scripts/check-content-packages.ts <tệp…>`.
 - Nút **Nghe** trong bài dùng giọng tiếng Anh có sẵn trên máy học viên (không gửi chữ ra ngoài); máy không có giọng tiếng Anh thì không hiện nút. Chưa có chấm phát âm.
 
+### Bài video (từ 14/11/2026, `docs/superpowers/plans/2026-11-12-video-lessons.md`)
+
+- Chủ chọn **Loại bài: Video** trong form bài (dán link YouTube nếu có), lưu, rồi bấm **Video** ở dòng bài để tải tệp: mp4 (H.264) hoặc webm, tối đa **300 MB**, nhận diện theo byte đầu tệp (`.mov` của iPhone, tệp chỉ có tiếng bị từ chối). Không chuyển mã trên máy chủ: xem lại ngay sau khi tải; không phát được thì xuất lại "MP4 (H.264)". Có cả tệp và link thì học viên xem tệp. Excel vẫn không nhận dòng "Video".
+- Tệp video luôn là tệp bảo vệ trong `MEDIA_ROOT/protected` (sao lưu cùng media): học viên xem qua `/api/learn/files/<id>` (kiểm quyền, có Range), khách chỉ xem video của 3 bài học thử. Học viên tải từng video về máy bằng nút riêng (không tải cùng khóa).
+- **nginx bắt buộc** có khối dưới (đã có trong `deploy/nginx-marine-english.conf`, đặt trong `server` của `conghung.ce-tanker.vn`); thiếu thì video trên 5 MB bị nginx trả 413. Sửa `/etc/nginx/sites-available/marine-english`, chạy `sudo nginx -t && sudo systemctl reload nginx`:
+
+  ```nginx
+  location ~ ^/api/quan-tri/content/courses/[^/]+/lessons/[^/]+/video$ {
+      client_max_body_size 300m;
+      proxy_request_buffering off;
+      client_body_timeout 120s;
+      proxy_pass http://127.0.0.1:3100;
+      proxy_http_version 1.1;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_read_timeout 900s;
+      proxy_send_timeout 900s;
+  }
+  ```
+
+  `proxy_request_buffering off`: nginx không đệm thân, app ghi thẳng xuống đĩa; 900 s đủ cho 300 MB qua mạng 3 Mbps (≈ 14 phút); `client_body_timeout 120s` chỉ là thời gian chờ giữa hai lần đọc. Caddy: matcher `@videoUpload` với `max_size 300MiB` trong `deploy/Caddyfile`.
+- Thay hoặc gỡ video chỉ bỏ liên kết, tệp cũ ở lại đĩa (phiên bản bài cũ có thể còn trỏ tới). Xem dung lượng: `du -sh <MEDIA_ROOT>/protected`; liệt kê tệp video không còn gắn vào phiên bản hiện hành của khóa nào (chạy bằng `me_migrator`):
+
+  ```sql
+  SELECT ma.id, ma.storage_key, ma.bytes FROM media_assets ma
+  WHERE ma.mime LIKE 'video/%' AND NOT EXISTS (
+    SELECT 1 FROM lesson_version_assets lva JOIN course_version_lessons cvl ON cvl.lesson_version_id = lva.lesson_version_id
+    JOIN courses c ON c.current_version_id = cvl.course_version_id WHERE lva.media_asset_id = ma.id);
+  ```
+
+  Chưa có job xóa tự động; đĩa chật thì báo kỹ thuật làm job dọn có kiểm tham chiếu.
+
 ## 6B. Quản trị quên mật khẩu (D3, từ 02/11/2026)
 
 - Quản trị đăng nhập ở `/admin/dang-nhap` bằng email + mật khẩu. Quên mật khẩu hoặc chưa đặt: trên máy chủ chạy

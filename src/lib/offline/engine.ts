@@ -5,6 +5,7 @@ import { planDownloads, verifyAsset, type ManifestAsset } from "./downloads";
 import type { LicenseView } from "./access";
 import { licenseState } from "./license-state";
 import { parsePublicKeyring, verifyLicense } from "./license-verify";
+import { checkRangeResponse, downloadInChunks, staleVideoIds, VIDEO_CHUNK_BYTES, type VideoDownloadResult } from "./video-download";
 import { applySyncResults, buildEvent, nextBatch, type EventResult, type EventType, type QueuedEvent } from "./sync-queue";
 
 export type { Identity } from "./db";
@@ -16,7 +17,7 @@ export type ManifestLesson = {
   topic?: string | null;
   /** Module và loại bài (2026-11-08-course-modules); không có ở manifest cũ. */
   moduleId?: string | null;
-  lessonType?: "qa" | "essay";
+  lessonType?: "qa" | "essay" | "video";
 };
 export type Manifest = {
   courseId: string; slug: string; titleVi: string; versionId: string; provisional?: boolean; lessons: ManifestLesson[]; assets: ManifestAsset[]; totalBytes: number;
@@ -193,6 +194,7 @@ async function removeCourseData(db: IDBDatabase, courseId: string): Promise<void
   }
   await dbPut(db, "kv", "manifests", manifests);
   await dbPut(db, "kv", DOWNLOADED_KEY, (await downloadedIds(db)).filter((id) => id !== courseId));
+  await pruneVideos(db);
 }
 
 // ===== Khóa và bài =====
@@ -226,6 +228,7 @@ export async function loadManifest(identity: Identity, slug: string): Promise<Ma
       if (old && !(await downloadedIds(db)).includes(old.courseId) && (await downloadPlan(db, old)).complete) await markDownloaded(db, old.courseId);
       manifests[slug] = manifest;
       await dbPut(db, "kv", "manifests", manifests);
+      await pruneVideos(db);
       return manifest;
     }
     if (res.status === 403 || res.status === 404) {
@@ -321,4 +324,127 @@ export async function loadLesson(identity: Identity, lesson: ManifestLesson): Pr
 export async function assetUrl(identity: Identity, asset: ManifestAsset): Promise<string> {
   const stored = await dbGet<StoredFile>(await openOfflineDb(identity), "files", asset.assetId);
   return stored ? URL.createObjectURL(new Blob([stored.bytes], { type: stored.mime })) : asset.url;
+}
+
+// ===== Video tải riêng từng bài (docs/superpowers/plans/2026-11-12-video-lessons.md, Task 3) =====
+
+type StoredVideo = { assetId: string; sha256: string; mime: string; bytes: number; parts: number; done: boolean };
+/** Khóa đoạn đệm 5 chữ số để `getAll` theo khoảng trả đúng thứ tự đoạn. */
+const partKey = (assetId: string, n: number) => `${assetId}#${String(n).padStart(5, "0")}`;
+const partRange = (assetId: string) => IDBKeyRange.bound(`${assetId}#`, `${assetId}#\uffff`);
+const VIDEO_STORES = ["kv", "videos", "videoParts"] as const;
+
+function txDone(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
+/** Video còn được giữ khi mã tệp còn là video trong một manifest đang lưu (cùng điều kiện với staleVideoIds). */
+function keptIn(manifests: Record<string, Manifest> | undefined, assetId: string): boolean {
+  return staleVideoIds([assetId], Object.values(manifests ?? {})).length === 0;
+}
+
+/**
+ * Ghi trong một giao dịch readwrite trên kv + videos + videoParts, chỉ khi video còn được giữ. IndexedDB xếp các giao dịch readwrite
+ * chồng phạm vi nối tiếp nhau, nên một lần tải đang chạy không ghi lại được gì sau khi pruneVideos đã dọn video đó.
+ */
+async function writeIfKept(db: IDBDatabase, assetId: string, write: (videos: IDBObjectStore, parts: IDBObjectStore) => void): Promise<boolean> {
+  const tx = db.transaction([...VIDEO_STORES], "readwrite");
+  let kept = false;
+  const get = tx.objectStore("kv").get("manifests");
+  get.onsuccess = () => {
+    kept = keptIn(get.result as Record<string, Manifest> | undefined, assetId);
+    if (kept) write(tx.objectStore("videos"), tx.objectStore("videoParts"));
+  };
+  await txDone(tx);
+  return kept;
+}
+
+/** Xóa mọi video (bản ghi và đoạn) không còn trong manifest nào đang lưu. */
+async function pruneVideos(db: IDBDatabase): Promise<void> {
+  const tx = db.transaction([...VIDEO_STORES], "readwrite");
+  const get = tx.objectStore("kv").get("manifests");
+  get.onsuccess = () => {
+    const manifests = Object.values((get.result as Record<string, Manifest> | undefined) ?? {});
+    const keys = tx.objectStore("videoParts").getAllKeys();
+    keys.onsuccess = () => {
+      const records = tx.objectStore("videos").getAllKeys();
+      records.onsuccess = () => {
+        const ids = new Set([...(records.result as string[]), ...(keys.result as string[]).map((k) => k.slice(0, k.lastIndexOf("#")))]);
+        for (const id of staleVideoIds([...ids], manifests)) {
+          tx.objectStore("videos").delete(id);
+          tx.objectStore("videoParts").delete(partRange(id));
+        }
+      };
+    };
+  };
+  await txDone(tx);
+}
+
+async function deleteVideoData(db: IDBDatabase, assetId: string): Promise<void> {
+  const tx = db.transaction(["videos", "videoParts"], "readwrite");
+  tx.objectStore("videos").delete(assetId);
+  tx.objectStore("videoParts").delete(partRange(assetId));
+  await txDone(tx);
+}
+
+export type VideoState = "none" | "partial" | "done";
+
+export async function videoState(identity: Identity, asset: ManifestAsset): Promise<VideoState> {
+  const db = await openOfflineDb(identity);
+  const record = await dbGet<StoredVideo>(db, "videos", asset.assetId);
+  if (record?.done && record.sha256 === asset.sha256) return "done";
+  const tx = db.transaction("videoParts");
+  const count = tx.objectStore("videoParts").count(partRange(asset.assetId));
+  return new Promise((resolve, reject) => {
+    count.onsuccess = () => resolve(count.result > 0 ? "partial" : "none");
+    count.onerror = () => reject(count.error);
+  });
+}
+
+/** Tải video theo từng đoạn 4 MB bằng Range; đứt mạng thì lần sau tải tiếp phần thiếu; kiểm sha256 trước khi đánh dấu xong. */
+export async function downloadVideo(identity: Identity, asset: ManifestAsset, onProgress: (done: number, total: number) => void): Promise<VideoDownloadResult> {
+  const db = await openOfflineDb(identity);
+  await navigator.storage?.persist?.().catch(() => false);
+  const parts = Math.ceil(asset.bytes / VIDEO_CHUNK_BYTES);
+  const record: StoredVideo = { assetId: asset.assetId, sha256: asset.sha256, mime: asset.mime, bytes: asset.bytes, parts, done: false };
+  return downloadInChunks({
+    size: asset.bytes, sha256: asset.sha256, onProgress,
+    fetchRange: async (start, end) => {
+      const res = await fetch(asset.url, { headers: { range: `bytes=${start}-${end}` } });
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      const ok = checkRangeResponse({ status: res.status, contentRange: res.headers.get("content-range"), length: bytes.length }, { start, end, size: asset.bytes });
+      return ok ? bytes : null;
+    },
+    getPart: async (n) => {
+      const blob = await dbGet<Blob>(db, "videoParts", partKey(asset.assetId, n));
+      return blob ? new Uint8Array(await blob.arrayBuffer()) : undefined;
+    },
+    putPart: (n, bytes) => writeIfKept(db, asset.assetId, (videos, store) => {
+      videos.put(record, asset.assetId);
+      store.put(new Blob([bytes as Uint8Array<ArrayBuffer>]), partKey(asset.assetId, n));
+    }),
+    finish: () => writeIfKept(db, asset.assetId, (videos) => videos.put({ ...record, done: true }, asset.assetId)),
+    deleteParts: () => deleteVideoData(db, asset.assetId),
+  });
+}
+
+export async function deleteVideo(identity: Identity, asset: ManifestAsset): Promise<void> {
+  await deleteVideoData(await openOfflineDb(identity), asset.assetId);
+}
+
+/** Video đã tải xong: ghép các đoạn Blob (trình duyệt giữ trên đĩa, không chép vào RAM); chưa xong → null. Người gọi tự tạo/thu hồi URL. */
+export async function videoBlob(identity: Identity, asset: ManifestAsset): Promise<Blob | null> {
+  const db = await openOfflineDb(identity);
+  const record = await dbGet<StoredVideo>(db, "videos", asset.assetId);
+  if (!record?.done || record.sha256 !== asset.sha256) return null;
+  const req = db.transaction("videoParts").objectStore("videoParts").getAll(partRange(asset.assetId));
+  const parts = await new Promise<Blob[]>((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result as Blob[]);
+    req.onerror = () => reject(req.error);
+  });
+  return parts.length === record.parts ? new Blob(parts, { type: record.mime }) : null;
 }
