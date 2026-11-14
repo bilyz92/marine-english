@@ -266,3 +266,135 @@ describe("danh mục khóa học", () => {
     expect((img.after as { sha256: string }).sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 });
+
+// Dữ liệu ban đầu (Task 4): chỉ tạo, không bao giờ ghi đè thay đổi của chủ.
+describe("gieo danh mục theo chức danh (applyCategoryLayout)", () => {
+  const T = "engine_cadet_tanker";
+  const D = "engine_cadet_dry_cargo";
+  async function images() {
+    const { mkdtemp, writeFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { createHash } = await import("node:crypto");
+    const dir = await mkdtemp(`${tmpdir()}/rank-`);
+    await writeFile(`${dir}/a.png`, PNG);
+    await writeFile(`${dir}/b.jpg`, JPG);
+    await writeFile(`${dir}/c.gif`, GIF);
+    const sha16 = (b: Buffer) => createHash("sha256").update(b).digest("hex").slice(0, 16);
+    return { dir, pngSha: sha16(PNG), jpgSha: sha16(JPG) };
+  }
+  async function layoutWith() {
+    const img = await images();
+    return {
+      img,
+      layout: [
+        { seedKey: "rank:a", titleVi: "Thực tập máy", titleEn: "Engine Cadet", imageFile: `${img.dir}/a.png`, imageSha16: img.pngSha, courses: [T] },
+        { seedKey: "rank:b", titleVi: "Phụ máy", titleEn: "Wiper", imageFile: `${img.dir}/b.jpg`, imageSha16: img.jpgSha, courses: [D] },
+        { seedKey: "rank:c", titleVi: "Thợ máy", titleEn: "Oiler", courses: [] },
+      ],
+    };
+  }
+  const state = async () =>
+    (await sqlAsMigrator(`
+      SELECT c.seed_key, c.title_vi, c.title_en, c.position, c.image_asset_id IS NOT NULL AS has_image,
+             coalesce((SELECT array_agg(slug ORDER BY slug) FROM courses WHERE category_id = c.id), '{}') AS courses
+      FROM course_categories c ORDER BY c.position`)).rows;
+
+  it("lần đầu tạo đủ danh mục đúng thứ tự, tên, ảnh, gắn khóa; chạy lại không đổi gì", async () => {
+    await seedContent();
+    const { publish } = await import("../helpers/content");
+    await publish(T);
+    const { applyCategoryLayout } = await import("@/modules/content/categories");
+    const { ownerCtx } = await import("../helpers/admin");
+    const ctx = await ownerCtx();
+    const { layout } = await layoutWith();
+    const first = await applyCategoryLayout(ctx, layout);
+    expect(first).toEqual({ created: ["rank:a", "rank:b", "rank:c"], skipped: [], assigned: [T, D], keptAssignment: [], uncategorizedPublished: [] });
+    expect(await state()).toEqual([
+      { seed_key: "rank:a", title_vi: "Thực tập máy", title_en: "Engine Cadet", position: 1, has_image: true, courses: [T] },
+      { seed_key: "rank:b", title_vi: "Phụ máy", title_en: "Wiper", position: 2, has_image: true, courses: [D] },
+      { seed_key: "rank:c", title_vi: "Thợ máy", title_en: "Oiler", position: 3, has_image: false, courses: [] },
+    ]);
+    const snapshot = await state();
+    const again = await applyCategoryLayout(ctx, layout);
+    expect(again).toMatchObject({ created: [], skipped: ["rank:a", "rank:b", "rank:c"], assigned: [] });
+    expect(await state()).toEqual(snapshot);
+    expect(await actions()).toEqual(["category_layout_apply", "category_layout_apply"]);
+  });
+
+  it("chủ đổi tên/thứ tự/gỡ ảnh/chuyển khóa rồi chạy lại → vẫn giữ thay đổi của chủ", async () => {
+    const ids = await seedContent();
+    const { applyCategoryLayout } = await import("@/modules/content/categories");
+    const { ownerCtx } = await import("../helpers/admin");
+    const ctx = await ownerCtx();
+    const { layout } = await layoutWith();
+    await applyCategoryLayout(ctx, layout);
+    const owner = await adminSess("owner");
+    const idOf = async (k: string) => (await sqlAsMigrator(`SELECT id FROM course_categories WHERE seed_key = $1`, [k])).rows[0].id as string;
+    expect((await patch(owner, await idOf("rank:a"), { titleVi: "Học viên thực tập" })).status).toBe(200);
+    expect((await patch(owner, await idOf("rank:c"), { move: "up" })).status).toBe(200);
+    expect((await removeImage(owner, await idOf("rank:b"))).status).toBe(200);
+    expect((await setCourse(owner, ids[T]!, await idOf("rank:c"))).status).toBe(200);
+    expect((await setCourse(owner, ids[D]!, null)).status).toBe(200);
+    const snapshot = await state();
+    const again = await applyCategoryLayout(ctx, layout);
+    expect(again.created).toEqual([]);
+    expect(again.assigned).toEqual([]);
+    expect(again.keptAssignment).toEqual([T, D]);
+    expect(await state()).toEqual(snapshot);
+  });
+
+  it("chủ xóa danh mục đã gieo rồi chạy lại → không tạo lại; ảnh của danh mục bị bỏ qua không cần còn trên đĩa", async () => {
+    const ids = await seedContent();
+    const { applyCategoryLayout } = await import("@/modules/content/categories");
+    const { ownerCtx } = await import("../helpers/admin");
+    const ctx = await ownerCtx();
+    const { layout } = await layoutWith();
+    await applyCategoryLayout(ctx, layout);
+    const owner = await adminSess("owner");
+    const idA = (await sqlAsMigrator(`SELECT id FROM course_categories WHERE seed_key = 'rank:a'`)).rows[0].id as string;
+    expect((await setCourse(owner, ids[T]!, null)).status).toBe(200);
+    expect((await remove(owner, idA)).status).toBe(200);
+    const snapshot = await state();
+    const again = await applyCategoryLayout(ctx, layout.map((e) => ({ ...e, imageFile: e.imageFile ? `${e.imageFile}.mat` : undefined })));
+    expect(again.created).toEqual([]);
+    expect(again.skipped).toEqual(["rank:a", "rank:b", "rank:c"]);
+    expect(again.keptAssignment).toContain(T);
+    expect(await state()).toEqual(snapshot);
+  });
+
+  it("trùng tên với danh mục chủ tự tạo → lỗi category_name_taken, không ghi gì", async () => {
+    await seedContent();
+    const { applyCategoryLayout } = await import("@/modules/content/categories");
+    const { ownerCtx } = await import("../helpers/admin");
+    const owner = await adminSess("owner");
+    await create(owner, { titleVi: "Thợ máy" });
+    const snapshot = await state();
+    const { layout } = await layoutWith();
+    await expect(applyCategoryLayout(await ownerCtx(), layout)).rejects.toThrow(/category_name_taken/);
+    expect(await state()).toEqual(snapshot);
+  });
+
+  it("slug không tồn tại → ném lỗi, không ghi gì; ảnh sai sha hoặc sai định dạng → ném lỗi", async () => {
+    await seedContent();
+    const { applyCategoryLayout } = await import("@/modules/content/categories");
+    const { ownerCtx } = await import("../helpers/admin");
+    const ctx = await ownerCtx();
+    const { layout, img } = await layoutWith();
+    await expect(applyCategoryLayout(ctx, [...layout, { seedKey: "rank:x", titleVi: "X", titleEn: "X", courses: ["khong_co"] }])).rejects.toThrow(/khong_co/);
+    await expect(applyCategoryLayout(ctx, [{ ...layout[0]!, imageSha16: "0000000000000000" }])).rejects.toThrow(/sha256/);
+    await expect(applyCategoryLayout(ctx, [{ ...layout[0]!, imageFile: `${img.dir}/c.gif`, imageSha16: undefined }])).rejects.toThrow(/image_format/);
+    expect(await state()).toEqual([]);
+    expect(await actions()).toEqual([]);
+  });
+
+  it("khóa đang bán chưa có danh mục được liệt kê trong uncategorizedPublished", async () => {
+    await seedContent();
+    const { publish } = await import("../helpers/content");
+    await publish(T);
+    await publish(D);
+    const { applyCategoryLayout } = await import("@/modules/content/categories");
+    const { ownerCtx } = await import("../helpers/admin");
+    const r = await applyCategoryLayout(await ownerCtx(), [{ seedKey: "rank:a", titleVi: "A", titleEn: "A", courses: [T] }]);
+    expect(r.uncategorizedPublished).toEqual([D]);
+  });
+});

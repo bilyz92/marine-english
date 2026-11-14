@@ -263,3 +263,82 @@ export async function removeCategoryImage(ctx: AdminCtx, id: string): Promise<vo
     });
   });
 }
+
+export type CategoryLayoutEntry = {
+  seedKey: string; titleVi: string; titleEn: string;
+  /** Đường dẫn tệp ảnh trên máy chạy script; `imageSha16` = 16 ký tự đầu sha256 phải khớp. */
+  imageFile?: string; imageSha16?: string;
+  courses: string[];
+};
+
+/**
+ * Gieo danh mục ban đầu (Task 4, chỉ tạo, không bao giờ ghi đè): mã `seed_key` đã từng gieo thì bỏ qua (giữ tên, thứ tự, ảnh chủ đã
+ * chỉnh; danh mục chủ đã xóa không bị tạo lại); danh mục mới tạo ở cuối và chỉ gắn khóa đang chưa có danh mục. Khóa không gắn vì chủ đã quyết (khóa đã có danh mục khác,
+ * hoặc danh mục của nó đã có từ trước) nằm trong `keptAssignment`. Slug không tồn tại → ném lỗi, không ghi gì.
+ */
+export async function applyCategoryLayout(ctx: AdminCtx, layout: CategoryLayoutEntry[]): Promise<{
+  created: string[]; skipped: string[]; assigned: string[]; keptAssignment: string[]; uncategorizedPublished: string[];
+}> {
+  await authorize(ctx, "content.edit", { action: "category_layout_apply" });
+  const { readFile } = await import("node:fs/promises");
+  const { createHash } = await import("node:crypto");
+  // Mã đã từng gieo (kể cả danh mục chủ đã xóa sau đó): không bao giờ tạo lại.
+  const seededKeys = async (db: Tx | ReturnType<typeof prisma>) => new Set((await db.$queryRaw<{ key: string }[]>`
+    SELECT seed_key AS key FROM course_categories WHERE seed_key IS NOT NULL
+    UNION SELECT jsonb_array_elements_text(after -> 'created') FROM admin_audit_log WHERE action = 'category_layout_apply' AND result = 'ok'`).map((r) => r.key));
+  const alreadySeeded = await seededKeys(prisma());
+  // Đọc, kiểm và lưu ảnh của danh mục sẽ tạo, trước giao dịch (theo nội dung, ghi lại an toàn).
+  const stored = new Map<string, Awaited<ReturnType<typeof storePublicImage>>>();
+  for (const entry of layout) {
+    if (!entry.imageFile || alreadySeeded.has(entry.seedKey)) continue;
+    const bytes = await readFile(entry.imageFile);
+    const sha = createHash("sha256").update(bytes).digest("hex");
+    if (entry.imageSha16 && !sha.startsWith(entry.imageSha16)) throw new Error(`Ảnh ${entry.imageFile}: sha256 ${sha.slice(0, 16)} không khớp ${entry.imageSha16}`);
+    stored.set(entry.seedKey, await storePublicImage(bytes));
+  }
+  const result = await mapDbErrors(() => withTx(async (tx) => {
+    await lockSiblings(tx, ROOT_KEY);
+    const seeded = await seededKeys(tx);
+    const slugs = [...new Set(layout.flatMap((e) => e.courses))];
+    const found = await tx.$queryRaw<{ slug: string; category_id: string | null }[]>`
+      SELECT slug, category_id::text AS category_id FROM courses WHERE slug = ANY(${slugs}::text[]) FOR UPDATE`;
+    const missing = slugs.filter((s) => !found.some((f) => f.slug === s));
+    if (missing.length) throw new Error(`Không có khóa: ${missing.join(", ")}`);
+    const courseCategory = new Map(found.map((f) => [f.slug, f.category_id]));
+    const out = { created: [] as string[], skipped: [] as string[], assigned: [] as string[], keptAssignment: [] as string[] };
+    for (const entry of layout) {
+      if (seeded.has(entry.seedKey)) {
+        const [existing] = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM course_categories WHERE seed_key = ${entry.seedKey}`;
+        out.skipped.push(entry.seedKey);
+        out.keptAssignment.push(...entry.courses.filter((s) => courseCategory.get(s) !== existing?.id));
+        continue;
+      }
+      if (entry.imageFile && !stored.has(entry.seedKey)) throw new Error(`Ảnh của ${entry.seedKey} chưa được kiểm, chạy lại`);
+      const image = stored.get(entry.seedKey);
+      const assetId = image ? await assetIdFor(tx, image) : null;
+      const [{ next }] = (await tx.$queryRaw<{ next: number }[]>`
+        SELECT coalesce(max(position), 0)::int + 1 AS next FROM course_categories WHERE parent_key = ${ROOT_KEY}::uuid`) as [{ next: number }];
+      const [created] = await tx.$queryRaw<{ id: string }[]>`
+        INSERT INTO course_categories (seed_key, title_vi, title_en, position, image_asset_id)
+        VALUES (${entry.seedKey}, ${cleanTitle(entry.titleVi)}, ${cleanTitleEn(entry.titleEn)}, ${next}, ${assetId}::uuid) RETURNING id::text AS id`;
+      out.created.push(entry.seedKey);
+      for (const slug of entry.courses) {
+        if (courseCategory.get(slug) !== null) {
+          out.keptAssignment.push(slug);
+          continue;
+        }
+        await tx.$executeRaw`UPDATE courses SET category_id = ${created!.id}::uuid WHERE slug = ${slug}`;
+        courseCategory.set(slug, created!.id);
+        out.assigned.push(slug);
+      }
+    }
+    await audit(tx, {
+      adminId: ctx.adminId, action: "category_layout_apply", targetType: "course_category", targetId: null,
+      after: out, result: "ok", ip: ctx.ip,
+    });
+    return out;
+  }));
+  const uncategorized = await prisma().$queryRaw<{ slug: string }[]>`
+    SELECT slug FROM courses WHERE status = 'published' AND category_id IS NULL ORDER BY slug`;
+  return { ...result, uncategorizedPublished: uncategorized.map((r) => r.slug) };
+}
