@@ -7,6 +7,8 @@ import { withTx } from "@/lib/db";
 import { createSession } from "@/modules/sessions/sessions";
 import { POST as createModuleRoute } from "@/app/api/quan-tri/content/courses/[slug]/modules/route";
 import { PUT as lessonModuleRoute } from "@/app/api/quan-tri/content/courses/[slug]/lessons/[externalId]/module/route";
+import { POST as createCategoryRoute } from "@/app/api/quan-tri/categories/route";
+import { PUT as courseCategoryRoute } from "@/app/api/quan-tri/courses/[id]/category/route";
 import { auditRows, insertAdmin } from "../helpers/admin";
 import { adminSess, callAdmin } from "../helpers/admin-call";
 import { sqlAsMigrator } from "../helpers/otp";
@@ -36,7 +38,7 @@ function patch(id: string, s: { token: string; csrf: string }, body: unknown) {
 describe("danh mục công khai", () => {
   it("khóa draft không lộ; publish rồi mới thấy, kèm 3 bài học thử có tiêu đề tiếng Việt", async () => {
     await seedContent();
-    expect(await (await listCourses(get("/api/public/courses"))).json()).toEqual({ courses: [] });
+    expect(await (await listCourses(get("/api/public/courses"))).json()).toEqual({ courses: [], groups: [] });
     expect((await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).status).toBe(404);
     expect((await getTrial(get("/x"), params({ slug: "engine_cadet_tanker", position: "1" }))).status).toBe(404);
     await publish("engine_cadet_tanker");
@@ -111,5 +113,91 @@ describe("quản trị sửa giá và trạng thái", () => {
     expect([res.status, await res.json()]).toEqual([403, { error: "role" }]);
     const stale = await admin("owner", new Date(Date.now() - 11 * 60_000));
     expect((await patch(ids.engine_cadet_tanker!, stale, { priceVnd: 1000 })).status).toBe(403);
+  });
+});
+
+// Danh mục khóa học trên trang công khai (docs/superpowers/plans/2026-11-14-course-categories.md, Task 2).
+type Card = { slug: string; priceVnd: number; category: { id: string; titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null } | null };
+type Group = {
+  id: string | null; key: string; titleVi: string; titleEn: string | null; imageUrl: string | null; courseCount: number; minPriceVnd: number;
+  courses: Card[]; subgroups: { id: string; titleVi: string; courses: Card[] }[];
+};
+
+describe("danh mục khóa học công khai", () => {
+  const T = "engine_cadet_tanker";
+  const D = "engine_cadet_dry_cargo";
+  async function setup() {
+    const ids = await seedContent();
+    const s = await adminSess("owner");
+    const cat = async (titleVi: string, extra: { titleEn?: string; parentId?: string } = {}) =>
+      ((await (await callAdmin(createCategoryRoute, s, "POST", "/x", { titleVi, ...extra })).json()) as { id: string }).id;
+    const put = async (slug: string, categoryId: string | null) =>
+      expect((await callAdmin(courseCategoryRoute, s, "PUT", "/x", { categoryId }, { id: ids[slug]! })).status).toBe(200);
+    return { cat, put };
+  }
+  const catalog = async () => (await (await listCourses(get("/api/public/courses"))).json()) as { courses: Card[]; groups: Group[] };
+
+  it("khóa đang bán gom theo danh mục, đúng thứ tự; danh mục rỗng hoặc chỉ có khóa ngừng bán thì không hiện", async () => {
+    const { cat, put } = await setup();
+    await publish(T, 300_000);
+    await publish(D, 200_000);
+    const a = await cat("Phụ máy", { titleEn: "Wiper" });
+    await cat("Thợ máy");
+    const c = await cat("Máy trưởng");
+    await put(D, a);
+    await put(T, c);
+    const { groups } = await catalog();
+    expect(groups.map((g) => [g.key, g.titleVi, g.titleEn, g.courseCount, g.minPriceVnd, g.courses.map((x) => x.slug)])).toEqual([
+      [a, "Phụ máy", "Wiper", 1, 200_000, [D]],
+      [c, "Máy trưởng", null, 1, 300_000, [T]],
+    ]);
+    expect(groups[0]).toMatchObject({ id: a, imageUrl: null, subgroups: [] });
+    await sqlAsMigrator(`UPDATE courses SET status = 'archived' WHERE slug = $1`, [D]);
+    expect((await catalog()).groups.map((g) => g.id)).toEqual([c]);
+  });
+
+  it("khóa trong danh mục con nằm trong subgroups của cha; courseCount và minPriceVnd tính cả khóa con", async () => {
+    const { cat, put } = await setup();
+    await publish(T, 300_000);
+    await publish(D, 250_000);
+    const a = await cat("Máy hai", { titleEn: "2/E" });
+    const a1 = await cat("Tàu dầu", { parentId: a, titleEn: "Tanker" });
+    await cat("Tàu rỗng", { parentId: a });
+    await put(T, a1);
+    await put(D, a);
+    let [g] = (await catalog()).groups;
+    expect(g).toMatchObject({ id: a, courseCount: 2, minPriceVnd: 250_000 });
+    expect(g!.courses.map((x) => x.slug)).toEqual([D]);
+    expect(g!.subgroups.map((sg) => [sg.id, sg.titleVi, sg.courses.map((x) => x.slug)])).toEqual([[a1, "Tàu dầu", [T]]]);
+    // Chỉ còn khóa trong danh mục con: vẫn hiện danh mục, số khóa và giá thấp nhất theo khóa con.
+    await put(D, null);
+    [g] = (await catalog()).groups;
+    expect(g).toMatchObject({ id: a, courseCount: 1, minPriceVnd: 300_000, courses: [] });
+    const { courses } = await catalog();
+    expect(courses.find((x) => x.slug === T)!.category).toEqual({ id: a1, titleVi: "Tàu dầu", titleEn: "Tanker", parentTitleVi: "Máy hai", parentTitleEn: "2/E" });
+  });
+
+  it("khóa chưa gắn danh mục ở nhóm Khóa khác cuối cùng (key khac)", async () => {
+    const { cat, put } = await setup();
+    await publish(T);
+    await publish(D);
+    const a = await cat("Phụ máy");
+    await put(T, a);
+    const { groups, courses } = await catalog();
+    expect(groups.map((g) => [g.id, g.key, g.titleVi, g.courses.map((x) => x.slug)])).toEqual([[a, a, "Phụ máy", [T]], [null, "khac", "Khóa khác", [D]]]);
+    expect(groups[1]).toMatchObject({ titleEn: null, imageUrl: null, courseCount: 1, subgroups: [] });
+    expect(courses.find((x) => x.slug === D)!.category).toBeNull();
+    expect(courses.find((x) => x.slug === T)!.category).toEqual({ id: a, titleVi: "Phụ máy", titleEn: null, parentTitleVi: null, parentTitleEn: null });
+  });
+
+  it("API công khai trả đúng { courses, groups }; API chi tiết khóa không có trường category", async () => {
+    const { cat, put } = await setup();
+    await publish(T);
+    await put(T, await cat("Phụ máy"));
+    const body = (await catalog()) as unknown as Record<string, unknown>;
+    expect(Object.keys(body).sort()).toEqual(["courses", "groups"]);
+    expect((body.courses as Card[])[0]).toHaveProperty("category");
+    const detail = (await (await getCourse(get("/x"), params({ slug: T }))).json()) as Record<string, unknown>;
+    expect(detail).not.toHaveProperty("category");
   });
 });

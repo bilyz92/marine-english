@@ -2,6 +2,7 @@ import { prisma, withTx } from "@/lib/db";
 import { audit } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
+import { publicMediaUrl } from "@/modules/storage/storage";
 
 // Danh mục chỉ gồm khóa published; nội dung đọc theo phiên bản hiện hành của khóa.
 
@@ -61,6 +62,76 @@ function group(rows: Row[]): Grouped[] {
 
 export async function listPublishedCourses(): Promise<CourseCard[]> {
   return group(await publishedRows()).map(({ lessons: _lessons, courseId: _courseId, ...card }) => card);
+}
+
+/** Danh mục của khóa trong danh sách công khai (chỉ danh sách; CourseCard và CourseDetail không đổi). */
+export type CatalogCourseCard = CourseCard & {
+  category: { id: string; titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null } | null;
+};
+/**
+ * Nhóm khóa đang bán theo danh mục cấp 1 (docs/superpowers/plans/2026-11-14-course-categories.md, Task 2): khóa gắn thẳng ở `courses`,
+ * khóa gắn danh mục con ở `subgroups`; `courseCount` và `minPriceVnd` tính cả hai. Nhóm không có khóa đang bán bị bỏ; khóa chưa có
+ * danh mục ở nhóm cuối "Khóa khác" (key "khac").
+ */
+export type CatalogGroup = {
+  id: string | null; key: string; titleVi: string; titleEn: string | null; imageUrl: string | null;
+  courseCount: number; minPriceVnd: number; courses: CatalogCourseCard[];
+  subgroups: { id: string; titleVi: string; courses: CatalogCourseCard[] }[];
+};
+export const OTHER_GROUP_KEY = "khac";
+
+type CategoryRow = { id: string; parent_id: string | null; title_vi: string; title_en: string | null; storage_key: string | null };
+
+export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCard[]; groups: CatalogGroup[] }> {
+  const db = prisma();
+  const [grouped, links, categories] = await Promise.all([
+    publishedRows().then(group),
+    db.$queryRaw<{ id: string; category_id: string | null }[]>`
+      SELECT id::text AS id, category_id::text AS category_id FROM courses WHERE status = 'published'`,
+    db.$queryRaw<CategoryRow[]>`
+      SELECT c.id::text AS id, c.parent_id::text AS parent_id, c.title_vi, c.title_en, ma.storage_key
+      FROM course_categories c LEFT JOIN course_categories p ON p.id = c.parent_id LEFT JOIN media_assets ma ON ma.id = c.image_asset_id
+      ORDER BY coalesce(p.position, c.position), c.parent_id IS NOT NULL, c.position`,
+  ]);
+  const categoryOf = new Map(links.map((l) => [l.id, l.category_id]));
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const courses: CatalogCourseCard[] = [];
+  const courseCategory = new Map<CatalogCourseCard, CategoryRow | undefined>();
+  for (const { lessons: _lessons, courseId, ...card } of grouped) {
+    const own = byId.get(categoryOf.get(courseId) ?? "");
+    const parent = own?.parent_id ? byId.get(own.parent_id) : undefined;
+    const course: CatalogCourseCard = {
+      ...card,
+      category: own
+        ? { id: own.id, titleVi: own.title_vi, titleEn: own.title_en, parentTitleVi: parent?.title_vi ?? null, parentTitleEn: parent?.title_en ?? null }
+        : null,
+    };
+    courses.push(course);
+    courseCategory.set(course, own);
+  }
+  const inCategory = (id: string) => courses.filter((c) => courseCategory.get(c)?.id === id);
+  const summarize = (base: Omit<CatalogGroup, "courseCount" | "minPriceVnd">): CatalogGroup => {
+    const all = [...base.courses, ...base.subgroups.flatMap((s) => s.courses)];
+    return { ...base, courseCount: all.length, minPriceVnd: Math.min(...all.map((c) => c.priceVnd)) };
+  };
+  const groups = categories
+    .filter((c) => c.parent_id === null)
+    .map((c) =>
+      summarize({
+        id: c.id, key: c.id, titleVi: c.title_vi, titleEn: c.title_en, imageUrl: c.storage_key ? publicMediaUrl(c.storage_key) : null,
+        courses: inCategory(c.id),
+        subgroups: categories
+          .filter((s) => s.parent_id === c.id)
+          .map((s) => ({ id: s.id, titleVi: s.title_vi, courses: inCategory(s.id) }))
+          .filter((s) => s.courses.length > 0),
+      }),
+    )
+    .filter((g) => g.courseCount > 0);
+  const other = courses.filter((c) => !courseCategory.get(c));
+  if (other.length) {
+    groups.push(summarize({ id: null, key: OTHER_GROUP_KEY, titleVi: "Khóa khác", titleEn: null, imageUrl: null, courses: other, subgroups: [] }));
+  }
+  return { courses, groups };
 }
 
 export async function getPublishedCourse(slug: string): Promise<CourseDetail | null> {
