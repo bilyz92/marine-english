@@ -19,3 +19,8 @@ export function openProtected(storageKey: string) {
 export function openPublic(storageKey: string) {
   return openPublicAt(env().MEDIA_ROOT, storageKey);
 }
+
+/** URL của tệp công khai (route src/app/media/[key]; ở production Caddy/nginx phục vụ thẳng thư mục media/public cùng đường dẫn). */
+export function publicMediaUrl(storageKey: string): string {
+  return `/media/${storageKey}`;
+}

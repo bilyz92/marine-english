@@ -322,6 +322,7 @@ model Course {
   status           String          @default("draft")
   priceVnd         Int?            @map("price_vnd")
   currentVersionId String?         @map("current_version_id") @db.Uuid
+  categoryId       String?         @map("category_id") @db.Uuid
   topics           Json            @default("[]")
   createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime        @default(now()) @map("updated_at") @db.Timestamptz(6)
@@ -331,7 +332,9 @@ model Course {
   enrollments      Enrollment[]
   modules          CourseModule[]
   learningEvents   LearningEvent[]
+  category         CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
+  @@index([categoryId], map: "courses_category_idx")
   @@map("courses")
 }
 
@@ -644,6 +647,7 @@ model MediaAsset {
   storageKey     String               @map("storage_key")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   lessonVersions LessonVersionAsset[]
+  categories     CourseCategory[]
 
   @@unique([visibility, storageKey], map: "media_assets_visibility_storage_key_key")
   @@map("media_assets")
@@ -816,4 +820,25 @@ model CourseLessonModule {
   @@id([courseId, lessonId])
   @@index([moduleId], map: "course_lesson_modules_module_idx")
   @@map("course_lesson_modules")
+}
+
+/// Danh mục khóa học hai cấp (docs/superpowers/plans/2026-11-14-course-categories.md). Hai cột sinh parent_key, name_key không khai báo
+/// ở đây (Prisma không ghi được cột GENERATED); mọi ghi đi qua SQL thô trong src/modules/content/categories.ts. Cột sinh, ràng buộc hoãn
+/// và trigger chỉ có trong migration: migration sau viết tay, không sinh bằng `prisma migrate dev`/`diff` (sẽ đòi xóa chúng).
+model CourseCategory {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId     String?          @map("parent_id") @db.Uuid
+  seedKey      String?          @unique @map("seed_key")
+  titleVi      String           @map("title_vi")
+  titleEn      String?          @map("title_en")
+  imageAssetId String?          @map("image_asset_id") @db.Uuid
+  position     Int
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  parent       CourseCategory?  @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  children     CourseCategory[] @relation("CategoryChildren")
+  image        MediaAsset?      @relation(fields: [imageAssetId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  courses      Course[]
+
+  @@index([imageAssetId], map: "course_categories_image_idx")
+  @@map("course_categories")
 }

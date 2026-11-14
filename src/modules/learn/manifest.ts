@@ -3,6 +3,7 @@ import { hasActiveEnrollment, mergeGroupIds } from "@/modules/enrollments/access
 import type { LearnerCtx } from "@/modules/sessions/guards";
 import { entitledCourses } from "./entitlements";
 import { modulesFor } from "@/modules/content/modules";
+import { publicMediaUrl } from "@/modules/storage/storage";
 
 // Manifest có phiên bản của một khóa: danh sách bài và tệp để tải về học offline.
 
@@ -78,7 +79,7 @@ export async function courseManifest(ctx: LearnerCtx, slug: string): Promise<Man
     // Tệp công khai tải theo đường dẫn ổn định (Caddy phục vụ ở production); tệp bảo vệ chỉ qua API có kiểm quyền.
     assets: assets.map((a) => ({
       assetId: a.id, lessonVersionId: a.lesson_version_id, role: a.role, mime: a.mime, bytes: a.bytes, sha256: a.sha256, visibility: a.visibility,
-      url: a.visibility === "public" ? `/media/${a.storage_key}` : `/api/learn/files/${a.id}`,
+      url: a.visibility === "public" ? publicMediaUrl(a.storage_key) : `/api/learn/files/${a.id}`,
     })),
     totalBytes: [...bytesById.values()].reduce((sum, b) => sum + b, 0),
   };

@@ -117,7 +117,7 @@ export async function updateCourse(ctx: AdminCtx, courseId: string, change: Cour
 
 export async function listAllCourses() {
   return prisma().course.findMany({
-    select: { id: true, slug: true, titleVi: true, status: true, priceVnd: true, updatedAt: true },
+    select: { id: true, slug: true, titleVi: true, status: true, priceVnd: true, updatedAt: true, categoryId: true },
     orderBy: { slug: "asc" },
   });
 }

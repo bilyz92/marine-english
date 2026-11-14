@@ -1,0 +1,102 @@
+# Danh mục khóa học (theo chức danh, có danh mục con) Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Trang Khóa học gom khóa theo danh mục (hiện là chức danh); chủ tự tạo, đổi tên, sắp xếp, xóa danh mục và danh mục con trong quản trị và chọn danh mục cho từng khóa.
+
+**Architecture:** Bảng `course_categories` hai cấp (`parent_id` null = danh mục, có `parent_id` = danh mục con; không có cấp 3), `courses.category_id` (null = "Khóa khác"). Một module dịch vụ `src/modules/content/categories.ts` cho quản trị (kiểm quyền `content.edit`, ghi `admin_audit_log`) và một hàm đọc công khai trả khóa đang bán theo nhóm. Trang công khai `/khoa-hoc` và trang chủ hiện nhóm; tìm kiếm vẫn lọc phẳng như cũ.
+
+**Tech Stack:** Next.js 16 App Router, Prisma 7 raw SQL, PostgreSQL 16, Vitest, e2e headless Chrome.
+
+**Spec (bổ sung 14/11/2026, ảnh mẫu của chủ "Khóa phỏng vấn ngành máy"):** trang Khóa học mở đầu bằng dải ảnh tàu với dòng "MARINE ENGINE ACADEMY · Khóa phỏng vấn ngành máy", rồi lưới 9 ô chức danh theo thứ tự Engine Cadet, Wiper, Oiler, Fitter, ETO, 4/E, 3/E, 2/E, C/E; mỗi ô có ảnh cầu vai, tên tiếng Anh (đậm) và tên tiếng Việt; bấm ô thì hiện các khóa của chức danh đó. Ảnh ô dùng 9 ảnh riêng chủ gửi (đã in sẵn tên); ảnh ghép chỉ để cắt dải đầu (xem Task 4).
+
+**Spec gốc:** Yêu cầu chủ 14/11/2026 (ảnh trang /khoa-hoc 21 khóa xếp liền): "gom theo chức danh. và thêm chức năng tạo sub category"; chốt: "theo chức danh thôi. lúc nào nhiều khóa học thì tách tiếp" → bây giờ một cấp là chức danh; danh mục con là chức năng có sẵn để chủ tách sau.
+
+## Global Constraints
+
+- Hai cấp tối đa: danh mục con không được có con (kiểm ở dịch vụ và bằng trigger DB).
+- Xóa danh mục chỉ khi không còn danh mục con và không còn khóa nào (kể cả khóa nháp/ngừng bán) → 409 `category_not_empty`.
+- Tên 1–80 ký tự sau khi bỏ khoảng trắng thừa; trùng tên giữa anh em cùng cha → 409 `category_name_taken` (không phân biệt hoa thường), bảo đảm bằng ràng buộc DB (xem Task 1), không chỉ kiểm ở dịch vụ.
+- Thứ tự `position` liên tục 1..n theo từng cha. Cha null được coi là một cha chung nhờ cột sinh `parent_key uuid GENERATED ALWAYS AS (COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)) STORED` và ràng buộc `UNIQUE (parent_key, position) DEFERRABLE INITIALLY IMMEDIATE` (ràng buộc trên cột sinh nên hoãn được, khác chỉ mục biểu thức); dời ↑↓ là `SET CONSTRAINTS … DEFERRED` rồi hoán vị trong một giao dịch như `course_modules`; xóa thì dồn lại vị trí các anh em phía sau trong cùng giao dịch.
+- Không đổi giá, trạng thái hay nội dung khóa; không đổi API công khai đang có ngoài việc **thêm** trường: `/api/public/courses` trả đúng `{ courses: CatalogCourseCard[], groups: CatalogGroup[] }` (chỉ phần tử danh sách có `category`); `CourseCard` dùng chung và API chi tiết khóa không đổi.
+- Danh mục không có khóa đang bán thì không hiện ở trang công khai; khóa chưa có danh mục hiện ở nhóm cuối "Khóa khác".
+- Màu, chữ chỉ từ `src/app/tokens.css`; chữ ≥ 15px; nút chạm ≥ 52px trên điện thoại.
+- Danh mục có thêm `title_en` (tên tiếng Anh, có thể trống) và ảnh đại diện tùy chọn (`image_asset_id` → `media_assets`, `visibility = 'public'`, jpg/png/webp ≤ 2 MB, nhận diện theo byte đầu tệp, lưu qua module storage như ảnh công khai khác); quản trị tải lên, xem, gỡ ảnh. Không có ảnh thì ô hiện khung màu nhạt với chữ.
+
+## Review Focus
+
+1. Xóa danh mục còn khóa nháp/ngừng bán (không hiện công khai) vẫn bị chặn (Task 1).
+2. Tạo danh mục con dưới danh mục con → 400 `category_depth` (Task 1).
+3. Khách tìm "container" khi trang đang chia nhóm vẫn ra đúng khóa (tìm theo tên khóa và tên danh mục) (Task 3).
+4. Khóa ngừng bán không làm hiện danh mục rỗng ở trang công khai (Task 2).
+5. Người hỗ trợ (support) xem được danh mục, không tạo/sửa được → 403 (Task 1).
+
+---
+
+### Task 1: Bảng, dịch vụ và API quản trị
+
+**Files:** Create `prisma/migrations/20261114090000_course_categories/migration.sql`, `src/modules/content/categories.ts`, routes `src/app/api/quan-tri/categories/route.ts` (GET, POST), `src/app/api/quan-tri/categories/[id]/route.ts` (PATCH `{titleVi?, titleEn?}` | `{move:"up"|"down"}`, DELETE), `src/app/api/quan-tri/categories/[id]/image/route.ts` (PUT bytes thô, DELETE), `src/app/api/quan-tri/courses/[id]/category/route.ts` (PUT `{categoryId: uuid | null}`); modify `prisma/schema.prisma`; Test `tests/integration/course-categories.test.ts`.
+
+**Interfaces — Produces:**
+- `listAllCourses()` (danh sách khóa quản trị, `GET /api/quan-tri/courses`) thêm `categoryId: string | null` cho mỗi khóa.
+- `listCategories(ctx): Promise<{ categories: { id: string; parentId: string | null; seedKey: string | null; titleVi: string; titleEn: string | null; imageUrl: string | null; position: number; courseCount: number }[] }>` (quyền `orders.view`, thứ tự: cha theo position, con ngay sau cha theo position).
+- `createCategory(ctx, { titleVi, titleEn?, parentId? }): Promise<{ id: string }>`, `updateCategory(ctx, id, { titleVi?, titleEn? (null = xóa) })`, `moveCategory(ctx, id, "up" | "down")`, `deleteCategory(ctx, id)`, `setCourseCategory(ctx, courseId, categoryId | null)`, `setCategoryImage`, `removeCategoryImage` (dưới) — quyền `content.edit`, nhật ký `category_create|update|move|delete`, `category_image_set|remove`, `course_category_set`.
+- URL ảnh công khai: `` `/media/${storage_key}` `` (cùng quy ước với `src/modules/learn/manifest.ts` và route `src/app/media/[key]/route.ts`), viết thành hàm `publicMediaUrl(storageKey)` trong `src/modules/storage/storage.ts` và dùng lại ở manifest.
+- Migration: `course_categories (id uuid pk default gen_random_uuid(), parent_id uuid null references course_categories(id) on delete restrict, title_vi text not null check (length(btrim(title_vi)) between 1 and 80), position int not null check (position > 0), created_at timestamptz default now(), parent_key uuid GENERATED ALWAYS AS (COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)) STORED, name_key text GENERATED ALWAYS AS (lower(regexp_replace(btrim(title_vi), '\s+', ' ', 'g'))) STORED, CONSTRAINT course_categories_position_key UNIQUE (parent_key, position) DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT course_categories_name_key UNIQUE (parent_key, name_key))`; trigger `BEFORE INSERT OR UPDATE OF parent_id` chặn cha có `parent_id` không null và `parent_id = id` (400 `category_depth`); `courses.category_id uuid null references course_categories(id) on delete restrict`; GRANT cho `me_app` như `course_modules` **và** `GRANT UPDATE ("category_id") ON "courses" TO me_app;` (me_app chỉ có quyền UPDATE theo cột trên `courses`). Lỗi 23505 trên `course_categories_name_key` → 409 `category_name_taken`, bắt **ngoài** `withTx` (lỗi trong giao dịch tương tác làm hỏng giao dịch) theo `pgCode` + tên ràng buộc như `refunds.ts`. 23503 còn sót (khóa ngoại khi xóa/gắn chạy đua) → 409 `category_not_empty` / 404, không bao giờ 500.
+- `prisma/schema.prisma`: `model CourseCategory` **không** khai báo hai cột sinh `parent_key`, `name_key` (Prisma không ghi được cột GENERATED; mọi ghi đi qua SQL thô); `Course` thêm `categoryId` (vì `listAllCourses` dùng `prisma().course.findMany`).
+- Cột thêm: `title_en text null check (title_en is null or length(btrim(title_en)) between 1 and 80)`, `image_asset_id uuid null references media_assets(id) on delete restrict`; trigger từ chối `image_asset_id` trỏ tới tệp không `visibility = 'public'`.
+- Cột `seed_key text null unique` (mã ổn định cho danh mục do script gieo, ví dụ `rank:cadet`; không hiện, không sửa từ giao diện) để script nhận lại đúng danh mục dù chủ đã đổi tên.
+- Ghi `media_assets`: me_app chỉ có SELECT/INSERT, nên lưu ảnh bằng `INSERT … ON CONFLICT (visibility, storage_key) DO NOTHING` rồi `SELECT`, không bao giờ UPDATE.
+- `setCategoryImage(ctx, id, bytes: Buffer): Promise<{ imageUrl: string }>`: nhận diện theo byte đầu tệp JPEG (`FF D8 FF`), PNG (`89 50 4E 47 0D 0A 1A 0A`), WebP (`RIFF....WEBP`); khác → 400 `image_format`; > 2 MB → 413 `image_too_large`; lưu bằng module storage dạng công khai (content-addressed, cùng tệp thì dùng lại), gắn vào danh mục; thay ảnh thì gắn ảnh mới, tệp cũ giữ trong `media_assets` (không xóa đĩa ở bước này). `removeCategoryImage(ctx, id)`: bỏ gắn. Nhật ký `category_image_set` (sha256, mime, bytes) / `category_image_remove`. URL công khai lấy qua hàm URL công khai sẵn có của storage.
+- Routes thêm: `PATCH /api/quan-tri/categories/[id]` nhận `{ titleVi?, titleEn? }` hoặc `{ move }`; `PUT /api/quan-tri/categories/[id]/image` (thân là bytes thô như route video nhưng **đi qua proxy** — proxy đệm tới 10 MB, đủ cho 2 MB; `requireAdmin` đã kiểm Origin/CSRF/phiên; kiểm cả `content-length` lẫn số byte thật ≤ 2 MB; GIF, SVG và mọi định dạng khác → 400 `image_format`) và `DELETE` cùng đường; `listCategories` trả thêm `titleEn`, `imageUrl`.
+- Mọi thao tác đổi anh em (tạo, dời, xóa) trước hết lấy cùng một khóa giao dịch theo cha: `pg_advisory_xact_lock(hashtext('course-category:' || parent_key))`; tạo mới lấy khóa này rồi mới kiểm tên và cấp `position = max + 1`.
+- Chạy đua giữa các nhóm anh em khác nhau: `deleteCategory` `SELECT … FROM course_categories WHERE id = $1 FOR UPDATE` **trước** khi kiểm còn con/còn khóa; tạo danh mục con và `setCourseCategory` `SELECT … WHERE id = <danh mục đích> FOR SHARE` rồi kiểm lại còn tồn tại (404) và (với tạo con) là cấp 1 (400 `category_depth`). Thêm test `xóa danh mục cha và thêm danh mục con cùng lúc → một bên thành công, bên kia 409/404, không 500`.
+- Xóa: trong một giao dịch, lấy khóa theo cha như trên, kiểm rỗng, xóa, `UPDATE … SET position = position - 1 WHERE parent_key = … AND position > <vị trí đã xóa>` (ràng buộc hoãn).
+
+- [ ] **Step 1: Test hỏng** `course-categories.test.ts`: `tạo danh mục và danh mục con, liệt kê đúng thứ tự cha → con`; `danh mục con của danh mục con → 400 category_depth`; `trùng tên cùng cha → 409, khác cha thì được`; `dời lên/xuống đổi chỗ với anh em, đầu/cuối không đổi`; `dời ở cấp 1 và ở danh mục con đều đổi chỗ đúng (cha null vẫn là một nhóm anh em)`; `xóa còn khóa (kể cả nháp) hoặc còn con → 409 category_not_empty; rỗng thì xóa được`; `xóa danh mục giữa → vị trí anh em liền 1..n; sau đó dời và tạo mới vẫn đúng`; `hai yêu cầu tạo cùng tên cùng lúc → một thành công, một 409 category_name_taken`; `hai yêu cầu tạo khác tên cùng lúc cùng cha → cả hai thành công, vị trí 1..n liền, không lỗi trùng vị trí`; `gắn khóa vào danh mục, bỏ gắn (null); danh mục không tồn tại → 404; GET /api/quan-tri/courses trả categoryId đã gắn`; `support: GET 200, POST/PATCH/DELETE/PUT (cả ảnh) → 403`; `đặt, đổi, xóa titleEn`; `ảnh: jpg/png/webp nhận, gif và tệp văn bản đổi đuôi .jpg → 400 image_format, > 2 MB → 413, thay ảnh đổi imageUrl, gỡ ảnh → imageUrl null, tệp protected không gắn được (trigger)`; `không phiên → 401`; `mỗi thao tác ghi nhật ký`.
+- [ ] **Step 2:** FAIL. **Step 3:** migration + schema + dịch vụ + routes. **Step 4:** PASS. **Step 5:** Codex, commit `feat(admin): course categories with one sub-level (service and admin API)`.
+
+### Task 2: Đọc công khai theo nhóm
+
+**Files:** Modify `src/modules/content/catalog.ts`, `src/app/api/public/courses/route.ts`; Test `tests/integration/catalog.test.ts`.
+
+**Interfaces — Produces:**
+- Kiểu mới `CatalogCourseCard = CourseCard & { category: { id: string; titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null } | null }` chỉ dùng cho danh sách; `CourseCard` và `CourseDetail` (API chi tiết `/api/public/courses/[slug]`) **không đổi**, test khẳng định API chi tiết không có trường `category`.
+- `listPublishedCatalog(): Promise<{ groups: CatalogGroup[] }>` với `CatalogGroup = { id: string | null; key: string; titleVi: string; titleEn: string | null; imageUrl: string | null; courseCount: number; minPriceVnd: number; courses: CatalogCourseCard[]; subgroups: { id: string; titleVi: string; courses: CatalogCourseCard[] }[] }`; `courseCount` và `minPriceVnd` tính trên **mọi** khóa đang bán của danh mục, cả khóa gắn thẳng lẫn khóa trong danh mục con; `key` = id danh mục, riêng nhóm "Khóa khác" là `"khac"`: nhóm theo danh mục cấp 1 theo position; khóa gắn danh mục con nằm trong `subgroups` của cha; khóa gắn thẳng danh mục cấp 1 nằm ở `courses`; bỏ nhóm/nhóm con không có khóa đang bán; khóa chưa có danh mục → nhóm cuối `{ id: null, titleVi: "Khóa khác" }`. Trong nhóm, khóa giữ thứ tự hiện tại (theo slug).
+- `/api/public/courses` trả `{ courses: CatalogCourseCard[], groups: CatalogGroup[] }` (giữ `courses` cũ, mỗi khóa thêm `category`).
+
+- [ ] **Step 1: Test hỏng** trong `catalog.test.ts`: `khóa đang bán gom theo danh mục, đúng thứ tự; danh mục chỉ có khóa ngừng bán thì không hiện`; `khóa trong danh mục con nằm trong subgroups của cha`; `khóa chưa gắn danh mục ở nhóm Khóa khác cuối cùng (key "khac")`; `danh mục chỉ có khóa trong danh mục con: courseCount và minPriceVnd tính cả khóa con; danh mục có cả khóa thẳng lẫn khóa con: cộng đủ, giá thấp nhất đúng`; `API chi tiết khóa không có trường category`; `API công khai trả đúng { courses, groups }, mỗi khóa có category`.
+- [ ] **Step 2–4:** FAIL → cài → PASS. **Step 5:** Codex, commit `feat(sales): public catalogue grouped by category`.
+
+### Task 3: Giao diện công khai và quản trị
+
+**Files:** Create `src/app/(site)/khoa-hoc/course-groups.tsx` (+ css module); modify `src/app/(site)/khoa-hoc/page.tsx`, `course-search.tsx`, `src/lib/client/course-search.ts` (tìm cả tên Việt và Anh của danh mục và danh mục cha), `src/app/(site)/page.tsx` (trang chủ dùng cùng nhóm), `src/app/admin/(panel)/khoa-hoc/page.tsx` (+ `categories.tsx`); e2e `tests/e2e-ui/categories.mjs`.
+
+- Quy tắc hiển thị ô danh mục (duy nhất): **có ảnh** → hiện ảnh (ảnh do chủ làm, đã in tên chức danh), `alt=""` (trang trí), tên "<tên Anh> – <tên Việt>" nằm trong HTML với lớp `srOnly` làm tên của liên kết; dòng hiện ra dưới ảnh: "n khóa · từ <giá>". **Không có ảnh** → tên Anh đậm + tên Việt hiện ra, nền màu nhạt, cùng dòng "n khóa · từ <giá>". Nhóm "Khóa khác" luôn không ảnh.
+- Trang `/khoa-hoc`: dải đầu (ảnh tàu tĩnh trong `public/`, chữ "MARINE ENGINE ACADEMY" + "Khóa phỏng vấn ngành máy"), ô tìm kiếm, rồi lưới ô danh mục (3 cột ≥ 860px, 2 cột điện thoại, 1 cột < 360px): theo quy tắc hiển thị ô danh mục ở trên. Bấm ô → `/khoa-hoc?dm=<key>` (key = id danh mục, "Khóa khác" là `khac`; giữ được khi tải lại và chia sẻ link) hiện tiêu đề danh mục, nút "← Tất cả chức danh", danh mục con là `h3`, lưới thẻ khóa. Gõ tìm kiếm → ẩn lưới danh mục, hiện danh sách lọc phẳng như cũ (giữ "n khóa khớp …"). `dm` không tồn tại → về lưới danh mục.
+- Trang chủ: cùng lưới ô danh mục (không có ô tìm), mỗi ô dẫn tới `/khoa-hoc?dm=<key>` (cả "Khóa khác" → `?dm=khac`).
+- Quản trị `/admin/khoa-hoc`: khối "Danh mục" (cây 2 cấp: tên sửa tại chỗ, ↑ ↓, Xóa khi rỗng, "Thêm danh mục con" ở mỗi danh mục cấp 1, ô "Tên danh mục mới"); danh sách khóa nhóm theo danh mục; mỗi khóa có ô chọn "Danh mục" (lựa chọn thụt lề cho danh mục con, "Chưa xếp"), đổi là lưu ngay.
+
+- Quản trị: mỗi danh mục có ô tên Anh, nút "Tải ảnh" (xem trước ảnh hiện tại), "Gỡ ảnh"; báo lỗi định dạng/kích thước bằng tiếng Việt.
+- [ ] **Step 1:** e2e `categories.mjs` (viết trước): mở thẳng `/khoa-hoc?dm=<id>` và `/khoa-hoc?dm=khac` rồi tải lại vẫn đúng nhóm; ô có ảnh không hiện chữ trùng, ô không ảnh hiện tên; chủ tải ảnh png cho một danh mục và thấy ở trang công khai; chủ tạo 2 danh mục, 1 danh mục con, gắn khóa, đổi thứ tự, xóa danh mục còn khóa bị báo; khách thấy ô danh mục đúng thứ tự, tìm "container" ra danh sách phẳng; bấm ô "Khóa khác" ở trang chủ tới đúng `/khoa-hoc?dm=khac`; tìm một từ chỉ có trong tên danh mục cha hoặc danh mục con (cả tên tiếng Anh, ví dụ "Fitter") (ví dụ tạo danh mục "Sĩ quan vận hành" và danh mục con "Nhóm thử", tìm "vận hành" và "nhóm thử") ra đúng các khóa trong đó dù tên khóa không chứa từ ấy; thêm test đơn vị cho `matchesCourse` cùng trường hợp này; 390/1280 không lỗi giao diện.
+- [ ] **Step 2–4:** FAIL → cài → PASS (dev server; chạy lại `shots.mjs`, `purchase.mjs` phần trang khóa). **Step 5:** Codex, commit `feat(sales): catalogue and admin grouped by category`.
+
+### Task 4: Dữ liệu ban đầu, tài liệu, deploy
+
+- [ ] **Nguồn ảnh (chốt):** 9 ảnh riêng chủ gửi 14/11/2026 là nguồn chính thức cho ô danh mục (~380×350, đã in tên Anh + Việt); ảnh ghép chỉ dùng để cắt dải đầu. Đặt sẵn ở `/tmp/claude-1000/-home-bilyz-project-marine-english/07316ca5-513c-430e-af52-ac1b391c0196/scratchpad/rank-images/` với tên và sha256 (16 ký tự đầu): `cadet.jpg` ac2c3a0ba276e891, `wiper.jpg` 05920fa0685aaf80, `oiler.jpg` e205527609940e68, `fitter.jpg` fc53f26bb5814740, `eto.jpg` 42cf9037ad178e7a, `4e.jpg` f37ed68de0a714c0, `3e.jpg` 6a298409403e7a47, `2e.jpg` 55abdae512302001, `ce.jpg` a32a57c0a1d03a68; ảnh ghép `sample-full.jpg` b9bd0ba86494ac45. Không commit ảnh của chủ; dải đầu cắt bằng ffmpeg (phần trên, bỏ chữ) lưu `public/images/khoa-hoc-banner.webp` (commit).
+- [ ] **Dịch vụ gieo dữ liệu (chỉ tạo, không ghi đè)** `applyCategoryLayout(ctx, layout: { seedKey: string; titleVi; titleEn; imageFile?: string; courses: string[] }[]): Promise<{ created: string[]; skipped: string[]; assigned: string[]; keptAssignment: string[]; uncategorizedPublished: string[] }>` trong `categories.ts`. Chạy để dựng 9 danh mục **một lần**; chạy lại (kể cả lỡ tay) **không bao giờ** sửa tên, thứ tự, ảnh hay cách gắn khóa mà chủ đã chỉnh trên trang quản trị. Test tích hợp: lần đầu tạo đủ 9 danh mục đúng thứ tự, tên, ảnh, gắn khóa; chạy lại không đổi gì (`created` rỗng); chủ đổi tên/thứ tự/gỡ ảnh/chuyển một khóa sang danh mục khác rồi chạy lại → **vẫn giữ** thay đổi của chủ, khóa đã có danh mục nằm trong `keptAssignment`; một slug trong bảng không tồn tại → ném lỗi, không ghi gì. Các bước: (1) đọc và kiểm từng tệp ảnh (định dạng, kích thước, sha256 khớp bảng) rồi lưu vào storage công khai **trước** giao dịch (content-addressed, ghi lại an toàn); (2) **một giao dịch** dưới khóa `course-category:<parent_key gốc>`: kiểm mọi slug trong bảng **tồn tại** (không kiểm trạng thái: trên DB dev hai khóa cadet cũ đang nháp, không phải ngừng bán); `seed_key` đã có → bỏ qua (`skipped`); chưa có → tạo danh mục cấp 1 ở `position = max + 1` (bảng theo thứ tự nên lần đầu là 1..9 khi chưa có danh mục nào), gắn ảnh; gắn khóa **chỉ khi `category_id` đang null**; nhật ký `category_layout_apply` (danh sách thay đổi). (3) In ra `uncategorizedPublished` (khóa đang bán còn ở "Khóa khác", ví dụ trên dev `engine_cadet_tanker` và 8 khóa `tu_luan_*`) để chủ biết trước khi deploy.
+
+- [ ] **Chạy:** tệp `src/worker/seed-rank-categories.ts` (commit; trong image worker có `src/`) chứa bảng dưới và gọi `applyCategoryLayout`; người thao tác là tài khoản chủ đang hoạt động sớm nhất (`admin_users role='owner' status='active' order by activated_at`), `authAt = now`, `sessionId = "cli-seed-rank-categories"`, `ip = "127.0.0.1"` (bắt buộc: nhật ký ghi `ip::inet`, chuỗi rỗng làm hỏng mọi lần ghi). Thử trên DB dev trước. Trên máy chủ: `scp` 9 ảnh vào `/tmp/rank-images/`, `docker cp` vào container worker, `docker exec <worker> node --experimental-transform-types --import ./src/worker/alias-loader.mjs src/worker/seed-rank-categories.ts /tmp/rank-images`, rồi xóa ảnh tạm. Bảng:
+  `seedKey` theo thứ tự bảng: `rank:cadet`, `rank:wiper`, `rank:oiler`, `rank:fitter`, `rank:eto`, `rank:4e`, `rank:3e`, `rank:2e`, `rank:ce`.
+  | Danh mục (thứ tự · tên Việt · tên Anh) | Khóa |
+  |---|---|
+  | 1 Thực tập máy · Engine Cadet | `mea_cadet_tanker`, `engine_cadet_container`, `engine_cadet_dry_cargo` (hai khóa cũ: nháp hoặc ngừng bán, không hiện ở trang công khai) |
+  | 2 Phụ máy · Wiper | `mea_wiper_tanker` |
+  | 3 Thợ máy · Oiler | `mea_oiler_tanker` |
+  | 4 Thợ sửa chữa cơ khí · Fitter | `mea_fitter_tanker`, `mea_fitter_bulk`, `mea_fitter_container` |
+  | 5 Sĩ quan kỹ thuật điện · ETO | `mea_eto_tanker`, `mea_eto_bulk`, `mea_eto_container` |
+  | 6 Máy tư · 4/E | `mea_4e_tanker`, `mea_4e_bulk`, `mea_4e_container` |
+  | 7 Máy ba · 3/E | `mea_3e_tanker`, `mea_3e_bulk`, `mea_3e_container` |
+  | 8 Máy hai · 2/E | `mea_2e_tanker`, `mea_2e_bulk`, `mea_2e_container` |
+  | 9 Máy trưởng · C/E | `mea_ce_tanker`, `mea_ce_bulk`, `mea_ce_container` |
+- [ ] CLAUDE.md (mục danh mục, e2e `categories`), `pnpm test`, `lint`, `typecheck`, `build` xanh; Codex; commit; đẩy GitLab + GitHub; deploy khi chủ nói "deploy đi" (migration chỉ thêm bảng và một cột null).
