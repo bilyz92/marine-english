@@ -38,10 +38,21 @@ try {
   await hydrated();
   check("đã đăng nhập, điện thoại → có menu", await waitFor(navVisible, 10000));
   check("đủ 5 mục", JSON.stringify(await navLabels()) === JSON.stringify(["Trang chủ", "Khóa học", "Khóa của tôi", "Thanh toán", "Tìm kiếm"]), JSON.stringify(await navLabels()));
-  // Nút Tài khoản ghi email, không có email thì số điện thoại của học viên (chủ 15/11/2026); không còn chữ Đăng nhập.
+  // Nút tài khoản (mẫu Cole, chủ 16/11/2026): vòng chữ cái, tên và email, không có email thì số điện thoại; không còn chữ Đăng nhập.
   const shownPhone = phone;
-  check("thanh trên cùng ghi số điện thoại của học viên thay cho Đăng nhập", await waitFor(() => b.evaluate(`(() => { const a = document.querySelector('header nav a[href="/tai-khoan"]'); return !!a && a.textContent.includes(${JSON.stringify(shownPhone)}) && !document.querySelector("header nav").textContent.includes("Đăng nhập"); })()`), 10000),
-    await b.evaluate(`document.querySelector('header nav a[href="/tai-khoan"]')?.textContent`));
+  const accountText = () => b.evaluate(`document.querySelector('header button[aria-controls="menu-tai-khoan"]')?.textContent ?? ""`);
+  check("nút tài khoản ghi tên, số điện thoại và chữ cái đầu tên, không còn Đăng nhập", await waitFor(async () => {
+    const t = await accountText();
+    return t.includes("Học viên menu") && t.includes(shownPhone) && t.startsWith("VM") && !(await b.evaluate(`document.querySelector("header nav").textContent.includes("Đăng nhập")`));
+  }, 10000), await accountText());
+  await b.evaluate(`document.querySelector('button[aria-controls="menu-chinh"]').click()`);
+  await b.evaluate(`document.querySelector('header button[aria-controls="menu-tai-khoan"]').click()`);
+  const menuItems = () => b.evaluate(`(() => { const m = document.getElementById("menu-tai-khoan"); return m && getComputedStyle(m).display !== "none" ? [...m.querySelectorAll("a,button")].map((e) => e.firstChild.textContent.trim()) : []; })()`);
+  check("bấm nút tài khoản → menu Tài khoản của tôi, Đăng xuất", await waitFor(async () => JSON.stringify(await menuItems()) === JSON.stringify(["Tài khoản của tôi", "Đăng xuất"]), 5000), JSON.stringify(await menuItems()));
+  await b.shot(`${OUT}/menu-tai-khoan-390.png`);
+  await b.evaluate(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))`);
+  check("Esc → đóng menu tài khoản", await waitFor(async () => (await menuItems()).length === 0, 5000));
+  await b.evaluate(`document.querySelector('button[aria-controls="menu-chinh"]').click()`);
   check("trang chủ đang chọn", await b.evaluate(`document.querySelector('nav[aria-label="Menu học viên"] a[aria-current="page"]')?.textContent.trim() === "Trang chủ"`));
   const problems = await b.evaluate(PAGE_CHECKS);
   check("điện thoại không tràn", problems.length === 0, JSON.stringify(problems));

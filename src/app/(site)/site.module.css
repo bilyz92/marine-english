@@ -22,8 +22,31 @@
 .navLink[aria-current] { background: var(--color-action); color: var(--color-action-ink); font-weight: 700; }
 .navInstall { composes: navLink; border: 0; background: none; font: inherit; font-weight: 700; color: var(--color-plate-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .navTheme { composes: navLink; border: 0; background: none; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.navAccount { composes: navLink; max-width: 100%; }
-.navAccountText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 24ch; }
+/* Nút tài khoản học viên (mẫu Cole 16/11/2026): vòng chữ cái, tên + email, menu thả xuống. */
+.account { position: relative; }
+.accountButton { min-height: var(--touch); display: flex; align-items: center; gap: 10px; padding: 4px 8px; border: 0; border-radius: var(--radius-control); background: none; color: var(--color-plate-text); font: inherit; cursor: pointer; text-align: left; }
+.accountButton:hover, .accountButton[aria-expanded="true"] { background: var(--color-plate-2); }
+.avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--color-plate-muted); color: var(--color-plate); font-weight: 700; font-size: var(--font-small); }
+.accountText { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.accountName, .accountLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 22ch; }
+.accountName { font-weight: 700; font-size: var(--font-small); }
+.accountLabel { font-size: 15px; color: var(--color-plate-muted); }
+.caret { flex: none; transition: transform .15s; }
+.accountButton[aria-expanded="true"] .caret { transform: rotate(180deg); }
+.accountMenu { display: none; }
+.accountMenuOpen { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 240px; display: flex; flex-direction: column; padding: 6px; background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-card); box-shadow: 0 8px 24px rgb(0 0 0 / .18); }
+.accountItem, .accountLogout { min-height: var(--touch); display: flex; flex-direction: column; justify-content: center; padding: 6px 12px; border-radius: var(--radius-control); color: var(--color-text); font-size: var(--font-small); text-decoration: none; }
+.accountItem:hover, .accountLogout:hover { background: var(--color-bg-soft); color: var(--color-text); }
+.accountLogout { border: 0; border-top: 1px solid var(--color-border); border-radius: 0 0 var(--radius-control) var(--radius-control); background: none; font: inherit; color: var(--color-danger); text-align: left; cursor: pointer; align-items: flex-start; }
+.accountHint { font-size: 15px; color: var(--color-text-2); }
+.accountError { margin: 4px 12px 6px; font-size: 15px; color: var(--color-danger); max-width: 30ch; }
+/* Điện thoại: nút tài khoản là dòng cuối menu chính, menu con mở ngay bên dưới (không nổi đè lên trang). */
+@media (max-width: 760px) {
+  .navOpen .account { border-top: 1px solid var(--color-plate-2); margin-top: 4px; padding-top: 4px; }
+  .navOpen .accountButton { width: 100%; }
+  .navOpen .accountName, .navOpen .accountLabel { max-width: none; }
+  .accountMenuOpen { position: static; box-shadow: none; margin: 4px 0 8px; }
+}
 .navCta { min-height: var(--touch); padding: 0 14px; font-size: var(--font-small); border-radius: var(--radius-control); background: var(--color-action); color: var(--color-action-ink); border: 2px solid var(--color-action-edge); font-weight: 700; text-decoration: none; display: flex; align-items: center; }
 .navCta:hover { color: var(--color-action-ink); filter: brightness(0.94); }
 .footer { margin-top: auto; border-top: 1px solid var(--color-border); background: var(--color-bg); }

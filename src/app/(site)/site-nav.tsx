@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { InstallApp } from "@/components/install-app";
 import { useSignedIn } from "@/components/learner-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountMenu, type Account } from "./account-menu";
 import styles from "./site.module.css";
 
 // Menu đầu trang. Máy tính: một hàng. Điện thoại: một hàng logo + nút Menu, bấm mới mở danh sách.
@@ -18,14 +19,14 @@ export function SiteNav() {
   const pathname = usePathname(); // Dựng lại khi chuyển trang: vừa đăng nhập xong là menu đổi ngay.
   const signedIn = useSignedIn();
   const [open, setOpen] = useState(false);
-  // Đã đăng nhập: nút Tài khoản hiện email (hoặc số điện thoại, tên) của học viên; chưa đọc xong thì vẫn ghi "Tài khoản".
-  const [account, setAccount] = useState<string | null>(null);
+  // Đã đăng nhập: nút tài khoản hiện tên và email (hoặc số điện thoại) của học viên; chưa đọc xong thì ghi "Tài khoản".
+  const [account, setAccount] = useState<Account | null>(null);
   useEffect(() => {
     if (!signedIn) return;
     let stale = false;
     void fetch("/api/me/session", { cache: "no-store" })
-      .then((res) => (res.ok ? (res.json() as Promise<{ accountLabel?: string }>) : null))
-      .then((body) => { if (!stale && body?.accountLabel) setAccount(body.accountLabel); })
+      .then((res) => (res.ok ? (res.json() as Promise<{ displayName?: string; accountLabel?: string }>) : null))
+      .then((body) => { if (!stale && body?.accountLabel) setAccount({ name: body.displayName ?? "", label: body.accountLabel }); })
       .catch(() => {});
     return () => { stale = true; };
   }, [signedIn]);
@@ -42,11 +43,9 @@ export function SiteNav() {
         ))}
         <InstallApp className={styles.navInstall} label="Tải app" />
         <ThemeToggle className={styles.navTheme} />
-        <Link href={signedIn ? "/tai-khoan" : "/dang-nhap"} className={signedIn ? styles.navAccount : styles.navLink} onClick={close}
-          title={signedIn && account ? `Tài khoản: ${account}` : undefined}
-          aria-current={(signedIn ? pathname === "/tai-khoan" : pathname.startsWith("/dang-nhap")) ? "page" : undefined}>
-          {signedIn ? <span className={styles.navAccountText}>{account || "Tài khoản"}</span> : "Đăng nhập"}
-        </Link>
+        {signedIn ? <AccountMenu account={account} onNavigate={close} /> : (
+          <Link href="/dang-nhap" className={styles.navLink} onClick={close} aria-current={pathname.startsWith("/dang-nhap") ? "page" : undefined}>Đăng nhập</Link>
+        )}
         {!signedIn && <Link href="/khoa-hoc" className={styles.navCta} onClick={close}>Học thử miễn phí</Link>}
       </nav>
     </>
