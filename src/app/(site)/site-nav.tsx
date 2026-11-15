@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InstallApp } from "@/components/install-app";
 import { useSignedIn } from "@/components/learner-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -18,6 +18,17 @@ export function SiteNav() {
   const pathname = usePathname(); // Dựng lại khi chuyển trang: vừa đăng nhập xong là menu đổi ngay.
   const signedIn = useSignedIn();
   const [open, setOpen] = useState(false);
+  // Đã đăng nhập: nút Tài khoản hiện email (hoặc số điện thoại, tên) của học viên; chưa đọc xong thì vẫn ghi "Tài khoản".
+  const [account, setAccount] = useState<string | null>(null);
+  useEffect(() => {
+    if (!signedIn) return;
+    let stale = false;
+    void fetch("/api/me/session", { cache: "no-store" })
+      .then((res) => (res.ok ? (res.json() as Promise<{ accountLabel?: string }>) : null))
+      .then((body) => { if (!stale && body?.accountLabel) setAccount(body.accountLabel); })
+      .catch(() => {});
+    return () => { stale = true; };
+  }, [signedIn]);
   const close = () => setOpen(false);
   return (
     <>
@@ -31,8 +42,11 @@ export function SiteNav() {
         ))}
         <InstallApp className={styles.navInstall} label="Tải app" />
         <ThemeToggle className={styles.navTheme} />
-        <Link href={signedIn ? "/tai-khoan" : "/dang-nhap"} className={styles.navLink} onClick={close}
-          aria-current={(signedIn ? pathname === "/tai-khoan" : pathname.startsWith("/dang-nhap")) ? "page" : undefined}>{signedIn ? "Tài khoản" : "Đăng nhập"}</Link>
+        <Link href={signedIn ? "/tai-khoan" : "/dang-nhap"} className={signedIn ? styles.navAccount : styles.navLink} onClick={close}
+          title={signedIn && account ? `Tài khoản: ${account}` : undefined}
+          aria-current={(signedIn ? pathname === "/tai-khoan" : pathname.startsWith("/dang-nhap")) ? "page" : undefined}>
+          {signedIn ? <span className={styles.navAccountText}>{account || "Tài khoản"}</span> : "Đăng nhập"}
+        </Link>
         {!signedIn && <Link href="/khoa-hoc" className={styles.navCta} onClick={close}>Học thử miễn phí</Link>}
       </nav>
     </>

@@ -38,7 +38,10 @@ try {
   await hydrated();
   check("đã đăng nhập, điện thoại → có menu", await waitFor(navVisible, 10000));
   check("đủ 5 mục", JSON.stringify(await navLabels()) === JSON.stringify(["Trang chủ", "Khóa học", "Khóa của tôi", "Thanh toán", "Tìm kiếm"]), JSON.stringify(await navLabels()));
-  check("thanh trên cùng ghi Tài khoản thay cho Đăng nhập", await b.evaluate(`(() => { const h = document.querySelector("header nav"); return h.innerText.includes("Tài khoản") && !h.innerText.includes("Đăng nhập"); })()`));
+  // Nút Tài khoản ghi email, không có email thì số điện thoại của học viên (chủ 15/11/2026); không còn chữ Đăng nhập.
+  const shownPhone = phone;
+  check("thanh trên cùng ghi số điện thoại của học viên thay cho Đăng nhập", await waitFor(() => b.evaluate(`(() => { const a = document.querySelector('header nav a[href="/tai-khoan"]'); return !!a && a.textContent.includes(${JSON.stringify(shownPhone)}) && !document.querySelector("header nav").textContent.includes("Đăng nhập"); })()`), 10000),
+    await b.evaluate(`document.querySelector('header nav a[href="/tai-khoan"]')?.textContent`));
   check("trang chủ đang chọn", await b.evaluate(`document.querySelector('nav[aria-label="Menu học viên"] a[aria-current="page"]')?.textContent.trim() === "Trang chủ"`));
   const problems = await b.evaluate(PAGE_CHECKS);
   check("điện thoại không tràn", problems.length === 0, JSON.stringify(problems));
@@ -72,7 +75,8 @@ try {
   // Học viên đã đăng nhập mở bài học thử trên điện thoại: hàng Trước / Tiếp theo dính đáy nằm trên menu, không bị che.
   await b.go(`${BASE}/khoa-hoc`);
   await hydrated();
-  const slug = await b.evaluate(`[...document.querySelectorAll('a[href^="/khoa-hoc/"]')].map((a) => a.getAttribute("href").split("/")[2]).find(Boolean)`);
+  // Trang Khóa học giờ hiện ô danh mục (?dm=…), không còn link từng khóa: lấy khóa đầu tiên từ API công khai.
+  const slug = await b.evaluate(`(async () => (await (await fetch("/api/public/courses")).json()).courses[0]?.slug)()`);
   await b.go(`${BASE}/khoa-hoc/${slug}/hoc-thu/1`);
   const dockClear = await waitFor(async () => b.evaluate(`(() => {
     const next = [...document.querySelectorAll("button")].find((e) => e.textContent.trim().startsWith("Tiếp theo"));

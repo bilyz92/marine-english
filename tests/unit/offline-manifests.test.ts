@@ -4,7 +4,7 @@ import { dbGet, openOfflineDb } from "@/lib/offline/db";
 import { loadManifest, type Manifest } from "@/lib/offline/engine";
 
 // Codex 15/11/2026: tải manifest và thu hồi khóa cùng lúc không được ghi đè nhau bằng bản đọc cũ.
-const who = () => ({ userId: `u${Math.random()}`, deviceId: "d1" });
+const who = () => ({ userId: `u${Math.random()}`, deviceId: "d1", displayName: "HV" });
 const manifest = (slug: string, courseId = `c-${slug}`): Manifest => ({
   courseId, slug, titleVi: slug, versionId: `v-${slug}`, lessons: [], assets: [], totalBytes: 0,
 });
