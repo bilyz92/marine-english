@@ -10,7 +10,6 @@ import { issueOtp, verifyOtp } from "./otp";
 import { otpSenderFor } from "./otp-sender";
 import { revokeAllForSubject } from "@/modules/sessions/sessions";
 import { burnPasswordCheck, hashPassword, passwordProblem, verifyPassword, type PasswordProblem } from "./password-hash";
-import { savePendingCredentials } from "./pending-credentials";
 
 // D2: đăng ký và đăng nhập bằng số điện thoại + mật khẩu (docs/superpowers/plans/2026-11-01-phone-password.md).
 // Số trong password_logins chưa xác minh; số đã xác minh (user_identities) luôn thắng.
@@ -30,9 +29,20 @@ async function lockActiveLearner(tx: Tx, userId: string): Promise<boolean> {
   return user?.status === "active";
 }
 
-async function lockKeys(tx: Tx, ip: string | null, phone: string | null): Promise<void> {
+/** Khóa tư vấn theo thứ tự cố định IP → số → email (email: đơn khách, chủ 16/11/2026). Giá trị đã chuẩn hóa. */
+export async function lockKeys(tx: Tx, ip: string | null, phone: string | null, email: string | null = null): Promise<void> {
   if (ip) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pw-ip:${ip}`}))`;
   if (phone) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`phone:${phone}`}))`;
+  if (email) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`email:${email}`}))`;
+}
+
+/**
+ * Gọi trước mọi lần ghi danh tính email/số đã xác minh, để việc gắn danh tính và việc tạo tài khoản cho đơn khách (kiểm trùng dưới
+ * cùng khóa) không chạy xen nhau.
+ */
+export async function lockIdentityValue(tx: Tx, kind: string, value: string): Promise<void> {
+  if (kind === "phone") await lockKeys(tx, null, value);
+  else if (kind === "email") await lockKeys(tx, null, null, value);
 }
 
 /**
@@ -51,14 +61,16 @@ async function isLocked(tx: Tx, ip: string, phone: string | null): Promise<boole
   return row!.ip_fails >= IP_FAILS || row!.phone_fails >= PHONE_FAILS;
 }
 
-async function emailTaken(tx: Tx, email: string): Promise<boolean> {
+/** Email đã có tài khoản: email đã xác minh, hoặc email liên hệ khách nhập lúc mua (chưa xác minh). */
+export async function emailInUse(tx: Tx, email: string): Promise<boolean> {
   const [row] = await tx.$queryRaw<{ taken: boolean }[]>`
-    SELECT EXISTS (SELECT 1 FROM user_identities WHERE kind = 'email' AND value_canonical = ${email}) AS taken`;
+    SELECT EXISTS (SELECT 1 FROM user_identities WHERE kind = 'email' AND value_canonical = ${email})
+        OR EXISTS (SELECT 1 FROM learner_contact_emails WHERE email = ${email}) AS taken`;
   return row!.taken;
 }
 
 /** Số đang có chủ: dòng mật khẩu chưa nhả của người khác, hoặc số đã xác minh của bất kỳ ai khác. */
-async function phoneTaken(tx: Tx, phone: string, exceptUserId: string | null): Promise<boolean> {
+export async function phoneTaken(tx: Tx, phone: string, exceptUserId: string | null): Promise<boolean> {
   const [row] = await tx.$queryRaw<{ taken: boolean }[]>`
     SELECT EXISTS (SELECT 1 FROM password_logins WHERE phone_canonical = ${phone} AND released_at IS NULL
                      AND user_id IS DISTINCT FROM ${exceptUserId}::uuid)
@@ -112,7 +124,7 @@ async function attachPhone(tx: Tx, userId: string, phone: string, hash: string, 
 
 export type RegisterResult<T> =
   | { kind: "ok"; value: T }
-  | { kind: "invalid_phone" | "phone_taken" | "email_taken" | "throttled" }
+  | { kind: "invalid_phone" | "phone_taken" | "throttled" }
   | { kind: "weak"; problem: PasswordProblem };
 
 /**
@@ -122,9 +134,7 @@ export type RegisterResult<T> =
  */
 export async function registerWithPassword<T>(
   input: {
-    phone: string; password: string; displayName: string; rank: string | null; ip: string; existingEmail?: string;
-    /** Đăng ký nhanh ở trang mua: mật khẩu do hệ thống cấp, bắt đổi lần đầu đăng nhập, giữ bản mã hóa để hiện ở bước 3, lưu email liên hệ. */
-    issued?: { contactEmail?: string };
+    phone: string; password: string; displayName: string; rank: string | null; ip: string;
   },
   then: (tx: Tx, userId: string) => Promise<T>,
 ): Promise<RegisterResult<T>> {
@@ -132,7 +142,7 @@ export async function registerWithPassword<T>(
   if (!phone) return { kind: "invalid_phone" };
   const problem = passwordProblem(input.password, phone);
   if (problem) return { kind: "weak", problem };
-  const reserved = await withTx(async (tx): Promise<{ kind: "throttled" | "phone_taken" | "email_taken" } | { kind: "slot"; attemptId: string }> => {
+  const reserved = await withTx(async (tx): Promise<{ kind: "throttled" | "phone_taken" } | { kind: "slot"; attemptId: string }> => {
     await lockKeys(tx, input.ip, phone);
     const [regs] = await tx.$queryRaw<{ n: number }[]>`
       SELECT count(*)::int AS n FROM password_attempts WHERE ip = ${input.ip}::inet AND kind = 'register' AND at > now() - interval '1 hour'`;
@@ -140,8 +150,6 @@ export async function registerWithPassword<T>(
     const [attempt] = await tx.$queryRaw<{ id: string }[]>`
       INSERT INTO password_attempts (kind, ip, phone_canonical, ok) VALUES ('register', ${input.ip}::inet, ${phone}, false) RETURNING id`;
     if (await phoneTaken(tx, phone, null)) return { kind: "phone_taken" };
-    // Đăng ký nhanh ở trang mua: email khách nhập đã là email (đã xác minh) của tài khoản khác → mời đăng nhập tài khoản đó.
-    if (input.existingEmail && (await emailTaken(tx, input.existingEmail))) return { kind: "email_taken" };
     return { kind: "slot", attemptId: attempt!.id };
   });
   if (reserved.kind !== "slot") return reserved;
@@ -152,13 +160,7 @@ export async function registerWithPassword<T>(
     const [user] = await tx.$queryRaw<{ id: string }[]>`
       INSERT INTO users (display_name, rank) VALUES (${input.displayName}, ${input.rank}) RETURNING id`;
     await tx.$executeRaw`
-      INSERT INTO password_logins (user_id, phone_canonical, password_hash, must_change) VALUES (${user!.id}::uuid, ${phone}, ${hash}, ${!!input.issued})`;
-    if (input.issued) {
-      await savePendingCredentials(tx, user!.id, input.password);
-      if (input.issued.contactEmail) {
-        await tx.$executeRaw`INSERT INTO learner_contact_emails (user_id, email) VALUES (${user!.id}::uuid, ${input.issued.contactEmail})`;
-      }
-    }
+      INSERT INTO password_logins (user_id, phone_canonical, password_hash) VALUES (${user!.id}::uuid, ${phone}, ${hash})`;
     await tx.$executeRaw`UPDATE password_attempts SET ok = true WHERE id = ${reserved.attemptId}::uuid`;
     return { kind: "ok", value: await then(tx, user!.id) };
   });

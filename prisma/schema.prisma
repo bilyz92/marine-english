@@ -31,6 +31,7 @@ model User {
   otpChallenges    OtpChallenge[]
   oidcStates       OidcState[]
   orders           Order[]
+  guestOrders      GuestOrder[]
   enrollments      Enrollment[]
   learningEvents   LearningEvent[]
   learningProgress LearningProgress[]
@@ -403,7 +404,8 @@ model Order {
   id                  String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   termsAcceptance     OrderTermsAcceptance?
   code                String                          @unique(map: "orders_code_key")
-  userId              String                          @map("user_id") @db.Uuid
+  /// Null khi là đơn khách chưa trả tiền (guest_orders); đặt khi nhận tiền.
+  userId              String?                         @map("user_id") @db.Uuid
   status              String                          @default("pending")
   amountDueVnd        Int                             @map("amount_due_vnd")
   currency            String                          @default("VND")
@@ -414,7 +416,8 @@ model Order {
   expiredAt           DateTime?                       @map("expired_at") @db.Timestamptz(6)
   refundedAt          DateTime?                       @map("refunded_at") @db.Timestamptz(6)
   createdXact         Unsupported("xid8")             @default(dbgenerated("pg_current_xact_id()")) @map("created_xact")
-  user                User                            @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user                User?                           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  guest               GuestOrder?
   items               OrderItem[]
   classifications     BankTransactionClassification[]
   allocations         PaymentAllocation[]
@@ -785,13 +788,33 @@ model ReconciliationCursor {
 
 model OrderTermsAcceptance {
   orderId      String   @id @map("order_id") @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
   termsVersion String   @map("terms_version")
   acceptedAt   DateTime @default(now()) @map("accepted_at") @db.Timestamptz(6)
   order        Order    @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@map("order_terms_acceptances")
+}
+
+/// Người mua chưa có tài khoản (migration guest_orders): tài khoản tạo khi đơn được trả tiền. Ràng buộc và trigger nằm trong SQL.
+model GuestOrder {
+  orderId         String   @id @map("order_id") @db.Uuid
+  displayName     String   @map("display_name")
+  phoneCanonical  String   @map("phone_canonical")
+  email           String
+  passwordHash    String   @map("password_hash")
+  passwordEnc     String?  @map("password_enc")
+  accessTokenHash String   @unique(map: "guest_orders_access_token_hash_key") @map("access_token_hash")
+  createdIp       String   @map("created_ip") @db.Inet
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  userId          String?  @map("user_id") @db.Uuid
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([phoneCanonical], map: "guest_orders_phone_idx")
+  @@index([email], map: "guest_orders_email_idx")
+  @@map("guest_orders")
 }
 
 /// Module của khóa (chủ tạo trên trang quản trị). Không theo phiên bản khóa.

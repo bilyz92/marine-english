@@ -2,6 +2,7 @@ import type { Tx } from "@/lib/db";
 import type { GoogleClaims } from "@/modules/auth-oidc/google";
 import { canonicalizeEmail } from "@/modules/identity/email";
 import { findUserIdByIdentity } from "./identities";
+import { lockIdentityValue } from "./password";
 
 /**
  * Tìm học viên theo google sub; lần đầu (email đã xác minh) thì tạo user + identity google, và identity email nếu email
@@ -13,6 +14,8 @@ export async function resolveGoogleUser(tx: Tx, claims: GoogleClaims): Promise<s
   const email = claims.emailVerified && claims.email ? canonicalizeEmail(claims.email) : null;
   if (!email) return null;
 
+  // Khóa email trước khi ghi: không chạy xen với việc tạo tài khoản cho đơn khách cùng email.
+  await lockIdentityValue(tx, "email", email);
   await tx.$executeRaw`SAVEPOINT google_user`;
   const [user] = await tx.$queryRaw<{ id: string }[]>`
     INSERT INTO users (display_name, rank) VALUES (${email.split("@")[0]!}, NULL) RETURNING id`;

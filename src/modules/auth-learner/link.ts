@@ -9,7 +9,7 @@ import { parseContact } from "./contact";
 import { lockActiveUser } from "./devices";
 import type { IdentityKind } from "./identities";
 import { issueOtp, verifyOtp } from "./otp";
-import { claimVerifiedPhone } from "./password";
+import { claimVerifiedPhone, lockIdentityValue } from "./password";
 import { otpSenderFor } from "./otp-sender";
 
 // Liên kết thêm cách đăng nhập: chỉ khi đã xác thực trong 10 phút gần đây và chứng minh được định danh mới.
@@ -42,6 +42,8 @@ export async function startLink(ctx: LearnerCtx, input: StartLinkInput): Promise
 /** Gắn định danh đã chứng minh vào người dùng; định danh đã thuộc người khác thì không đổi gì. */
 async function attachIdentity(tx: Tx, userId: string, kind: IdentityKind, value: string): Promise<"linked" | "owned_by_other"> {
   await lockActiveUser(tx, userId);
+  // Sau khóa học viên, theo thứ tự khóa chung: không chạy xen với việc tạo tài khoản cho đơn khách cùng email/số.
+  await lockIdentityValue(tx, kind, value);
   const inserted = await tx.$executeRaw`
     INSERT INTO user_identities (user_id, kind, value_canonical, verified_at)
     VALUES (${userId}::uuid, ${kind}, ${value}, now())

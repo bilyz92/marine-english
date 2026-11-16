@@ -1,28 +1,27 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { prisma, type Tx } from "@/lib/db";
 import { env } from "@/lib/env";
-import { mergeGroupIds } from "@/modules/enrollments/access";
-import { learnerEmail } from "@/modules/mail/recipient";
-import type { LearnerCtx } from "@/modules/sessions/guards";
 
-// Mật khẩu tạm của khách mua không cần đăng nhập (chủ 09/11/2026, docs/superpowers/plans/2026-11-09-checkout-credentials.md):
-// không hiện ở bước 1; hiện ở bước 3 và gửi email khi thanh toán xong. Giữ dạng mã hóa AES-256-GCM (khóa SESSION_ENC_KEYS,
+// Mật khẩu tạm của khách mua không cần đăng nhập (chủ 09/11/2026; từ 16/11/2026 tài khoản tạo lúc nhận tiền, mật khẩu chỉ gửi qua
+// email: docs/superpowers/plans/2026-11-16-guest-orders.md). Giữ dạng mã hóa AES-256-GCM (khóa SESSION_ENC_KEYS,
 // AAD gắn mã học viên nên không chép sang người khác được); mất khi mật khẩu đổi (trigger trên password_logins) hoặc sau 30 ngày.
 
 const aad = (userId: string) => Buffer.from(`learner-credential|${userId}`);
+/** Mật khẩu tạm của đơn khách (chưa có học viên): gắn với mã đơn, niêm phong lại theo học viên khi nhận tiền. */
+const guestAad = (orderId: string) => Buffer.from(`guest-order|${orderId}`);
 export const PENDING_CREDENTIALS_DAYS = 30;
 
-export function sealCredential(userId: string, password: string): string {
+function seal(aadBytes: Buffer, password: string): string {
   const { SESSION_ENC_KEYS, SESSION_ENC_KEY_CURRENT: kid } = env();
   const nonce = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", SESSION_ENC_KEYS.get(kid)!, nonce);
-  cipher.setAAD(aad(userId));
+  cipher.setAAD(aadBytes);
   const ciphertext = Buffer.concat([cipher.update(password, "utf8"), cipher.final()]);
   return ["v1", kid, ...[nonce, ciphertext, cipher.getAuthTag()].map((b) => b.toString("base64url"))].join(".");
 }
 
-/** Sai định dạng, kid lạ, bị sửa hoặc của người khác → null. */
-export function openCredential(userId: string, sealed: string): string | null {
+/** Sai định dạng, kid lạ, bị sửa hoặc khác chỗ gắn (AAD) → null. */
+function open(aadBytes: Buffer, sealed: string): string | null {
   const [version, kid, nonceB64, ctB64, tagB64, ...rest] = sealed.split(".");
   if (version !== "v1" || !kid || !nonceB64 || ctB64 === undefined || !tagB64 || rest.length) return null;
   const key = env().SESSION_ENC_KEYS.get(kid);
@@ -31,13 +30,19 @@ export function openCredential(userId: string, sealed: string): string | null {
   if (!key || nonce.length !== 12 || tag.length !== 16) return null;
   try {
     const decipher = createDecipheriv("aes-256-gcm", key, nonce);
-    decipher.setAAD(aad(userId));
+    decipher.setAAD(aadBytes);
     decipher.setAuthTag(tag);
     return Buffer.concat([decipher.update(Buffer.from(ctB64, "base64url")), decipher.final()]).toString("utf8");
   } catch {
     return null;
   }
 }
+
+export const sealCredential = (userId: string, password: string) => seal(aad(userId), password);
+/** Sai định dạng, kid lạ, bị sửa hoặc của người khác → null. */
+export const openCredential = (userId: string, sealed: string) => open(aad(userId), sealed);
+export const sealGuestPassword = (orderId: string, password: string) => seal(guestAad(orderId), password);
+export const openGuestPassword = (orderId: string, sealed: string) => open(guestAad(orderId), sealed);
 
 export async function savePendingCredentials(tx: Tx, userId: string, password: string): Promise<void> {
   await tx.$executeRaw`
@@ -63,22 +68,4 @@ export async function markCredentialsEmailed(userId: string): Promise<void> {
 export async function prunePendingCredentials(): Promise<number> {
   return prisma().$executeRaw`
     DELETE FROM learner_pending_credentials WHERE created_at <= now() - make_interval(days => ${PENDING_CREDENTIALS_DAYS})`;
-}
-
-/**
- * Bước 3: chỉ khi đơn thuộc nhóm tài khoản của người hỏi và đang ở bước 3 (đã báo chuyển khoản còn mở, hoặc đã thanh toán).
- * Mọi trường hợp khác trả null, không lộ đơn có tồn tại hay không.
- */
-export async function credentialsForOrder(ctx: LearnerCtx, orderCode: string): Promise<{ phone: string; password: string; email: string | null } | null> {
-  const group = await mergeGroupIds(null, ctx.userId);
-  const [order] = await prisma().$queryRaw<{ ok: boolean; user_id: string }[]>`
-    SELECT o.user_id::text AS user_id, (o.status = 'paid' OR EXISTS (
-      SELECT 1 FROM enrollments e WHERE e.claim_order_id = o.id AND e.revoked_at IS NULL)) AS ok
-    FROM orders o WHERE o.code = ${orderCode.trim().toUpperCase()} AND o.user_id = ANY(${group}::uuid[])`;
-  if (!order?.ok) return null;
-  const creds = await readPendingCredentials(ctx.userId);
-  if (!creds) return null;
-  // Email sẽ nhận thư thông tin đăng nhập: hiện ra để khách tự soát nếu gõ sai.
-  // Cùng cách tìm người nhận như lúc gửi thư "đơn đã thanh toán" (theo chủ đơn), để email hiện ở đây đúng là email nhận thư.
-  return { ...creds, email: await learnerEmail(order.user_id) };
 }

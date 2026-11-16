@@ -35,6 +35,8 @@ const MESSAGES: Record<string, string> = {
   not_verified: "Giao dịch chưa được xác minh.",
   order_refunded: "Đơn đã hoàn tiền.",
   order_paid: "Đơn đã thanh toán.",
+  guest_conflict: "Số điện thoại hoặc email của khách đã có tài khoản khác: không ghép được. Liên hệ khách hoặc hoàn tiền.",
+  guest_credentials: "Không mở được mật khẩu tạm của đơn khách: không ghép được. Báo kỹ thuật.",
   missing_payout: "Chưa có tài khoản nhận tiền của học viên: nhập trước khi duyệt.",
   active_full_refund: "Đơn này đã có yêu cầu hoàn tiền đang mở.",
   not_paid: "Đơn chưa thanh toán hoặc đã hoàn.",
@@ -170,6 +172,6 @@ export const ORDER_STATUS: Record<string, { label: string; className: string }> 
 };
 
 export const QUEUE_REASON: Record<string, string> = {
-  no_code: "Không có mã đơn", multi_code: "Nhiều mã đơn", unknown_code: "Mã đơn không tồn tại", amount_short: "Thiếu tiền", amount_over: "Thừa tiền",
+  no_code: "Không có mã đơn", multi_code: "Nhiều mã đơn", unknown_code: "Mã đơn không tồn tại", amount_short: "Thiếu tiền", guest_conflict: "Số/email đã có tài khoản", guest_credentials: "Đơn khách lỗi mật khẩu tạm", amount_over: "Thừa tiền",
   late: "Tiền về sau hạn", early: "Tiền về trước khi tạo đơn", order_paid: "Đơn đã thanh toán", order_refunded: "Đơn đã hoàn tiền", bad_time: "Thời điểm không hợp lệ", unverified: "Chờ xác minh",
 };

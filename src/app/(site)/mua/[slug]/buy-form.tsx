@@ -21,8 +21,9 @@ const MESSAGE: Record<Exclude<Problem, null>, string> = {
 
 /** refundPolicy: công tắc hoàn tiền đọc ở máy chủ (biến môi trường không có trong mã trình duyệt). */
 /** autoConfirm: SePay đang bật (tiền về tự mở khóa); tắt thì khách bấm "Tôi đã chuyển khoản" là học ngay. */
-export function BuyForm({ slug, titleVi, priceVnd, lessonCount, refundPolicy, autoConfirm }: {
-  slug: string; titleVi: string; priceVnd: number; lessonCount: number; refundPolicy: boolean; autoConfirm: boolean;
+/** guestOpen: mua không cần tài khoản (chỉ khi máy chủ gửi được email, vì thông tin đăng nhập chỉ gửi qua email). */
+export function BuyForm({ slug, titleVi, priceVnd, lessonCount, refundPolicy, autoConfirm, guestOpen }: {
+  slug: string; titleVi: string; priceVnd: number; lessonCount: number; refundPolicy: boolean; autoConfirm: boolean; guestOpen: boolean;
 }) {
   const [name, setName] = useState<string | null>(null);
   // Chưa biết / khách chưa đăng nhập (mua ngay, tài khoản tạo trên trang này) / đã đăng nhập.
@@ -103,7 +104,9 @@ export function BuyForm({ slug, titleVi, priceVnd, lessonCount, refundPolicy, au
       </div>
       <ul className={styles.points}>
         <li>Thanh toán bằng VietQR, mọi ngân hàng Việt Nam.</li>
-        <li>{autoConfirm ? "Khóa học mở ngay khi hệ thống nhận được tiền." : "Chuyển khoản xong, bấm \"Tôi đã chuyển khoản\" là học được ngay."}</li>
+        <li>{autoConfirm ? "Khóa học mở ngay khi hệ thống nhận được tiền."
+          : who === "guest" ? "Chuyển khoản xong, chủ khóa học xác nhận khi thấy tiền rồi gửi thông tin đăng nhập vào email."
+          : "Chuyển khoản xong, bấm \"Tôi đã chuyển khoản\" là học được ngay."}</li>
         <li>Mã QR giữ trong 15 phút.</li>
       </ul>
     </aside>
@@ -114,11 +117,18 @@ export function BuyForm({ slug, titleVi, priceVnd, lessonCount, refundPolicy, au
       <div className={styles.layout}>
         <div className={ui.card}>
           <h1 className={ui.h2}>Thông tin người mua</h1>
-          <p className={ui.lead}>Chưa có tài khoản? Điền họ tên và số điện thoại, hệ thống tạo tài khoản cho bạn ngay.</p>
-          <GuestForm slug={slug} terms={terms} termsAccepted={accepted} onBlocked={() => setProblem("terms")}
-            onSignedIn={() => { setName(null); setWho("signed"); void loadSession(); void createOrder(); }} />
-          {problem && <p className={ui.error} role="alert">{MESSAGE[problem]}</p>}
-          {busy && <p className={ui.muted} role="status">Đang tạo đơn…</p>}
+          {guestOpen ? (
+            <>
+              <p className={ui.lead}>Chưa có tài khoản? Điền thông tin và thanh toán. Thanh toán xong, hệ thống tạo tài khoản và gửi thông tin đăng nhập vào email của bạn.</p>
+              <GuestForm slug={slug} terms={terms} termsAccepted={accepted} onBlocked={() => setProblem("terms")} />
+              {problem && <p className={ui.error} role="alert">{MESSAGE[problem]}</p>}
+            </>
+          ) : (
+            <>
+              <p className={ui.lead}>Đăng nhập hoặc tạo tài khoản để mua khóa học này.</p>
+              <Link className={ui.action} href={`/dang-nhap?next=${encodeURIComponent(`/mua/${slug}`)}`}>Đăng nhập hoặc tạo tài khoản</Link>
+            </>
+          )}
         </div>
         {summary}
       </div>

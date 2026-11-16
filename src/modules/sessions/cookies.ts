@@ -49,3 +49,9 @@ export function oidcCookie(realm: Realm, value: string): string {
 export function clearOidcCookie(realm: Realm): string {
   return cookie(OIDC_COOKIE[realm], "", 0, true);
 }
+
+/** Cookie mở trang đơn của khách chưa có tài khoản (một cookie mỗi đơn, HttpOnly, 7 ngày; chủ 16/11/2026). */
+export const guestOrderCookieName = (code: string) => `__Host-me_order_${code}`;
+export function guestOrderCookie(code: string, token: string): string {
+  return cookie(guestOrderCookieName(code), token, 7 * 86_400, true);
+}

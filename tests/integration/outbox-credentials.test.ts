@@ -1,24 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
-import { POST as quickRoute } from "@/app/api/auth/learner/password/quick-register/route";
 import { POST as loginRoute } from "@/app/api/auth/learner/password/login/route";
 import { readPendingCredentials, prunePendingCredentials } from "@/modules/auth-learner/pending-credentials";
 import { deliverBatch, type Senders } from "@/modules/outbox/deliver";
 import { newDeviceKey, ORIGIN } from "../helpers/learner";
+import { issuedLearner } from "../helpers/guest";
 import { sqlAsMigrator } from "../helpers/otp";
 
-// Chủ 09/11/2026: thanh toán xong mới gửi thông tin đăng nhập vào email (docs/superpowers/plans/2026-11-09-checkout-credentials.md, Task 2).
+// Chủ 09/11/2026: thanh toán xong mới gửi thông tin đăng nhập vào email (docs/superpowers/plans/2026-11-09-checkout-credentials.md, Task 2);
+// từ 16/11/2026 tài khoản tạo lúc nhận tiền từ đơn khách (2026-11-16-guest-orders.md).
 
 let seq = 0;
 const freshIp = () => `10.11.${Math.floor(++seq / 250)}.${(seq % 250) + 1}`;
 
+/** Khách mua chưa có tài khoản, đã được tạo tài khoản lúc nhận tiền (không có email → xóa email liên hệ để thử trường hợp đó). */
 async function guest(phone: string, email?: string): Promise<string> {
-  await quickRoute(new Request(`${ORIGIN}/api/auth/learner/password/quick-register`, {
-    method: "POST", headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": freshIp() },
-    body: JSON.stringify({ displayName: "Khách", phone, deviceKey: newDeviceKey(), deviceLabel: "Máy", ...(email ? { email, emailConfirm: email } : {}) }),
-  }));
-  const { rows } = await sqlAsMigrator(`SELECT user_id FROM password_logins WHERE phone_canonical = $1`, [`+84${phone.slice(1)}`]);
-  return rows[0].user_id as string;
+  const userId = await issuedLearner(phone, email);
+  if (!email) await sqlAsMigrator(`DELETE FROM learner_contact_emails WHERE user_id = $1`, [userId]);
+  return userId;
 }
 const paidEmail = (userId: string) => prisma().outboxEvent.create({
   data: { dedupKey: `paid-${++seq}`, kind: "order_paid", channel: "email", payload: { orderId: "o1", orderCode: "ME7K3QX9AB", userId, amountVnd: 199000, courses: ["Thực tập sinh máy tàu dầu"], learnUrl: `${ORIGIN}/hoc` } },
@@ -38,7 +37,7 @@ const emailedAt = async (userId: string) => {
 };
 
 describe("email thông tin đăng nhập khi thanh toán xong", () => {
-  it("gửi tới email liên hệ, có số và mật khẩu tạm; đánh dấu đã gửi nhưng bước 3 vẫn đọc được; outbox không chứa mật khẩu", async () => {
+  it("gửi tới email liên hệ, có số và mật khẩu tạm; đánh dấu đã gửi, bản chờ vẫn còn tới khi đổi mật khẩu; outbox không chứa mật khẩu", async () => {
     const userId = await guest("0916000101", "khach1@x.vn");
     const creds = await readPendingCredentials(userId);
     const event = await paidEmail(userId);

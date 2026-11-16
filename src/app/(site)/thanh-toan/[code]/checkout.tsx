@@ -28,6 +28,8 @@ type Order = {
   claim: { status: "none" | "open" | "approved" | "rejected"; rejectionReason: string | null; proofs: number };
   /** Đơn hết hạn nhưng tạo chưa quá 24 giờ, chưa có SePay: vẫn bấm "Tôi đã chuyển khoản" được. */
   claimable: boolean;
+  /** Đơn của khách chưa có tài khoản (trang /don-hang): email nhận thông tin đăng nhập (đã che) và thư đã gửi chưa. */
+  guest?: { emailMasked: string; emailStatus: "queued" | "sent" | "failed" | null };
 };
 
 const POLL_OPEN_MS = 5_000;
@@ -131,36 +133,20 @@ function ClaimButton({ code, onDone }: { code: string; onDone: () => void }) {
   );
 }
 
-/**
- * Bước 3 (chủ 09/11/2026): khách tạo tài khoản ngay trên trang mua thấy số điện thoại và mật khẩu tạm ở đây (bước 1 không hiện).
- * Máy chủ chỉ trả khi đơn đã báo chuyển khoản hoặc đã thanh toán; tài khoản tự đặt mật khẩu thì không có gì để hiện.
- */
-function AccountInfo({ code, paid }: { code: string; paid: boolean }) {
-  const [info, setInfo] = useState<{ phone: string; password: string; email: string | null } | null>(null);
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    let live = true;
-    void fetch(`/api/me/credentials?order=${encodeURIComponent(code)}`, { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as { available: boolean; phone?: string; password?: string; email?: string | null }) : null))
-      .then((r) => { if (live && r?.available) setInfo({ phone: r.phone!, password: r.password!, email: r.email ?? null }); })
-      .catch(() => undefined);
-    return () => { live = false; };
-  }, [code]);
-  if (!info) return null;
+/** Khách chưa có tài khoản đã trả tiền: thông tin đăng nhập chỉ gửi qua email (chủ 16/11/2026), trang nói thư đang ở đâu. */
+function GuestPaid({ order }: { order: Order }) {
+  const g = order.guest!;
+  const text = g.emailStatus === "sent"
+    ? `Thông tin đăng nhập đã gửi tới ${g.emailMasked}. Xem cả thư mục Spam nếu chưa thấy.`
+    : g.emailStatus === "failed"
+      ? "Chưa gửi được email thông tin đăng nhập. Chủ khóa học sẽ liên hệ qua số điện thoại của bạn."
+      : `Hệ thống đang gửi thông tin đăng nhập tới ${g.emailMasked}, thường trong vài phút.`;
   return (
-    <section className={styles.account} aria-label="Tài khoản của bạn">
-      <h2 className={ui.h3}>Tài khoản của bạn</h2>
-      <dl className={styles.accountList}>
-        <div><dt>Số điện thoại</dt><dd>{info.phone}</dd></div>
-        <div><dt>Mật khẩu tạm</dt><dd className={styles.accountPassword}>{info.password}</dd></div>
-        {info.email && <div><dt>Email nhận thư</dt><dd>{info.email}</dd></div>}
-      </dl>
-      <button type="button" className={ui.outline} onClick={() => void navigator.clipboard?.writeText(info.password).then(() => setCopied(true), () => undefined)}>
-        {copied ? "Đã sao chép" : "Sao chép mật khẩu"}
-      </button>
-      <p className={ui.muted}>Ghi lại để đăng nhập trên máy khác. Lần đầu đăng nhập bằng mật khẩu tạm, bạn sẽ đặt mật khẩu mới.</p>
-      {!paid && <p className={ui.muted}>Thông tin này cũng được gửi vào email của bạn khi thanh toán xong.</p>}
-    </section>
+    <>
+      <p className={g.emailStatus === "failed" ? ui.notice : ui.lead}>{text}</p>
+      <p className={ui.muted}>Đăng nhập bằng số điện thoại và mật khẩu tạm trong thư. Lần đầu đăng nhập, bạn đặt mật khẩu mới.</p>
+      <Link className={ui.action} href={`/dang-nhap?next=${encodeURIComponent(`/hoc?khoa=${order.courseSlug}`)}`}>Đăng nhập</Link>
+    </>
   );
 }
 
@@ -173,6 +159,8 @@ function ManualState({ order }: { order: Order }) {
     one === "amount_short" ? `Còn thiếu ${formatVnd(due - received)}. Chủ khóa học sẽ liên hệ để xử lý phần thiếu; đừng chuyển thêm khi chưa được hướng dẫn.`
     : one === "amount_over" ? `Thừa ${formatVnd(received - due)}. Chủ khóa học sẽ đối chiếu, mở khóa và liên hệ về phần thừa.`
     : one === "late" ? "Tiền về sau khi đơn hết hạn. Chủ khóa học sẽ đối chiếu và mở khóa."
+    : one === "guest_conflict" ? "Số điện thoại hoặc email của đơn này đã có tài khoản. Chủ khóa học sẽ liên hệ để xử lý."
+    : one === "guest_credentials" ? "Chủ khóa học sẽ kiểm tra, mở khóa và liên hệ qua số điện thoại của bạn."
     : "Chủ khóa học sẽ đối chiếu và mở khóa.";
   return (
     <div className={ui.card} role="status">
@@ -192,7 +180,6 @@ function ClaimState({ order, onChanged }: { order: Order; onChanged: () => void 
         <h1 className={ui.h2}>Khóa học đã mở</h1>
         <p className={ui.lead}>Đơn {order.code}: {order.courseTitleVi}. Bạn đã báo chuyển khoản {formatVnd(order.amountDueVnd)}; chủ khóa học sẽ đối chiếu sao kê.</p>
         {order.enrolled && <Link className={ui.action} href={`/hoc?khoa=${order.courseSlug}`}>Vào học ngay</Link>}
-        <AccountInfo code={order.code} paid={false} />
       </div>
       </>
     );
@@ -246,14 +233,18 @@ function Pending({ order, clockOffsetMs, onExpire }: { order: Order; clockOffset
         Ghi đúng nội dung <strong>{order.code}</strong>.{" "}
         {payment.autoConfirm
           ? "Giữ trang này: khóa học tự mở khi hệ thống nhận được tiền."
-          : "Chuyển khoản xong, bấm nút bên dưới để vào học ngay."}
+          : order.guest
+            ? "Chuyển khoản xong, chủ khóa học xác nhận khi thấy tiền."
+            : "Chuyển khoản xong, bấm nút bên dưới để vào học ngay."}
       </p>
+      {order.guest && <p className={ui.muted}>Thanh toán xong, hệ thống tạo tài khoản và gửi thông tin đăng nhập tới {order.guest.emailMasked}.</p>}
       {order.claimable && <ClaimButton code={order.code} onDone={onExpire} />}
     </>
   );
 }
 
-export function Checkout({ code }: { code: string }) {
+/** guest: trang đơn của khách chưa có tài khoản (/don-hang), mở bằng cookie của đơn, không có phiên học viên. */
+export function Checkout({ code, guest = false }: { code: string; guest?: boolean }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "offline" | "server">("loading");
   // Đếm ngược theo giờ máy chủ: đồng hồ điện thoại trên tàu có thể lệch.
@@ -266,7 +257,7 @@ export function Checkout({ code }: { code: string }) {
   const load = useCallback(async () => {
     if (settled.current) return;
     const id = ++generation.current;
-    const res = await fetch(`/api/me/orders/${encodeURIComponent(code)}`, { cache: "no-store" }).catch(() => null);
+    const res = await fetch(`/api/${guest ? "public" : "me"}/orders/${encodeURIComponent(code)}`, { cache: "no-store" }).catch(() => null);
     if (id !== generation.current || settled.current) return;
     if (res?.status === 401) {
       router.replace(`/dang-nhap?next=${encodeURIComponent(`/thanh-toan/${code}`)}`);
@@ -282,7 +273,7 @@ export function Checkout({ code }: { code: string }) {
     setClockOffsetMs(new Date(next.serverNow).getTime() - Date.now());
     setOrder(next);
     setState("ready");
-  }, [code, router]);
+  }, [code, router, guest]);
 
   const finished = order?.status === "paid" || order?.status === "refunded";
   const openOrder = Boolean(order?.payment);
@@ -311,7 +302,11 @@ export function Checkout({ code }: { code: string }) {
   }, [finished, openOrder, load]);
 
   if (state === "loading") return <p className={ui.muted}>Đang tải đơn…</p>;
-  if (state === "missing") return <p className={ui.error} role="alert">Không tìm thấy đơn này. <Link href="/khoa-hoc">Xem các khóa</Link></p>;
+  if (state === "missing") {
+    return guest
+      ? <p className={ui.error} role="alert">Không mở được đơn này. Trang đơn chỉ mở trên máy đã đặt hàng; thanh toán xong, thông tin đăng nhập được gửi vào email. <Link href="/khoa-hoc">Xem các khóa</Link></p>
+      : <p className={ui.error} role="alert">Không tìm thấy đơn này. <Link href="/khoa-hoc">Xem các khóa</Link></p>;
+  }
   if (!order) return <p className={ui.error} role="alert">Chưa tải được đơn. Kiểm tra mạng, trang sẽ tự thử lại.</p>;
 
   return (
@@ -324,8 +319,9 @@ export function Checkout({ code }: { code: string }) {
         <div className={ui.card} role="status">
           <h1 className={ui.h2}>Thanh toán thành công</h1>
           <p className={ui.lead}>Đơn {order.code}: {order.courseTitleVi}.</p>
-          {order.enrolled && <Link className={ui.action} href={`/hoc?khoa=${order.courseSlug}`}>Vào học ngay</Link>}
-          <AccountInfo code={order.code} paid />
+          {order.guest
+            ? <GuestPaid order={order} />
+            : order.enrolled && <Link className={ui.action} href={`/hoc?khoa=${order.courseSlug}`}>Vào học ngay</Link>}
         </div>
       )}
       {order.status === "refunded" && (

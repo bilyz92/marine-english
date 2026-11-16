@@ -23,6 +23,8 @@ const CLAIM_TAG: Record<string, { label: string; className: string }> = {
 };
 const REASONS: Record<string, string> = {
   ref_used: "Mã giao dịch này đã dùng cho một đơn khác.",
+  guest_conflict: "Số điện thoại hoặc email của khách đã có tài khoản khác. Liên hệ khách hoặc hoàn tiền.",
+  guest_credentials: "Không mở được mật khẩu tạm của đơn khách (khóa mã hóa đã đổi hoặc dữ liệu hỏng). Báo kỹ thuật.",
   bank_time: "Giờ chuyển phải sau lúc tạo đơn và không ở tương lai.",
 };
 

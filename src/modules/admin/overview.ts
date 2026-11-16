@@ -61,8 +61,10 @@ export async function overview(ctx: AdminCtx, { from, to: now }: Range) {
   const queue = await listQueue({ raw: false });
   const canSeeJobErrors = permissionsFor(ctx).includes("jobs.run");
   const recentOrders = await prisma().$queryRaw<{ code: string; status: string; amount_due_vnd: number; created_at: Date; title_vi: string; display_name: string }[]>`
-    SELECT o.code, o.status, o.amount_due_vnd, o.created_at, c.title_vi, u.display_name
-    FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id JOIN users u ON u.id = o.user_id
+    SELECT o.code, o.status, o.amount_due_vnd, o.created_at, c.title_vi,
+           coalesce(u.display_name, g.display_name || ' (khách chưa có tài khoản)') AS display_name
+    FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
+      LEFT JOIN users u ON u.id = o.user_id LEFT JOIN guest_orders g ON g.order_id = o.id
     ORDER BY o.created_at DESC, o.id DESC LIMIT 10`;
   const jobs = await prisma().$queryRaw<{ job_name: string; status: string; started_at: Date; error: string | null }[]>`
     SELECT DISTINCT ON (job_name) job_name, status, started_at, error FROM job_runs

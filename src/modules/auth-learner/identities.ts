@@ -1,5 +1,5 @@
 import type { Tx } from "@/lib/db";
-import { claimVerifiedPhone } from "./password";
+import { claimVerifiedPhone, lockIdentityValue } from "./password";
 
 export type IdentityKind = "email" | "phone" | "google";
 
@@ -14,6 +14,8 @@ export async function createUserWithIdentity(
   tx: Tx,
   input: { kind: IdentityKind; value: string; displayName: string; rank: string | null },
 ): Promise<string> {
+  // Khóa giá trị trước khi ghi: không chạy xen với việc tạo tài khoản cho đơn khách cùng email/số.
+  await lockIdentityValue(tx, input.kind, input.value);
   const [user] = await tx.$queryRaw<{ id: string }[]>`
     INSERT INTO users (display_name, rank) VALUES (${input.displayName}, ${input.rank}) RETURNING id`;
   await tx.$executeRaw`

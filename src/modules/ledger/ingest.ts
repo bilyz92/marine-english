@@ -1,8 +1,9 @@
 import { withTx, type Tx, type TxOptions } from "@/lib/db";
 import { env } from "@/lib/env";
 import { settleOrder } from "@/modules/enrollments/enroll";
+import { guestBlocker } from "@/modules/orders/guest";
 import { enqueueOutbox } from "@/modules/outbox/outbox";
-import { classify, CLASSIFIER_VERSION, extractOrderCodes, type OrderStatus } from "./classifier";
+import { classify, CLASSIFIER_VERSION, extractOrderCodes, type Classification, type OrderStatus } from "./classifier";
 
 // Đường duy nhất ghi tiền vào sổ (webhook, đối soát API, nhập sao kê) — TD §4.3. Một transaction; khóa dòng sổ trước, rồi đơn.
 
@@ -130,7 +131,7 @@ export async function classifyAndSettle(tx: Tx, btId: string): Promise<IngestOut
     ? await tx.$queryRaw<{ id: string; code: string; status: OrderStatus; amount_due_vnd: number; created_at: Date; expires_at: Date }[]>`
         SELECT id, code, status, amount_due_vnd, created_at, expires_at FROM orders WHERE code = ${codes[0]!} FOR UPDATE`
     : [];
-  const c = classify({
+  const classified = classify({
     amountVnd: bt!.amount_vnd,
     bankTime: bt!.bank_time,
     now: bt!.now,
@@ -139,6 +140,10 @@ export async function classifyAndSettle(tx: Tx, btId: string): Promise<IngestOut
       ? { id: order.id, status: order.status, amountDueVnd: order.amount_due_vnd, createdAt: order.created_at, expiresAt: order.expires_at }
       : null,
   });
+  // Đơn khách không tạo được tài khoản (số/email nay đã có tài khoản, mật khẩu tạm không mở được): không tự xác nhận, vào hàng chờ
+  // xử lý tay; tiền vẫn ghi sổ (chủ 16/11/2026).
+  const blocked = classified.result === "auto_confirm" ? await guestBlocker(tx, order!.id) : null;
+  const c: Classification = blocked ? { result: "queue", reason: blocked } : classified;
   await tx.$executeRaw`
     INSERT INTO bank_transaction_classifications (bank_transaction_id, classifier_version, result, reason, candidate_codes, candidate_order_id)
     VALUES (${btId}::uuid, ${CLASSIFIER_VERSION}, ${c.result}, ${c.result === "queue" ? c.reason : null}, ${codes}::text[],

@@ -172,6 +172,8 @@ Khi chưa bật, học viên bấm "Tôi đã chuyển khoản" và chủ duyệ
 6. `ME_COMPOSE_OVERRIDE=deploy/compose.nginx.yml deploy/deploy.sh deploy/prod.env <tag hiện tại> --skip-build --skip-migrate` để app và worker đọc cấu hình mới.
 7. Kiểm: trên SePay bấm gửi thử webhook (phải nhận `{"success": true}`); chuyển thật một đơn nhỏ, đơn chuyển "Đã thanh toán" trong vài giây; ở /admin → Job, `me.sepay.reconcile` lần chạy sau là "success" chứ không còn "skipped".
 
+**Khách chưa có tài khoản mua (từ 16/11/2026):** tài khoản chỉ tạo khi tiền về và thông tin đăng nhập **chỉ gửi qua email**, nên form mua cho khách chỉ hiện khi máy chủ gửi được email (`SMTP_USER` + `SMTP_PASSWORD`, mật khẩu ứng dụng Gmail). Chưa có thì trang mua mời đăng nhập hoặc tạo tài khoản. Sau khi đặt SMTP: gửi thử một thư thật tới email của chủ (ví dụ "Quên mật khẩu" của một tài khoản thử có email) và xác nhận đã nhận trước khi coi là xong. Đơn khách mà số/email đã có tài khoản trước khi tiền về vào hàng chờ với lý do "Số/email đã có tài khoản": liên hệ khách hoặc hoàn tiền.
+
 Tắt lại: để trống `SEPAY_WEBHOOK_SECRETS` (webhook trả 503, nút "Tôi đã chuyển khoản" hiện lại) và `SEPAY_API_TOKEN` (job bỏ qua), deploy như bước 6.
 
 ## 6A. Thêm và sửa nội dung khóa học (từ 02/11/2026)

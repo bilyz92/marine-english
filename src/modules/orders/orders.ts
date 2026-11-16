@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { paymentInfo, sepayEnabled } from "./payment-info";
 import { vietQrPayload } from "./vietqr";
 import { CLAIM_WINDOW, claimable, claimView, type ClaimView } from "./claims";
+import { guestOrderId } from "./guest-access";
 
 // Đơn: giá luôn lấy từ courses trên máy chủ, ghi ảnh chụp bất biến; mã đơn ngẫu nhiên, duy nhất nhờ ràng buộc DB.
 
@@ -32,11 +33,13 @@ const toView = (r: ViewRow): OrderView => ({
   code: r.code, status: r.status, amountDueVnd: r.amount_due_vnd, expiresAt: r.expires_at, courseSlug: r.slug, courseTitleVi: r.title_vi,
 });
 
-async function orderViews(db: Tx | ReturnType<typeof prisma>, where: { code?: string; userIds: string[]; courseId?: string; pendingOnly?: boolean }) {
+/** `userIds` null: không lọc theo người mua (chỉ dùng với `orderId` đã được kiểm quyền, như đơn khách mở bằng mã truy cập). */
+async function orderViews(db: Tx | ReturnType<typeof prisma>, where: { code?: string; userIds: string[] | null; orderId?: string; courseId?: string; pendingOnly?: boolean }) {
   return db.$queryRaw<ViewRow[]>`
     SELECT o.id, c.id AS course_id, o.code, o.status, o.amount_due_vnd, o.expires_at, c.slug, c.title_vi
     FROM orders o JOIN order_items i ON i.order_id = o.id JOIN courses c ON c.id = i.course_id
-    WHERE o.user_id = ANY(${where.userIds}::uuid[])
+    WHERE (${where.userIds}::uuid[] IS NULL OR o.user_id = ANY(${where.userIds}::uuid[]))
+      AND (${where.orderId ?? null}::uuid IS NULL OR o.id = ${where.orderId ?? null}::uuid)
       AND (${where.code ?? null}::text IS NULL OR o.code = ${where.code ?? null})
       AND (${where.courseId ?? null}::uuid IS NULL OR i.course_id = ${where.courseId ?? null}::uuid)
       AND (NOT ${where.pendingOnly ?? false} OR (o.status = 'pending' AND o.expires_at > now()))
@@ -59,8 +62,7 @@ export async function createOrder(
   return withTx(async (tx) => {
     // Khóa học viên để hai lần bấm “mua” cùng lúc chỉ tạo một đơn.
     await lockActiveUser(tx, ctx.userId);
-    const [course] = await tx.$queryRaw<{ id: string; price_vnd: number; current_version_id: string }[]>`
-      SELECT id, price_vnd, current_version_id FROM courses WHERE slug = ${courseSlug} AND status = 'published'`;
+    const course = await saleCourse(tx, courseSlug);
     if (!course) return { kind: "not_for_sale" };
     const group = await mergeGroupIds(tx, ctx.userId);
     if (await hasActiveEnrollment(tx, group, course.id)) return { kind: "already_enrolled" };
@@ -70,22 +72,41 @@ export async function createOrder(
       return { kind: "existing", order: toView(pending) };
     }
 
-    for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
-      const [order] = await tx.$queryRaw<{ id: string; code: string }[]>`
-        INSERT INTO orders (code, user_id, amount_due_vnd, refund_policy_version, expires_at)
-        VALUES (${codeSource()}, ${ctx.userId}::uuid, ${course.price_vnd}, ${REFUND_POLICY_VERSION}, now() + interval '15 minutes')
-        ON CONFLICT (code) DO NOTHING
-        RETURNING id, code`;
-      if (!order) continue;
-      await tx.$executeRaw`
-        INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
-        VALUES (${order.id}::uuid, ${course.id}::uuid, ${course.current_version_id}::uuid, ${course.price_vnd}, ${course.price_vnd})`;
-      await recordTerms(tx, order.id);
-      const [view] = await orderViews(tx, { userIds: [ctx.userId], code: order.code });
-      return { kind: "created", order: toView(view!) };
-    }
-    throw new OrderCodeExhaustedError();
+    const order = await insertOrder(tx, { userId: ctx.userId, course, codeSource });
+    await recordTerms(tx, order.id);
+    const [view] = await orderViews(tx, { userIds: [ctx.userId], code: order.code });
+    return { kind: "created", order: toView(view!) };
   });
+}
+
+export type SaleCourse = { id: string; price_vnd: number; current_version_id: string };
+
+/** Khóa đang bán theo slug (giá và phiên bản hiện tại lấy từ máy chủ). */
+export async function saleCourse(tx: Tx, slug: string): Promise<SaleCourse | null> {
+  const [course] = await tx.$queryRaw<SaleCourse[]>`
+    SELECT id, price_vnd, current_version_id FROM courses WHERE slug = ${slug} AND status = 'published'`;
+  return course ?? null;
+}
+
+/**
+ * Chèn đơn + dòng khóa với giá của máy chủ, mã ngẫu nhiên (sinh lại khi trùng). `userId` null: đơn khách, người gọi phải chèn
+ * guest_orders trong cùng transaction (trigger kiểm lúc commit).
+ */
+export async function insertOrder(tx: Tx, input: { userId: string | null; course: SaleCourse; codeSource: () => string }): Promise<{ id: string; code: string }> {
+  const { course } = input;
+  for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
+    const [order] = await tx.$queryRaw<{ id: string; code: string }[]>`
+      INSERT INTO orders (code, user_id, amount_due_vnd, refund_policy_version, expires_at)
+      VALUES (${input.codeSource()}, ${input.userId}::uuid, ${course.price_vnd}, ${REFUND_POLICY_VERSION}, now() + interval '15 minutes')
+      ON CONFLICT (code) DO NOTHING
+      RETURNING id, code`;
+    if (!order) continue;
+    await tx.$executeRaw`
+      INSERT INTO order_items (order_id, course_id, course_version_id, list_price_vnd, final_price_vnd)
+      VALUES (${order.id}::uuid, ${course.id}::uuid, ${course.current_version_id}::uuid, ${course.price_vnd}, ${course.price_vnd})`;
+    return order;
+  }
+  throw new OrderCodeExhaustedError();
 }
 
 /** Đơn của học viên (theo nhóm gộp). */
@@ -125,6 +146,35 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
   const group = await mergeGroupIds(null, ctx.userId);
   const [row] = await orderViews(prisma(), { userIds: group, code });
   if (!row) return null;
+  return checkoutFor(row, group);
+}
+
+export type GuestCheckoutView = CheckoutView & {
+  /** Đơn khách: email sẽ nhận thông tin đăng nhập (che bớt) và thư "đã thanh toán" đã gửi chưa (chưa thanh toán → null). */
+  guest: { emailMasked: string; emailStatus: "queued" | "sent" | "failed" | null };
+};
+
+/** "nguyen@gmail.com" → "n•••@gmail.com". */
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  return `${email.slice(0, 1)}•••${email.slice(at)}`;
+}
+
+/** Trang đơn của khách chưa có tài khoản, mở bằng mã truy cập trong cookie. Không có mật khẩu (chỉ gửi qua email, chủ 16/11/2026). */
+export async function getCheckoutForGuest(code: string, accessToken: string): Promise<GuestCheckoutView | null> {
+  const orderId = await guestOrderId(code, accessToken);
+  if (!orderId) return null;
+  const [row] = await orderViews(prisma(), { userIds: null, orderId });
+  const [g] = await prisma().$queryRaw<{ email: string; user_id: string | null; outbox: string | null }[]>`
+    SELECT g.email, g.user_id, (SELECT status FROM outbox_events WHERE dedup_key = ${`order_paid:${orderId}:email`}) AS outbox
+    FROM guest_orders g WHERE g.order_id = ${orderId}::uuid`;
+  const view = await checkoutFor(row!, g!.user_id ? await mergeGroupIds(null, g!.user_id) : null);
+  const emailStatus = !g!.outbox ? null : g!.outbox === "sent" ? "sent" : g!.outbox === "dead" ? "failed" : "queued";
+  return { ...view, guest: { emailMasked: maskEmail(g!.email), emailStatus } };
+}
+
+/** `group` null: đơn khách chưa có tài khoản (chưa có quyền học, không có báo chuyển khoản). */
+async function checkoutFor(row: ViewRow, group: string[] | null): Promise<CheckoutView> {
   const serverNow = new Date();
   const open = row.status === "pending" && row.expires_at > serverNow;
   const claim = await claimView(prisma(), row.id);
@@ -140,11 +190,11 @@ export async function getCheckoutForLearner(ctx: LearnerCtx, code: string): Prom
       autoConfirm: sepayEnabled(env()),
     },
     paymentUnavailable: open && !info,
-    enrolled: await hasActiveEnrollment(prisma(), group, row.course_id),
+    enrolled: group ? await hasActiveEnrollment(prisma(), group, row.course_id) : false,
     needsManual: manual.needsManual,
     manualTransfers: manual.transfers,
     claim,
-    claimable: await claimable(prisma(), row.id, claim),
+    claimable: group ? await claimable(prisma(), row.id, claim) : false,
     serverNow,
   };
 }

@@ -3,13 +3,14 @@ import { HttpError } from "@/lib/http";
 import { audit, auditDenied } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import { settleOrder } from "@/modules/enrollments/enroll";
+import { guestBlocker } from "@/modules/orders/guest";
 import type { AdminCtx } from "@/modules/sessions/guards";
 
 // Ghép tay và kết luận — DG §2.8, TD §4.5. Khóa các dòng sổ (id tăng dần) rồi mới khóa đơn.
 
 export type MatchResult =
   | { result: "paid" | "paid_with_excess_refund" | "short" }
-  | { result: "rejected"; reason: "not_verified" | "already_settled" | "order_refunded" | "order_paid" | "not_found" };
+  | { result: "rejected"; reason: "not_verified" | "already_settled" | "order_refunded" | "order_paid" | "not_found" | "guest_conflict" | "guest_credentials" };
 
 type LedgerRow = { id: string; amount_vnd: number; bank_time: Date; verified: boolean; settled: boolean };
 
@@ -48,6 +49,9 @@ export async function matchTransfers(
     if (!order) return { result: "rejected", reason: "not_found" };
     if (order.status === "paid") return { result: "rejected", reason: "order_paid" };
     if (order.status === "refunded") return { result: "rejected", reason: "order_refunded" };
+    // Đơn khách không tạo được tài khoản: không ghép, chủ xử lý ngoài (liên hệ khách, hoàn tiền).
+    const blocked = await guestBlocker(tx, order.id);
+    if (blocked) return { result: "rejected", reason: blocked };
 
     const total = rows.reduce((sum, r) => sum + r.amount_vnd, 0);
     const entry = {

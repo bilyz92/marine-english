@@ -7,6 +7,7 @@ import { lockActiveUser } from "@/modules/auth-learner/devices";
 import { mergeGroupIds } from "@/modules/enrollments/access";
 import { settleOrder } from "@/modules/enrollments/enroll";
 import { enqueueOutbox } from "@/modules/outbox/outbox";
+import { guestBlocker } from "./guest";
 import type { AdminCtx, LearnerCtx } from "@/modules/sessions/guards";
 import { putFile } from "@/modules/storage/storage";
 import { sepayEnabled } from "./payment-info";
@@ -94,7 +95,7 @@ async function requireOwner(ctx: AdminCtx, action: string, code: string): Promis
   throw new HttpError(403, "role");
 }
 
-export type ApproveResult = { result: "paid" } | { result: "rejected"; reason: "not_found" | "order_paid" | "order_refunded" | "ref_used" };
+export type ApproveResult = { result: "paid" } | { result: "rejected"; reason: "not_found" | "order_paid" | "order_refunded" | "ref_used" | "guest_conflict" | "guest_credentials" };
 
 class Rollback extends Error {
   constructor(readonly result: ApproveResult) {
@@ -141,6 +142,9 @@ export async function approveTransfer(
       const order = await lockOrder(tx, code, null);
       if (order!.status === "paid") throw new Rollback({ result: "rejected", reason: "order_paid" });
       if (order!.status === "refunded") throw new Rollback({ result: "rejected", reason: "order_refunded" });
+      // Đơn khách không tạo được tài khoản: từ chối cả lần duyệt (dòng sổ nhập tay của lần này không được ghi).
+      const blocked = await guestBlocker(tx, order!.id);
+      if (blocked) throw new Rollback({ result: "rejected", reason: blocked });
       await tx.$executeRaw`
         INSERT INTO bank_transaction_verifications (bank_transaction_id, method, verified_by, evidence)
         VALUES (${bt.id}::uuid, 'owner_direct', ${ctx.adminId}::uuid, ${evidence})`;

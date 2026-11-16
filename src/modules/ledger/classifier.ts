@@ -7,7 +7,9 @@ export const CLASSIFIER_VERSION = "v2";
 export type OrderStatus = "pending" | "paid" | "expired" | "refunded";
 export type QueueReason =
   | "no_code" | "multi_code" | "unknown_code" | "amount_short" | "amount_over"
-  | "late" | "early" | "order_paid" | "order_refunded" | "bad_time";
+  | "late" | "early" | "order_paid" | "order_refunded" | "bad_time"
+  /** Không do bộ phân loại (bước sau phân loại, ingest.ts): đơn khách không tạo được tài khoản. */
+  | "guest_conflict" | "guest_credentials";
 export type Classification = { result: "auto_confirm" } | { result: "queue"; reason: QueueReason };
 
 const CODE_PATTERN = /(?<![A-Z0-9])ME[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}(?![A-Z0-9])/g;

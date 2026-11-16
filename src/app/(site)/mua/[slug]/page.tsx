@@ -8,6 +8,7 @@ import { getPublishedCourse } from "@/modules/content/catalog";
 import { env } from "@/lib/env";
 import { paymentInfo, sepayEnabled } from "@/modules/orders/payment-info";
 import { REFUNDS_UI } from "@/lib/features";
+import { emailReady } from "@/modules/mail/email-sender";
 import { BuyForm } from "./buy-form";
 import styles from "./buy.module.css";
 
@@ -28,7 +29,7 @@ async function Buy({ params }: { params: Promise<{ slug: string }> }) {
   }
   return (
     <BuyForm slug={course.slug} titleVi={course.titleVi} priceVnd={course.priceVnd} lessonCount={course.lessonCount}
-      refundPolicy={REFUNDS_UI} autoConfirm={sepayEnabled(env())} />
+      refundPolicy={REFUNDS_UI} autoConfirm={sepayEnabled(env())} guestOpen={emailReady()} />
   );
 }
 

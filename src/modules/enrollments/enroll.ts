@@ -1,15 +1,21 @@
 import type { Tx } from "@/lib/db";
 import { env } from "@/lib/env";
+import { createAccountForGuestOrder, GuestBlockedError, guestBlocker } from "@/modules/orders/guest";
 import { enqueueOutbox } from "@/modules/outbox/outbox";
 
 /**
  * Ghi nhận đơn đã được thanh toán bằng các dòng sổ (đã khóa, đã xác minh, chưa xử lý): phân bổ toàn bộ tiền từng dòng,
  * đơn → paid, quyền học cho mọi khóa của đơn, sự kiện thông báo. Người gọi đã khóa dòng sổ rồi tới đơn.
+ * Đơn khách (chưa có tài khoản): tạo tài khoản trước tiên; không tạo được (số/email đã thuộc tài khoản khác, mật khẩu tạm không mở được)
+ * thì ném GuestBlockedError (mọi người gọi đều đi qua đây, không ai lách được; ai muốn vào hàng chờ hay từ chối thì kiểm `guestBlocker` trước).
  */
 export async function settleOrder(
   tx: Tx,
   input: { orderId: string; bankTransactionIds: string[]; kind: "auto" | "manual"; allocatedBy?: string },
 ): Promise<void> {
+  const blocked = await guestBlocker(tx, input.orderId);
+  if (blocked) throw new GuestBlockedError(blocked);
+  await createAccountForGuestOrder(tx, input.orderId);
   for (const btId of input.bankTransactionIds) {
     await tx.$executeRaw`
       INSERT INTO payment_allocations (bank_transaction_id, order_id, amount_vnd, kind, allocated_by)

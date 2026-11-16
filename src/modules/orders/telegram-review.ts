@@ -57,6 +57,8 @@ const APPROVE_TEXT: Record<string, string> = {
   order_refunded: "Đơn này đã hoàn tiền, không duyệt được.",
   not_found: "Không tìm thấy đơn.",
   ref_used: "Mã giao dịch đã dùng cho đơn khác.",
+  guest_conflict: "Số điện thoại hoặc email của khách đã có tài khoản khác: chưa duyệt, cần xử lý tay.",
+  guest_credentials: "Không mở được mật khẩu tạm của đơn khách: chưa duyệt, báo kỹ thuật.",
 };
 const REJECT_TEXT: Record<string, string> = {
   revoked: "❌ Đã khóa lại khóa học. Khách thấy lý do và gửi được ảnh chứng minh.",
