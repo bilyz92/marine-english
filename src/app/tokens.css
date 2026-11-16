@@ -1,6 +1,6 @@
 /* Biến thiết kế dùng chung. Màu chỉ khai báo ở đây.
    Bố cục giao diện v2 (chủ chọn 06/11/2026, docs/design/giao-dien-v2-thu/), màu theo bản cũ v1 (chủ chọn lại 06/11/2026):
-   tím thương hiệu, cam cho nút chính và vị trí hiện tại, nền trắng và tím nhạt; khối "tấm nhãn" là tím đậm; có chế độ tối. */
+   tím thương hiệu, cam cho nút chính và vị trí hiện tại, nền trắng và tím nhạt; khối "tấm nhãn" là tím đậm; chỉ có chế độ sáng (chủ tắt chế độ tối 16/11/2026). */
 :root {
   color-scheme: light;
   --color-primary: #5b21b6;        /* tím thương hiệu: liên kết, nút thứ cấp đặc, viền tiêu điểm */
@@ -42,66 +42,6 @@
   --font-small: 16px;
   --font-xs: 15px;
   --font-en: 26px;
-}
-
-/* Chế độ tối: theo máy, hoặc theo nút đổi (data-theme trên <html>). Cùng bố cục, cùng tím và cam. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --color-primary: #c4b5fd;
-    --color-primary-dark: #ddd6fe;
-    --color-primary-soft: #2e2550;
-    --color-on-primary: #1c1630;
-    --color-action-edge: #c2410c;
-    --color-plate: #2e1065;
-    --color-plate-2: #4c1d95;
-    --color-plate-muted: #ddd6fe;
-    --color-text: #f3f0fa;
-    --color-text-2: #ddd6ee;
-    --color-muted: #b9b1cc;
-    --color-bg: #1c1729;
-    --color-bg-alt: #110e1a;
-    --color-bg-soft: #2e2550;
-    --color-border: #4a4163;
-    --color-border-input: #8b80a8;
-    --color-line: #2a2438;
-    --color-danger: #fca5a5;
-    --color-danger-bg: #3a1513;
-    --color-success: #86efac;
-    --color-success-bg: #10301c;
-    --color-warning: #fdba74;
-    --color-warning-bg: #3a2210;
-    --color-warning-border: #fdba74;
-    --color-focus: #c4b5fd;
-  }
-}
-:root[data-theme="dark"] {
-    color-scheme: dark;
-  --color-primary: #c4b5fd;
-  --color-primary-dark: #ddd6fe;
-  --color-primary-soft: #2e2550;
-  --color-on-primary: #1c1630;
-  --color-action-edge: #c2410c;
-  --color-plate: #2e1065;
-  --color-plate-2: #4c1d95;
-  --color-plate-muted: #ddd6fe;
-  --color-text: #f3f0fa;
-  --color-text-2: #ddd6ee;
-  --color-muted: #b9b1cc;
-  --color-bg: #1c1729;
-  --color-bg-alt: #110e1a;
-  --color-bg-soft: #2e2550;
-  --color-border: #4a4163;
-  --color-border-input: #8b80a8;
-  --color-line: #2a2438;
-  --color-danger: #fca5a5;
-  --color-danger-bg: #3a1513;
-  --color-success: #86efac;
-  --color-success-bg: #10301c;
-  --color-warning: #fdba74;
-  --color-warning-bg: #3a2210;
-  --color-warning-border: #fdba74;
-  --color-focus: #c4b5fd;
 }
 
 @media (max-width: 600px) {

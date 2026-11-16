@@ -21,7 +21,6 @@
 .navLink:hover { color: var(--color-plate-text); background: var(--color-plate-2); }
 .navLink[aria-current] { background: var(--color-action); color: var(--color-action-ink); font-weight: 700; }
 .navInstall { composes: navLink; border: 0; background: none; font: inherit; font-weight: 700; color: var(--color-plate-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.navTheme { composes: navLink; border: 0; background: none; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 /* Nút tài khoản học viên (mẫu Cole 16/11/2026): vòng chữ cái, tên + email, menu thả xuống. */
 .account { position: relative; }
 .accountButton { min-height: var(--touch); display: flex; align-items: center; gap: 10px; padding: 4px 8px; border: 0; border-radius: var(--radius-control); background: none; color: var(--color-plate-text); font: inherit; cursor: pointer; text-align: left; }

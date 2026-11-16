@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { InstallApp } from "@/components/install-app";
 import { useSignedIn } from "@/components/learner-nav";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountMenu, type Account } from "./account-menu";
 import styles from "./site.module.css";
 
@@ -42,7 +41,6 @@ export function SiteNav() {
           <Link key={href} href={href!} className={styles.navLink} onClick={close} aria-current={!href!.includes("#") && pathname.startsWith(href!) ? "page" : undefined}>{label}</Link>
         ))}
         <InstallApp className={styles.navInstall} label="Tải app" />
-        <ThemeToggle className={styles.navTheme} />
         {signedIn ? <AccountMenu account={account} onNavigate={close} /> : (
           <Link href="/dang-nhap" className={styles.navLink} onClick={close} aria-current={pathname.startsWith("/dang-nhap") ? "page" : undefined}>Đăng nhập</Link>
         )}
