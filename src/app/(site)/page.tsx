@@ -2,7 +2,11 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import ui from "@/components/ui.module.css";
+import { env } from "@/lib/env";
 import { listPublishedCatalog } from "@/modules/content/catalog";
+import { emailReady } from "@/modules/mail/email-sender";
+import { sepayEnabled } from "@/modules/orders/payment-info";
+import { buyFlowCopy } from "./home-copy";
 import { CategoryTiles } from "./khoa-hoc/course-groups";
 import styles from "./home.module.css";
 
@@ -14,19 +18,42 @@ const BENEFITS = [
   { title: "Học khi tàu mất mạng", text: "Tải bài về máy khi có Starlink, ra khơi vẫn học tiếp. Có mạng lại tự đồng bộ tiến độ.", path: <path d="M12 3v12M7 10l5 5 5-5M5 21h14" /> },
 ];
 
-const STEPS = [
-  { title: "Chọn khóa, bấm Mua", text: "Điền họ tên và số điện thoại, tài khoản tự tạo, không cần đăng ký trước." },
-  { title: "Quét mã QR bằng app ngân hàng", text: "Mọi ngân hàng Việt Nam đều quét được. Kiểm tra đúng số tiền và nội dung là mã đơn." },
-  { title: "Bấm “Tôi đã chuyển khoản”, vào học", text: "Chuyển xong, bấm nút trên trang thanh toán là khóa học mở ngay." },
-];
+/** Cách mua đang chạy (SePay bật hay chưa, gửi được email hay chưa) đọc lúc chạy, không đóng băng lúc build. */
+async function flow() {
+  await connection();
+  return buyFlowCopy({ autoConfirm: sepayEnabled(env()), guestOpen: emailReady() });
+}
 
-// Cách thanh toán khi chưa bật SePay (chủ chọn 03/11/2026). Bật SePay (G4) thì sửa lại các câu này: tiền về là tự mở khóa.
-const FAQ = [
-  { q: "Thanh toán bằng cách nào?", a: "Quét mã QR bằng app ngân hàng bất kỳ, kiểm tra đúng số tiền và nội dung là mã đơn. Tiền chuyển thẳng vào tài khoản ngân hàng của chúng tôi." },
-  { q: "Chuyển khoản xong bao lâu thì học được?", a: "Học được ngay: chuyển xong, bấm “Tôi đã chuyển khoản” trên trang thanh toán. Chúng tôi đối chiếu sao kê sau. Nếu chưa thấy tiền, khóa học tạm khóa và báo lý do; bạn gửi ảnh chuyển khoản để chúng tôi kiểm lại." },
-  { q: "Trên tàu không có mạng thì học thế nào?", a: "Sau khi đơn được xác nhận đã thanh toán, tải bài về máy khi có mạng bờ hoặc Starlink. Khi mất mạng vẫn học được các bài đã tải." },
-  { q: "Học trên mấy thiết bị?", a: "Mỗi tài khoản đăng nhập cùng lúc trên tối đa 2 thiết bị, chạy được cả Android và iPhone." },
-];
+async function Steps() {
+  const { steps } = await flow();
+  return (
+    <ol className={`${styles.steps} ${ui.grid}`}>
+      {steps.map((s, i) => (
+        <li key={s.title} className={styles.step}>
+          <span className={styles.num}>{i + 1}</span>
+          <h3 className={ui.h3}>{s.title}</h3>
+          <p className={ui.lead}>{s.text}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+async function Faq() {
+  const { paidAnswer } = await flow();
+  const items = [
+    { q: "Thanh toán bằng cách nào?", a: "Quét mã QR bằng app ngân hàng bất kỳ, kiểm tra đúng số tiền và nội dung là mã đơn. Tiền chuyển thẳng vào tài khoản ngân hàng của chúng tôi." },
+    { q: "Chuyển khoản xong bao lâu thì học được?", a: paidAnswer },
+    { q: "Trên tàu không có mạng thì học thế nào?", a: "Sau khi đơn được xác nhận đã thanh toán, tải bài về máy khi có mạng bờ hoặc Starlink. Khi mất mạng vẫn học được các bài đã tải." },
+    { q: "Học trên mấy thiết bị?", a: "Mỗi tài khoản đăng nhập cùng lúc trên tối đa 2 thiết bị, chạy được cả Android và iPhone." },
+  ];
+  return items.map((f) => (
+    <details key={f.q}>
+      <summary>{f.q}</summary>
+      <p>{f.a}</p>
+    </details>
+  ));
+}
 
 async function Courses() {
   await connection();
@@ -39,7 +66,8 @@ export default function HomePage() {
   return (
     <main>
       <section className={`${styles.hero} ${ui.section}`}>
-        <div className={`${ui.wrap} ${styles.heroRow}`}>
+        <div className={`${ui.wrap} ${styles.heroGrid}`}>
+        <div className={styles.heroRow}>
           <span className={ui.chip}>Tiếng Anh cho thuyền viên bộ phận máy</span>
           <h1 className={ui.h1}>Nói được tiếng Anh trong buồng máy, mỗi ngày chỉ 10 phút</h1>
           <p className={styles.heroText}>Bài học do máy trưởng tàu dầu soạn, đúng tình huống thật trên tàu, giải thích bằng tiếng Việt. Học trên điện thoại, học được cả khi tàu mất mạng.</p>
@@ -47,6 +75,14 @@ export default function HomePage() {
             <Link className={ui.action} href="/khoa-hoc">Học thử 3 bài miễn phí</Link>
             <Link className={ui.outline} href="#khoa-hoc">Xem các khóa</Link>
           </div>
+        </div>
+        {/* Máy tính: một ví dụ câu trong bài để cân trang (điện thoại ẩn cho gọn). */}
+        <figure className={styles.sample} aria-label="Ví dụ một câu trong bài học">
+          <figcaption className={styles.sampleTag}>Ví dụ trong bài học</figcaption>
+          <p className={styles.sampleEn} lang="en">“Chief, the main engine is running normally. All parameters are within limits.”</p>
+          <p className={styles.sampleVi}>Máy trưởng, máy chính đang chạy bình thường. Mọi thông số đều trong giới hạn.</p>
+          <p className={styles.sampleNote}>Tình huống: báo cáo ca trực với máy trưởng</p>
+        </figure>
         </div>
       </section>
 
@@ -59,7 +95,7 @@ export default function HomePage() {
           <div className={ui.grid}>
             {BENEFITS.map((b) => (
               <div key={b.title} className={styles.benefit}>
-                <span className={styles.icon}><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{b.path}</svg></span>
+                <span className={styles.icon}><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{b.path}</svg></span>
                 <h3 className={ui.h3}>{b.title}</h3>
                 <p className={ui.lead}>{b.text}</p>
               </div>
@@ -81,15 +117,7 @@ export default function HomePage() {
       <section id="cach-hoc" aria-labelledby="h-how" className={ui.section}>
         <div className={`${ui.wrap} ${styles.stack}`}>
           <h2 id="h-how" className={ui.h2}>Mua xong là học được ngay</h2>
-          <ol className={`${styles.steps} ${ui.grid}`}>
-            {STEPS.map((s, i) => (
-              <li key={s.title} className={styles.step}>
-                <span className={styles.num}>{i + 1}</span>
-                <h3 className={ui.h3}>{s.title}</h3>
-                <p className={ui.lead}>{s.text}</p>
-              </li>
-            ))}
-          </ol>
+          <Suspense fallback={null}><Steps /></Suspense>
           <Link href="/gioi-thieu">Đọc thêm về người soạn bài →</Link>
         </div>
       </section>
@@ -97,12 +125,7 @@ export default function HomePage() {
       <section id="hoi-dap" aria-labelledby="h-faq" className={`${styles.alt} ${ui.section}`}>
         <div className={`${ui.wrap} ${styles.faq}`}>
           <h2 id="h-faq" className={ui.h2}>Hỏi đáp</h2>
-          {FAQ.map((f) => (
-            <details key={f.q}>
-              <summary>{f.q}</summary>
-              <p>{f.a}</p>
-            </details>
-          ))}
+          <Suspense fallback={null}><Faq /></Suspense>
         </div>
       </section>
 

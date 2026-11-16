@@ -40,7 +40,8 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
               <ol className={styles.lessons}>
                 {m.trial.map((l) => (
                   <li key={l.position} className={styles.lesson}>
-                    <span className={styles.lessonId}>{l.externalId}</span>
+                    {/* Học viên đọc "Bài 1", không đọc mã nội bộ (mea-ce-001), chủ 17/11/2026. */}
+                    <span className={styles.lessonId}>Bài {l.position}</span>
                     <span className={styles.lessonTitle}>{l.title}</span>
                     <Link className={ui.outline} href={`/khoa-hoc/${course.slug}/hoc-thu/${l.position}`}>Học thử</Link>
                   </li>
