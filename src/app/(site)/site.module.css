@@ -1,6 +1,8 @@
 .header { background: var(--color-plate); color: var(--color-plate-text); }
 .headerRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-top: 12px; padding-bottom: 12px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--color-plate-text); text-decoration: none; font-weight: 700; font-size: 19px; min-height: var(--touch); }
+.brandText { display: flex; flex-direction: column; line-height: 1.15; }
+.brandTag { font-size: var(--font-xs); font-weight: 600; letter-spacing: .03em; color: var(--color-plate-muted); white-space: nowrap; }
 .logo { width: 32px; height: 40px; background: none; color: var(--color-plate-text); display: flex; align-items: center; justify-content: center; }
 .nav, .navOpen { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .menuButton, .phoneLogin { display: none; }
@@ -52,6 +54,8 @@
 .footerRow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 24px; padding-top: 32px; padding-bottom: 32px; color: var(--color-muted); font-size: var(--font-small); }
 .footerNav { display: flex; flex-wrap: wrap; gap: 0 20px; }
 .footerNav a { min-height: var(--touch); display: flex; align-items: center; }
+/* Điện thoại hẹp: dòng "CONGHUNG TANKER C/E" (≈210px ở cỡ chữ 15px) không vừa cạnh Đăng nhập và Menu, nên ẩn để đầu trang vẫn một hàng. */
+@media (max-width: 440px) { .brandTag { display: none; } }
 /* Máy màn hẹp (360px): logo, Đăng nhập và nút Menu vẫn nằm một hàng. */
 @media (max-width: 380px) {
   .brand { font-size: 15px; gap: 6px; }

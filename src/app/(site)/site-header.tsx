@@ -13,7 +13,11 @@ export function SiteHeader() {
           <span className={styles.logo}>
             <BrandMark />
           </span>
-          <span className={styles.brandText}>Marine English</span>
+          <span className={styles.brandText}>
+            <span>Marine English</span>
+            {/* Dòng phụ dưới logo (chủ 16/11/2026). */}
+            <span className={styles.brandTag}>CONGHUNG TANKER C/E</span>
+          </span>
         </Link>
         <Suspense fallback={null}><SiteNav /></Suspense>
       </div>

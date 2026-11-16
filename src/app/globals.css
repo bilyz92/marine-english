@@ -30,7 +30,8 @@ a {
   text-underline-offset: 3px;
 }
 
-a:hover {
+/* :where = độ ưu tiên 0: liên kết đã tự đặt màu (logo, menu trên nền tím đậm) giữ màu đó khi rê chuột, không bị đổi thành tím đậm trùng nền. */
+a:where(:hover) {
   color: var(--color-primary-dark);
 }
 
