@@ -187,7 +187,7 @@ try {
     }
     await g.go(`${BASE}/khoa-hoc/${SLUG}`);
     check("trang khóa: thấy module", await gh.see("Kinh nghiệm vận hành"));
-    check("trang khóa: 3 nút Học thử", await g.evaluate(`[...document.querySelectorAll("main a")].filter((e) => e.textContent.trim() === "Học thử").length`) === 3);
+    check("trang khóa: 2 nút Học thử (chủ 17/11/2026)", await g.evaluate(`[...document.querySelectorAll("main a")].filter((e) => e.textContent.trim() === "Học thử").length`) === 2);
     check("trang khóa: có dòng mờ và lời mời mua", await g.evaluate(`!!document.querySelector("li[aria-hidden=true]")`) && (await gh.text()).includes("Mua khóa để mở 2 bài còn lại."));
     for (const w of [1280, 390]) {
       await g.width(w, 900);
