@@ -75,7 +75,7 @@ describe("soạn bài trên web", () => {
     expect((await listing(owner, "engine_cadet_tanker")).course.currentVersionId).toBe(after.course.currentVersionId);
   });
 
-  it("khóa mới rỗng: thêm bài đầu tiên tạo phiên bản 1; bài thêm sau nối cuối, 3 bài đầu học thử", async () => {
+  it("khóa mới rỗng: thêm bài đầu tiên tạo phiên bản 1; bài thêm sau nối cuối, 2 bài đầu học thử", async () => {
     const owner = await adminSess("owner");
     const created = await callAdmin(createCourse, owner, "POST", "/api/quan-tri/content/courses", { slug: "khoa_moi", titleVi: "Khóa mới", titleEn: "New course" });
     expect(created.status).toBe(200);
@@ -91,7 +91,7 @@ describe("soạn bài trên web", () => {
     }
     const l = await listing(owner, "khoa_moi");
     expect(l.lessons.map((x) => [x.position, x.externalId, x.isFreeTrial])).toEqual([
-      [1, "khoa_moi-b1", true], [2, "khoa_moi-b2", true], [3, "khoa_moi-b3", true], [4, "khoa_moi-b4", false],
+      [1, "khoa_moi-b1", true], [2, "khoa_moi-b2", true], [3, "khoa_moi-b3", false], [4, "khoa_moi-b4", false],
     ]);
     expect(await auditRows("lesson_add")).toHaveLength(4);
     expect(await auditRows("course_create")).toHaveLength(1);

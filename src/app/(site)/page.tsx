@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import ui from "@/components/ui.module.css";
 import { env } from "@/lib/env";
 import { listPublishedCatalog } from "@/modules/content/catalog";
+import { FREE_TRIAL_LESSONS } from "@/modules/content/free-trial";
 import { emailReady } from "@/modules/mail/email-sender";
 import { sepayEnabled } from "@/modules/orders/payment-info";
 import { buyFlowCopy } from "./home-copy";
@@ -72,7 +73,7 @@ export default function HomePage() {
           <h1 className={ui.h1}>Nói được tiếng Anh trong buồng máy, mỗi ngày chỉ 10 phút</h1>
           <p className={styles.heroText}>Bài học do máy trưởng tàu dầu soạn, đúng tình huống thật trên tàu, giải thích bằng tiếng Việt. Học trên điện thoại, học được cả khi tàu mất mạng.</p>
           <div className={ui.row}>
-            <Link className={ui.action} href="/khoa-hoc">Học thử 3 bài miễn phí</Link>
+            <Link className={ui.action} href="/khoa-hoc">Học thử {FREE_TRIAL_LESSONS} bài miễn phí</Link>
             <Link className={ui.outline} href="#khoa-hoc">Xem các khóa</Link>
           </div>
         </div>
@@ -108,7 +109,7 @@ export default function HomePage() {
         <div className={`${ui.wrap} ${styles.stack}`}>
           <div>
             <h2 id="h-courses" className={ui.h2}>Chọn khóa học</h2>
-            <p className={ui.lead}>Học thử 3 bài đầu trước khi mua.</p>
+            <p className={ui.lead}>Học thử {FREE_TRIAL_LESSONS} bài đầu trước khi mua.</p>
           </div>
           <Suspense fallback={<p className={ui.muted}>Đang tải danh sách khóa…</p>}><Courses /></Suspense>
         </div>
@@ -133,7 +134,7 @@ export default function HomePage() {
         <div className={ui.wrap}>
           <div className={styles.cta}>
             <div>
-              <h2 className={ui.h2}>Bắt đầu với 3 bài miễn phí</h2>
+              <h2 className={ui.h2}>Bắt đầu với {FREE_TRIAL_LESSONS} bài miễn phí</h2>
               <p>Không cần thẻ, không cần chuyển khoản. Thấy hợp thì mua.</p>
             </div>
             <Link className={ui.action} href="/khoa-hoc">Học thử miễn phí</Link>

@@ -74,7 +74,7 @@ describe("tải lên khung bài giảng Excel", () => {
       [`${T}-b5`, "excel", null, "A1", "Kinh nghiệm phỏng vấn"],
       [`${T}-b6`, "excel", "essay", "A4", "Kinh nghiệm vận hành sửa chữa"],
     ]);
-    expect(lessons.filter((l) => l.is_free_trial)).toHaveLength(3);
+    expect(lessons.filter((l) => l.is_free_trial)).toHaveLength(2);
     const { topics } = (await sqlAsMigrator(`SELECT topics FROM courses WHERE slug = $1`, [T])).rows[0] as { topics: { id: string; titleVi: string }[] };
     expect(topics.map((t) => t.id)).toEqual(["A1", "B1", "A4"]);
     expect(topics.at(-1)!.titleVi).toBe("Động cơ diesel và hệ động lực chính");

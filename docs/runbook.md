@@ -189,7 +189,7 @@ Tắt lại: để trống `SEPAY_WEBHOOK_SECRETS` (webhook trả 503, nút "Tô
 ### Bài video (từ 14/11/2026, `docs/superpowers/plans/2026-11-12-video-lessons.md`)
 
 - Chủ chọn **Loại bài: Video** trong form bài (dán link YouTube nếu có), lưu, rồi bấm **Video** ở dòng bài để tải tệp: mp4 (H.264) hoặc webm, tối đa **300 MB**, nhận diện theo byte đầu tệp (`.mov` của iPhone, tệp chỉ có tiếng bị từ chối). Không chuyển mã trên máy chủ: xem lại ngay sau khi tải; không phát được thì xuất lại "MP4 (H.264)". Có cả tệp và link thì học viên xem tệp. Excel vẫn không nhận dòng "Video".
-- Tệp video luôn là tệp bảo vệ trong `MEDIA_ROOT/protected` (sao lưu cùng media): học viên xem qua `/api/learn/files/<id>` (kiểm quyền, có Range), khách chỉ xem video của 3 bài học thử. Học viên tải từng video về máy bằng nút riêng (không tải cùng khóa).
+- Tệp video luôn là tệp bảo vệ trong `MEDIA_ROOT/protected` (sao lưu cùng media): học viên xem qua `/api/learn/files/<id>` (kiểm quyền, có Range), khách chỉ xem video của các bài học thử (2 bài đầu từ 17/11/2026). Học viên tải từng video về máy bằng nút riêng (không tải cùng khóa).
 - **nginx bắt buộc** có khối dưới (đã có trong `deploy/nginx-marine-english.conf`, đặt trong `server` của `conghung.ce-tanker.vn`); thiếu thì video trên 5 MB bị nginx trả 413. Sửa `/etc/nginx/sites-available/marine-english`, chạy `sudo nginx -t && sudo systemctl reload nginx`:
 
   ```nginx

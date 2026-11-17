@@ -24,7 +24,7 @@ async function withMigrator<T>(run: (c: Client) => Promise<T>): Promise<T> {
 const q = (sql: string, params: unknown[] = []) => withMigrator(async (c) => (await c.query(sql, params)).rows);
 
 describe("nhập nội dung", () => {
-  it("tạo khóa draft, phiên bản, đúng thứ tự, 3 bài học thử, bài dùng chung một phiên bản", async () => {
+  it("tạo khóa draft, phiên bản, đúng thứ tự, 2 bài học thử, bài dùng chung một phiên bản", async () => {
     const result = await withMigrator((c) => importContent(c, fixture()));
     expect(result).toEqual({ courses: 2, newCourseVersions: 2, newLessonVersions: 5 });
     const courses = await q(`SELECT slug, status, price_vnd, current_version_id FROM courses ORDER BY slug`);
@@ -39,7 +39,7 @@ describe("nhập nội dung", () => {
        WHERE c.slug = 'engine_cadet_tanker' ORDER BY cvl.position`,
     );
     expect(rows.map((r) => [r.external_id, r.position, r.is_free_trial])).toEqual([
-      ["A001", 1, true], ["A002", 2, true], ["A003-1", 3, true], ["T001", 4, false],
+      ["A001", 1, true], ["A002", 2, true], ["A003-1", 3, false], ["T001", 4, false],
     ]);
     const [content] = await q(`SELECT lv.content FROM lesson_versions lv JOIN lessons l ON l.id = lv.lesson_id WHERE l.external_id = 'A001'`);
     expect(content.content.id).toBe("A001");

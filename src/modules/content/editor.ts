@@ -13,7 +13,9 @@ import { modulesFor } from "./modules";
 // Chủ sửa và thêm bài trên web (docs/superpowers/plans/2026-11-02-content-authoring.md, bước 5).
 // Phiên bản bất biến: sửa = phiên bản bài mới + phiên bản khóa mới thay bài đó tại chỗ; chỉ đổi khóa đang mở.
 
-export const FREE_TRIAL_LESSONS = 3;
+import { FREE_TRIAL_LESSONS } from "./free-trial";
+
+export { FREE_TRIAL_LESSONS };
 export const EDIT_TX = { lockTimeoutMs: 3_000, retries: 0 };
 
 const text = z.string().trim().max(4000);

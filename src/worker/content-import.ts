@@ -4,10 +4,9 @@
 // Chỉ dùng pg/kiểu thuần để CLI chạy thẳng bằng Node.
 import { createHash } from "node:crypto";
 import type pg from "pg";
+import { FREE_TRIAL_LESSONS } from "../modules/content/free-trial.ts";
 
 export class ContentImportError extends Error {}
-
-const FREE_TRIAL_LESSONS = 3;
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type RawCourse = { id: string; title: { en: string; vi: string }; lesson_ids: string[] };

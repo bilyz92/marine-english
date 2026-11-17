@@ -36,7 +36,7 @@ function patch(id: string, s: { token: string; csrf: string }, body: unknown) {
 }
 
 describe("danh mục công khai", () => {
-  it("khóa draft không lộ; publish rồi mới thấy, kèm 3 bài học thử có tiêu đề tiếng Việt", async () => {
+  it("khóa draft không lộ; publish rồi mới thấy, kèm 2 bài học thử có tiêu đề tiếng Việt", async () => {
     await seedContent();
     expect(await (await listCourses(get("/api/public/courses"))).json()).toEqual({ courses: [], groups: [] });
     expect((await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).status).toBe(404);
@@ -45,7 +45,7 @@ describe("danh mục công khai", () => {
     const { courses } = (await (await listCourses(get("/api/public/courses"))).json()) as { courses: { slug: string; priceVnd: number; lessonCount: number; trialLessons: { position: number; externalId: string; title: string }[] }[] };
     expect(courses).toHaveLength(1);
     expect(courses[0]).toMatchObject({ slug: "engine_cadet_tanker", priceVnd: 199_000, lessonCount: 4 });
-    expect(courses[0]!.trialLessons.map((l) => l.externalId)).toEqual(["A001", "A002", "A003-1"]);
+    expect(courses[0]!.trialLessons.map((l) => l.externalId)).toEqual(["A001", "A002"]);
     expect(courses[0]!.trialLessons[0]!.title).toMatch(/^Hãy giới thiệu/);
     // Khóa chưa chia module: một nhóm "Nội dung khóa học", chỉ bài học thử có tiêu đề (chủ 08/11/2026: người chưa mua chỉ thấy module).
     const detail = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as Detail;
@@ -63,7 +63,7 @@ describe("danh mục công khai", () => {
     expect(body).not.toContain("hệ thống hỗ trợ hàng");
   });
 
-  it("mỗi module có lessonCount đúng và đủ 3 bài học thử; bài chưa xếp vào nhóm Bài khác ở cuối", async () => {
+  it("mỗi module có lessonCount đúng và đủ 2 bài học thử; bài chưa xếp vào nhóm Bài khác ở cuối", async () => {
     await seedContent();
     await publish("engine_cadet_tanker");
     const s = await adminSess("owner");
@@ -73,20 +73,20 @@ describe("danh mục công khai", () => {
     const m2 = await createModule("Kinh nghiệm vận hành");
     expect((await callAdmin(lessonModuleRoute, s, "PUT", "/x", { moduleId: m2 }, { slug: "engine_cadet_tanker", externalId: "T001" })).status).toBe(200);
     const detail = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as Detail;
-    expect(detail.modules.map((m) => [m.titleVi, m.lessonCount, m.trial.length])).toEqual([["Kinh nghiệm phỏng vấn", 3, 3], ["Kinh nghiệm vận hành", 1, 0]]);
+    expect(detail.modules.map((m) => [m.titleVi, m.lessonCount, m.trial.length])).toEqual([["Kinh nghiệm phỏng vấn", 3, 2], ["Kinh nghiệm vận hành", 1, 0]]);
     expect(detail.modules.reduce((n, m) => n + m.lessonCount, 0)).toBe(detail.lessonCount);
     await sqlAsMigrator(`DELETE FROM course_lesson_modules WHERE lesson_id = (SELECT id FROM lessons WHERE external_id = 'T001')`);
     const after = (await (await getCourse(get("/x"), params({ slug: "engine_cadet_tanker" }))).json()) as Detail;
     expect(after.modules.map((m) => [m.id === null, m.titleVi, m.lessonCount])).toEqual([[false, "Kinh nghiệm phỏng vấn", 3], [true, "Bài khác", 1]]);
   });
 
-  it("bài học thử: vị trí 1–3 có nội dung; vị trí 4, 0, abc → 404", async () => {
+  it("bài học thử: vị trí 1–2 có nội dung; vị trí 3 (hết học thử từ 17/11/2026), 4, 0, abc → 404", async () => {
     await seedContent();
     await publish("engine_cadet_tanker");
-    const ok = await getTrial(get("/x"), params({ slug: "engine_cadet_tanker", position: "3" }));
+    const ok = await getTrial(get("/x"), params({ slug: "engine_cadet_tanker", position: "2" }));
     expect(ok.status).toBe(200);
-    expect(((await ok.json()) as { externalId: string }).externalId).toBe("A003-1");
-    for (const position of ["4", "0", "abc", "-1"]) {
+    expect(((await ok.json()) as { externalId: string }).externalId).toBe("A002");
+    for (const position of ["3", "4", "0", "abc", "-1"]) {
       expect((await getTrial(get("/x"), params({ slug: "engine_cadet_tanker", position }))).status, position).toBe(404);
     }
   });

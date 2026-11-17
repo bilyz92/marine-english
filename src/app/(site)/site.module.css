@@ -55,7 +55,20 @@
 .footerNav { display: flex; flex-wrap: wrap; gap: 0 20px; }
 .footerNav a { min-height: var(--touch); display: flex; align-items: center; }
 /* Điện thoại hẹp: dòng "CONGHUNG TANKER C/E" (≈210px ở cỡ chữ 15px) không vừa cạnh Đăng nhập và Menu, nên ẩn để đầu trang vẫn một hàng. */
-@media (max-width: 440px) { .brandTag { display: none; } }
+/*
+ * Điện thoại (chủ 17/11/2026: hiện dòng "CONGHUNG TANKER C/E"): dòng này rộng hơn chỗ trống cạnh Đăng nhập và Menu. Lưới: link logo
+ * (một khối, giữ nguyên ngữ nghĩa và viền khi chọn bằng bàn phím) trải cả hàng 1, nằm dưới hai nút; tên ở trên, dòng phụ ngay dưới,
+ * phần dòng phụ chạy xuống dưới hai nút. Đăng nhập và Menu ở cột 2–3 cùng hàng, vẽ đè lên vì đứng sau trong DOM; menu mở ở hàng 2.
+ */
+@media (max-width: 440px) {
+  .headerRow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: start; column-gap: 4px; row-gap: 0; }
+  .brand { grid-column: 1 / -1; grid-row: 1; justify-self: start; align-items: flex-start; padding: 16px 0 4px; min-height: 0; }
+  /* Dòng phụ xuống hẳn dưới chữ của hai nút (nút cao 52px), không đè lên "Đăng nhập". */
+  .brandTag { letter-spacing: 0; margin-top: 12px; }
+  .phoneLogin { grid-column: 2; grid-row: 1; }
+  .menuButton { grid-column: 3; grid-row: 1; margin-top: 2px; }
+  .navOpen { grid-column: 1 / -1; grid-row: 2; }
+}
 /* Máy màn hẹp (360px): logo, Đăng nhập và nút Menu vẫn nằm một hàng. */
 @media (max-width: 380px) {
   .brand { font-size: 15px; gap: 6px; }
