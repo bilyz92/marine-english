@@ -8,8 +8,8 @@ UPDATE "users" SET "rank" = CASE "rank"
   WHEN 'Thợ máy' THEN 'THỢ MÁY - MOTORMAN'
   WHEN 'Thực tập sinh máy' THEN 'THỰC TẬP SINH MÁY - ENGINE CADET'
   WHEN 'Bộ phận boong' THEN 'BỘ PHẬN BOONG - DECK DEPARTMENT'
-  WHEN 'Đang học trường hàng hải' THEN 'ĐANG HỌC TRƯỜNG HÀNG HẢI - MARITIME STUDENT'
-  WHEN 'Khác / chưa xác định' THEN 'KHÁC / CHƯA XÁC ĐỊNH - OTHER / UNSPECIFIED'
+  WHEN 'Đang học trường hàng hải' THEN 'ĐANG HỌC - MARITIME STUDENT'
+  WHEN 'Khác / chưa xác định' THEN 'KHÁC - OTHER'
 END
 WHERE "rank" IN ('Máy trưởng', 'Máy hai', 'Máy ba', 'Máy tư', 'Thợ cả', 'Thợ máy', 'Thực tập sinh máy',
                  'Bộ phận boong', 'Đang học trường hàng hải', 'Khác / chưa xác định');

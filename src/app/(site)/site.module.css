@@ -1,9 +1,9 @@
 .header { background: var(--color-plate); color: var(--color-plate-text); }
 .headerRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-top: 12px; padding-bottom: 12px; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--color-plate-text); text-decoration: none; font-weight: 700; font-size: 19px; min-height: var(--touch); }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--color-plate-text); text-decoration: none; font-weight: 700; font-size: 28px; min-height: var(--touch); }
 .brandText { display: flex; flex-direction: column; line-height: 1.15; }
 .brandTag { font-size: var(--font-xs); font-weight: 600; letter-spacing: .03em; color: var(--color-plate-muted); white-space: nowrap; }
-.logo { width: 32px; height: 40px; background: none; color: var(--color-plate-text); display: flex; align-items: center; justify-content: center; }
+.logo { width: 40px; height: 48px; background: none; color: var(--color-plate-text); display: flex; align-items: center; justify-content: center; }
 .nav, .navOpen { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .menuButton, .phoneLogin { display: none; }
 @media (max-width: 760px) {
