@@ -8,7 +8,8 @@ import styles from "../admin.module.css";
 import { CategoriesPanel, categoryOptions, type Category } from "./categories";
 
 type Course = { id: string; slug: string; titleVi: string; status: string; priceVnd: number | null; categoryId: string | null };
-const STATUS: Record<string, string> = { draft: "Nháp", published: "Đang mở bán", archived: "Đã ngừng bán" };
+const STATUS: Record<string, string> = { draft: "Nháp", published: "Đang mở bán", archived: "Sắp ra mắt" };
+const STATUS_ACTION = { published: "Mở bán", archived: "Chuyển sang Sắp ra mắt", draft: "Ẩn khỏi web" } as const;
 
 export default function CoursesPage() {
   const me = useAdmin();
@@ -16,7 +17,7 @@ export default function CoursesPage() {
   const cats = useLoad<{ categories: Category[] }>("/api/quan-tri/categories");
   const categories = cats.data?.categories ?? [];
   const reloadAll = async () => { await Promise.all([reload(), cats.reload()]); };
-  const [edit, setEdit] = useState<{ course: Course; kind: "price" | "published" | "archived" } | null>(null);
+  const [edit, setEdit] = useState<{ course: Course; kind: "price" | "published" | "archived" | "draft" } | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState({ slug: "", titleVi: "", titleEn: "" });
   const [price, setPrice] = useState("");
@@ -67,10 +68,14 @@ export default function CoursesPage() {
     await reload();
   }
 
+  const statusKind = edit && edit.kind !== "price" ? edit.kind : null;
   const publishedCount = data?.courses.filter((c) => c.status === "published").length ?? 0;
   const archivedCount = data?.courses.filter((c) => c.status === "archived").length ?? 0;
 
-  /** Ngừng bán / mở bán tất cả (chủ 24/11/2026): nháp không đổi; mở bán bỏ qua khóa chưa có giá hoặc chưa có bài. */
+  /**
+   * Chuyển tất cả sang Sắp ra mắt / mở bán tất cả (chủ 24–25/11/2026): nháp không đổi; mở bán bỏ qua khóa chưa có giá hoặc chưa có bài.
+   * Khóa Sắp ra mắt ('archived') vẫn hiện trên web, làm mờ, không mua được.
+   */
   async function saveBulk() {
     const target = bulk;
     setBusy(true);
@@ -80,7 +85,7 @@ export default function CoursesPage() {
     if (issue) return setProblem(issue);
     const { changed, skipped } = r.data;
     setNote(target === "archived"
-      ? `Đã ngừng bán ${changed} khóa.`
+      ? `Đã chuyển ${changed} khóa sang Sắp ra mắt.`
       : `Đã mở bán ${changed} khóa.${skipped > 0 ? ` Bỏ qua ${skipped} khóa chưa có giá hoặc chưa có bài.` : ""}`);
     setBulk(null);
     await reload();
@@ -96,7 +101,7 @@ export default function CoursesPage() {
           {data.courses.length === 0 && <p className={styles.muted}>Chưa có khóa nào. Chủ thêm khóa ở mục Nhập nội dung.</p>}
           {canEdit && (publishedCount > 0 || archivedCount > 0) && (
             <div className={styles.actions}>
-              {publishedCount > 0 && <button className={styles.btnDanger} onClick={() => { setProblem(null); setNote(null); setBulk("archived"); }}>Ngừng bán tất cả ({publishedCount})</button>}
+              {publishedCount > 0 && <button className={styles.btnDanger} onClick={() => { setProblem(null); setNote(null); setBulk("archived"); }}>Chuyển tất cả sang Sắp ra mắt ({publishedCount})</button>}
               {archivedCount > 0 && <button className={styles.btn} onClick={() => { setProblem(null); setNote(null); setBulk("published"); }}>Mở bán tất cả ({archivedCount})</button>}
             </div>
           )}
@@ -120,8 +125,10 @@ export default function CoursesPage() {
                 <div className={styles.actions}>
                   <button className={styles.btn} onClick={() => { setProblem(null); setPrice(String(c.priceVnd ?? "")); setEdit({ course: c, kind: "price" }); }}>Đổi giá</button>
                   {c.status === "published"
-                    ? <button className={styles.btn} onClick={() => { setProblem(null); setEdit({ course: c, kind: "archived" }); }}>Ngừng bán</button>
+                    ? <button className={styles.btn} onClick={() => { setProblem(null); setEdit({ course: c, kind: "archived" }); }}>Sắp ra mắt</button>
                     : <button className={styles.btn} onClick={() => { setProblem(null); setEdit({ course: c, kind: "published" }); }}>Mở bán</button>}
+                  {c.status === "draft" && <button className={styles.btn} onClick={() => { setProblem(null); setEdit({ course: c, kind: "archived" }); }}>Sắp ra mắt</button>}
+                  {c.status !== "draft" && <button className={styles.btn} onClick={() => { setProblem(null); setEdit({ course: c, kind: "draft" }); }}>Ẩn khỏi web</button>}
                 </div>
               )}
             </div>
@@ -141,14 +148,19 @@ export default function CoursesPage() {
         <p className={styles.muted}>Giá hiện tại: {edit?.course.priceVnd ? formatVnd(edit.course.priceVnd) : "chưa đặt"}. Đơn đã tạo giữ nguyên giá cũ.</p>
         <Field label="Giá mới (đồng) *"><input className={styles.input} required type="number" min={1} value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
       </ActionDialog>
-      <ActionDialog open={edit?.kind === "published" || edit?.kind === "archived"} title={`${edit?.kind === "published" ? "Mở bán" : "Ngừng bán"} “${edit?.course.titleVi ?? ""}”?`} confirmLabel={edit?.kind === "published" ? "Mở bán" : "Ngừng bán"} danger={edit?.kind === "archived"} busy={busy} problem={problem} onClose={() => setEdit(null)} onConfirm={() => void save()}>
-        <p className={styles.muted}>Giá: {edit?.course.priceVnd ? formatVnd(edit.course.priceVnd) : "chưa đặt"}.</p>
+      <ActionDialog open={statusKind !== null} title={`${STATUS_ACTION[statusKind ?? "published"]} “${edit?.course.titleVi ?? ""}”?`} confirmLabel={STATUS_ACTION[statusKind ?? "published"]} danger={edit?.kind === "archived" || edit?.kind === "draft"} busy={busy} problem={problem} onClose={() => setEdit(null)} onConfirm={() => void save()}>
+        <p className={styles.muted}>
+          {edit?.kind === "published" && <>Giá: {edit.course.priceVnd ? formatVnd(edit.course.priceVnd) : "chưa đặt"}. </>}
+          {edit?.kind === "archived" && "Khóa vẫn hiện trên web, làm mờ, ghi “Sắp ra mắt”, không mua được. "}
+          {edit?.kind === "draft" && "Khóa không còn hiện trên web. "}
+          {edit?.kind !== "published" && "Người đã mua vẫn học bình thường."}
+        </p>
       </ActionDialog>
-      <ActionDialog open={bulk !== null} title={bulk === "archived" ? `Ngừng bán ${publishedCount} khóa?` : `Mở bán ${archivedCount} khóa?`} confirmLabel={bulk === "archived" ? "Ngừng bán tất cả" : "Mở bán tất cả"} danger={bulk === "archived"} busy={busy} problem={problem} onClose={() => { if (!busy) { setBulk(null); setProblem(null); } }} onConfirm={() => void saveBulk()}>
+      <ActionDialog open={bulk !== null} title={bulk === "archived" ? `Chuyển ${publishedCount} khóa sang Sắp ra mắt?` : `Mở bán ${archivedCount} khóa?`} confirmLabel={bulk === "archived" ? "Chuyển sang Sắp ra mắt" : "Mở bán tất cả"} danger={bulk === "archived"} busy={busy} problem={problem} onClose={() => { if (!busy) { setBulk(null); setProblem(null); } }} onConfirm={() => void saveBulk()}>
         <p className={styles.muted}>
           {bulk === "archived"
-            ? "Mọi khóa đang mở bán sẽ ngừng bán: trang web không còn hiện khóa, không ai mua mới được."
-            : "Mọi khóa đã ngừng bán sẽ mở bán lại; khóa chưa có giá hoặc chưa có bài được bỏ qua."}
+            ? "Mọi khóa đang mở bán chuyển sang Sắp ra mắt: vẫn hiện trên web, làm mờ, không ai mua mới được."
+            : "Mọi khóa Sắp ra mắt sẽ mở bán lại; khóa chưa có giá hoặc chưa có bài được bỏ qua."}
           {" "}Khóa nháp giữ nguyên. Người đã mua vẫn học bình thường.
         </p>
       </ActionDialog>

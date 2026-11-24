@@ -22,3 +22,8 @@
 .groupHead { display: flex; flex-direction: column; gap: 8px; }
 .back { align-self: flex-start; min-height: var(--touch); display: inline-flex; align-items: center; font-weight: 700; }
 .sub { display: flex; flex-direction: column; gap: 16px; }
+
+/* Ô chức danh chỉ có khóa sắp ra mắt (chủ 25/11/2026): ảnh/tên mờ, nhãn "Sắp ra mắt" đè lên; vẫn bấm vào xem được các khóa. */
+.tileSoon { position: relative; }
+.tileSoon .tileImage, .tileSoon .tileName { opacity: 0.4; filter: blur(1.5px); }
+.soonLabel { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); padding: 8px 14px; border-radius: var(--radius-control); background: var(--color-plate); color: var(--color-plate-text); font-size: var(--font-small); font-weight: 800; letter-spacing: 0.04em; white-space: nowrap; }

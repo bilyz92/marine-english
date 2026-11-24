@@ -1,4 +1,4 @@
-import { prisma, withTx } from "@/lib/db";
+import { prisma, withTx, type Tx } from "@/lib/db";
 import { audit } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
@@ -29,8 +29,8 @@ type Row = {
 };
 
 /** Tiêu đề bài: câu hỏi tiếng Việt, không có thì tiếng Anh, không có nữa thì mã bài. */
-async function publishedRows(slug?: string): Promise<Row[]> {
-  return prisma().$queryRaw<Row[]>`
+async function publishedRows(slug?: string, db: Tx | ReturnType<typeof prisma> = prisma()): Promise<Row[]> {
+  return db.$queryRaw<Row[]>`
     SELECT c.id::text AS course_id, c.slug, c.title_vi, c.title_en, c.price_vnd, cvl.position, l.external_id, cvl.is_free_trial,
            clm.module_id::text AS module_id, coalesce(lv.content #>> '{question,text,vi}', lv.content #>> '{question,text,en}') AS title
     FROM courses c
@@ -60,40 +60,60 @@ function group(rows: Row[]): Grouped[] {
   return [...bySlug.values()];
 }
 
-/** Danh mục của khóa trong danh sách công khai (chỉ danh sách; CourseCard và CourseDetail không đổi). */
-export type CatalogCourseCard = CourseCard & {
+/**
+ * Thẻ khóa trong danh sách công khai (chỉ danh sách; CourseCard và CourseDetail không đổi). `comingSoon`: khóa 'archived' hiện là
+ * "Sắp ra mắt" (chủ 25/11/2026): chỉ tên, danh mục, số bài; không giá (null), không bài học thử, không mua được.
+ */
+export type CatalogCourseCard = Omit<CourseCard, "priceVnd"> & {
+  priceVnd: number | null;
+  comingSoon: boolean;
   category: { id: string; titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null } | null;
 };
 /**
- * Nhóm khóa đang bán theo danh mục cấp 1 (docs/superpowers/plans/2026-11-14-course-categories.md, Task 2): khóa gắn thẳng ở `courses`,
- * khóa gắn danh mục con ở `subgroups`; `courseCount` và `minPriceVnd` tính cả hai. Nhóm không có khóa đang bán bị bỏ; khóa chưa có
+ * Nhóm khóa đang bán và sắp ra mắt theo danh mục cấp 1 (docs/superpowers/plans/2026-11-14-course-categories.md, Task 2): khóa gắn thẳng ở `courses`,
+ * khóa gắn danh mục con ở `subgroups`; `courseCount` và `minPriceVnd` tính cả hai; `minPriceVnd` chỉ
+ * tính khóa đang bán (null khi nhóm chỉ có khóa sắp ra mắt, lúc đó `comingSoon`). Nhóm không có khóa nào hiện được bị bỏ; khóa chưa có
  * danh mục ở nhóm cuối "Khóa khác" (key "khac").
  */
 export type CatalogGroup = {
   id: string | null; key: string; titleVi: string; titleEn: string | null; imageUrl: string | null;
-  courseCount: number; minPriceVnd: number; courses: CatalogCourseCard[];
+  courseCount: number; minPriceVnd: number | null; comingSoon: boolean; courses: CatalogCourseCard[];
   subgroups: { id: string; titleVi: string; courses: CatalogCourseCard[] }[];
 };
 export const OTHER_GROUP_KEY = "khac";
 
 type CategoryRow = { id: string; parent_id: string | null; title_vi: string; title_en: string | null; storage_key: string | null };
 
+type ComingSoonRow = { course_id: string; slug: string; title_vi: string; title_en: string; lesson_count: number };
+
+/** Danh mục công khai: khóa đang bán và khóa sắp ra mắt ('archived'); khóa nháp không bao giờ có ở đây. */
 export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCard[]; groups: CatalogGroup[] }> {
-  const db = prisma();
-  const [grouped, links, categories] = await Promise.all([
-    publishedRows().then(group),
-    db.$queryRaw<{ id: string; category_id: string | null }[]>`
-      SELECT id::text AS id, category_id::text AS category_id FROM courses WHERE status = 'published'`,
-    db.$queryRaw<CategoryRow[]>`
+  // Một ảnh chụp dữ liệu cho mọi câu đọc: khóa đổi trạng thái giữa chừng không hiện hai lần hay mất (chủ 25/11/2026).
+  const [grouped, soon, links, categories] = await prisma().$transaction(async (db) => [
+    group(await publishedRows(undefined, db)),
+    await db.$queryRaw<ComingSoonRow[]>`
+      SELECT c.id::text AS course_id, c.slug, c.title_vi, c.title_en,
+             (SELECT count(*)::int FROM course_version_lessons cvl WHERE cvl.course_version_id = c.current_version_id) AS lesson_count
+      FROM courses c WHERE c.status = 'archived' ORDER BY c.slug`,
+    await db.$queryRaw<{ id: string; category_id: string | null }[]>`
+      SELECT id::text AS id, category_id::text AS category_id FROM courses WHERE status IN ('published', 'archived')`,
+    await db.$queryRaw<CategoryRow[]>`
       SELECT c.id::text AS id, c.parent_id::text AS parent_id, c.title_vi, c.title_en, ma.storage_key
       FROM course_categories c LEFT JOIN course_categories p ON p.id = c.parent_id LEFT JOIN media_assets ma ON ma.id = c.image_asset_id
       ORDER BY coalesce(p.position, c.position), c.parent_id IS NOT NULL, c.position`,
-  ]);
+  ] as const, { isolationLevel: "RepeatableRead" });
   const categoryOf = new Map(links.map((l) => [l.id, l.category_id]));
   const byId = new Map(categories.map((c) => [c.id, c]));
   const courses: CatalogCourseCard[] = [];
   const courseCategory = new Map<CatalogCourseCard, CategoryRow | undefined>();
-  for (const { lessons: _lessons, courseId, ...card } of grouped) {
+  const cards: { courseId: string; card: Omit<CatalogCourseCard, "category"> }[] = [
+    ...grouped.map(({ lessons: _lessons, courseId, ...card }) => ({ courseId, card: { ...card, comingSoon: false } })),
+    ...soon.map((r) => ({
+      courseId: r.course_id,
+      card: { slug: r.slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: null, lessonCount: r.lesson_count, trialLessons: [], comingSoon: true },
+    })),
+  ].sort((a, b) => (a.card.slug < b.card.slug ? -1 : a.card.slug > b.card.slug ? 1 : 0));
+  for (const { courseId, card } of cards) {
     const own = byId.get(categoryOf.get(courseId) ?? "");
     const parent = own?.parent_id ? byId.get(own.parent_id) : undefined;
     const course: CatalogCourseCard = {
@@ -106,9 +126,10 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
     courseCategory.set(course, own);
   }
   const inCategory = (id: string) => courses.filter((c) => courseCategory.get(c)?.id === id);
-  const summarize = (base: Omit<CatalogGroup, "courseCount" | "minPriceVnd">): CatalogGroup => {
+  const summarize = (base: Omit<CatalogGroup, "courseCount" | "minPriceVnd" | "comingSoon">): CatalogGroup => {
     const all = [...base.courses, ...base.subgroups.flatMap((s) => s.courses)];
-    return { ...base, courseCount: all.length, minPriceVnd: Math.min(...all.map((c) => c.priceVnd)) };
+    const prices = all.flatMap((c) => (c.priceVnd === null ? [] : [c.priceVnd]));
+    return { ...base, courseCount: all.length, minPriceVnd: prices.length ? Math.min(...prices) : null, comingSoon: prices.length === 0 };
   };
   const groups = categories
     .filter((c) => c.parent_id === null)

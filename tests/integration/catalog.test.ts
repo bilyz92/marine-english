@@ -119,7 +119,7 @@ describe("quản trị sửa giá và trạng thái", () => {
 // Danh mục khóa học trên trang công khai (docs/superpowers/plans/2026-11-14-course-categories.md, Task 2).
 type Card = { slug: string; priceVnd: number; category: { id: string; titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null } | null };
 type Group = {
-  id: string | null; key: string; titleVi: string; titleEn: string | null; imageUrl: string | null; courseCount: number; minPriceVnd: number;
+  id: string | null; key: string; titleVi: string; titleEn: string | null; imageUrl: string | null; courseCount: number; minPriceVnd: number | null; comingSoon: boolean;
   courses: Card[]; subgroups: { id: string; titleVi: string; courses: Card[] }[];
 };
 
@@ -137,7 +137,7 @@ describe("danh mục khóa học công khai", () => {
   }
   const catalog = async () => (await (await listCourses(get("/api/public/courses"))).json()) as { courses: Card[]; groups: Group[] };
 
-  it("khóa đang bán gom theo danh mục, đúng thứ tự; danh mục rỗng hoặc chỉ có khóa ngừng bán thì không hiện", async () => {
+  it("khóa đang bán gom theo danh mục, đúng thứ tự; danh mục rỗng hoặc chỉ có khóa nháp thì không hiện, chỉ có khóa sắp ra mắt thì hiện mờ", async () => {
     const { cat, put } = await setup();
     await publish(T, 300_000);
     await publish(D, 200_000);
@@ -153,6 +153,8 @@ describe("danh mục khóa học công khai", () => {
     ]);
     expect(groups[0]).toMatchObject({ id: a, imageUrl: null, subgroups: [] });
     await sqlAsMigrator(`UPDATE courses SET status = 'archived' WHERE slug = $1`, [D]);
+    expect((await catalog()).groups.map((g) => [g.id, g.comingSoon, g.minPriceVnd])).toEqual([[a, true, null], [c, false, 300_000]]);
+    await sqlAsMigrator(`UPDATE courses SET status = 'draft' WHERE slug = $1`, [D]);
     expect((await catalog()).groups.map((g) => g.id)).toEqual([c]);
   });
 

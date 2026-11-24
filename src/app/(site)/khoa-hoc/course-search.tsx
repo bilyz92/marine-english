@@ -18,13 +18,14 @@ export function CourseSearch({ courses, children }: { courses: Course[]; childre
     if (new URLSearchParams(window.location.search).get("tim") === "1") input.current?.focus();
   }, []);
   const shown = courses.filter((c) => matchesCourse(c, query));
+  const soon = courses.filter((c) => c.comingSoon).length;
   return (
     <>
       <label className={styles.field}>
         <span className={styles.label}>Tìm khóa học</span>
         <input ref={input} id="tim-khoa-hoc" className={styles.input} type="search" enterKeyHint="search" placeholder="Ví dụ: tàu dầu, container, oiler" value={query} onChange={(e) => setQuery(e.target.value)} />
       </label>
-      <p className={ui.muted} role="status">{query.trim() ? `${shown.length} khóa khớp “${query.trim()}”` : `${courses.length} khóa đang mở bán`}</p>
+      <p className={ui.muted} role="status">{query.trim() ? `${shown.length} khóa khớp “${query.trim()}”` : `${courses.length - soon} khóa đang mở bán${soon ? ` · ${soon} khóa sắp ra mắt` : ""}`}</p>
       {!query.trim()
         ? children
         : shown.length === 0

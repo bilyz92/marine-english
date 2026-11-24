@@ -10,6 +10,8 @@ import styles from "./course-groups.module.css";
 
 export const groupHref = (key: string) => `/khoa-hoc?dm=${encodeURIComponent(key)}`;
 const groupName = (g: Pick<CatalogGroup, "titleVi" | "titleEn">) => (g.titleEn ? `${g.titleEn} – ${g.titleVi}` : g.titleVi);
+/** Nhóm chỉ có khóa sắp ra mắt thì không có giá (chủ 25/11/2026). */
+const groupMeta = (g: CatalogGroup) => `${g.courseCount} khóa${g.minPriceVnd === null ? "" : ` · từ ${formatVnd(g.minPriceVnd)}`}`;
 
 export function CourseBanner() {
   return (
@@ -29,7 +31,7 @@ export function CategoryTiles({ groups }: { groups: CatalogGroup[] }) {
     <ul className={styles.tiles} aria-label="Chức danh">
       {groups.map((g) => (
         <li key={g.key}>
-          <Link className={styles.tile} href={groupHref(g.key)} data-category-key={g.key}>
+          <Link className={g.comingSoon ? `${styles.tile} ${styles.tileSoon}` : styles.tile} href={groupHref(g.key)} data-category-key={g.key}>
             {g.imageUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element -- ảnh công khai theo nội dung (/media), kích thước cố định */}
@@ -42,7 +44,8 @@ export function CategoryTiles({ groups }: { groups: CatalogGroup[] }) {
                 <span className={g.titleEn ? styles.tileVi : styles.tileEn}>{g.titleVi}</span>
               </span>
             )}
-            <span className={styles.tileMeta}>{g.courseCount} khóa · từ {formatVnd(g.minPriceVnd)}</span>
+            {g.comingSoon && <span className={styles.soonLabel}>Sắp ra mắt</span>}
+            <span className={styles.tileMeta}>{groupMeta(g)}</span>
           </Link>
         </li>
       ))}
@@ -56,7 +59,7 @@ export function GroupView({ group }: { group: CatalogGroup }) {
       <div className={styles.groupHead}>
         <Link className={styles.back} href="/khoa-hoc">← Tất cả chức danh</Link>
         <h2 className={ui.h2}>{groupName(group)}</h2>
-        <p className={ui.muted}>{group.courseCount} khóa · từ {formatVnd(group.minPriceVnd)}</p>
+        <p className={ui.muted}>{groupMeta(group)}{group.comingSoon ? " · Sắp ra mắt" : ""}</p>
       </div>
       {group.courses.length > 0 && <div className={ui.grid}>{group.courses.map((c) => <CourseCard key={c.slug} course={c} />)}</div>}
       {group.subgroups.map((s) => (

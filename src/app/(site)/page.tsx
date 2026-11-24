@@ -57,20 +57,24 @@ async function Faq() {
   ));
 }
 
-/** Một lần đọc danh mục cho cả trang; chưa có khóa nào đang bán thì trang ở trạng thái "Sắp ra mắt" (chủ 24/11/2026). */
+/**
+ * Một lần đọc danh mục cho cả trang. Không có khóa nào hiện được: khối "Sắp ra mắt" (chủ 24/11/2026); có khóa nhưng chưa khóa nào đang
+ * bán (chỉ khóa sắp ra mắt, làm mờ): không mời học thử (chủ 25/11/2026).
+ */
 const catalog = cache(async () => {
   await connection();
   return listPublishedCatalog();
 });
+const anyOnSale = async () => (await catalog()).courses.some((c) => !c.comingSoon);
 
 async function Courses() {
-  const { groups } = await catalog();
+  const { courses, groups } = await catalog();
   if (groups.length === 0) return <ComingSoon headingId="h-courses" />;
   return (
     <>
       <div>
         <h2 id="h-courses" className={ui.h2}>Chọn khóa học</h2>
-        <p className={ui.lead}>Học thử {FREE_TRIAL_LESSONS} bài đầu trước khi mua.</p>
+        <p className={ui.lead}>{courses.some((c) => !c.comingSoon) ? `Học thử ${FREE_TRIAL_LESSONS} bài đầu trước khi mua.` : "Các khóa đang được hoàn thiện, sắp ra mắt."}</p>
       </div>
       <CategoryTiles groups={groups} />
     </>
@@ -79,8 +83,7 @@ async function Courses() {
 
 /** Sắp ra mắt: không mời học thử khi chưa có khóa nào. */
 async function HeroActions() {
-  const { groups } = await catalog();
-  if (groups.length === 0) return <div className={ui.row}><Link className={ui.outline} href="#khoa-hoc">Khóa học sắp ra mắt</Link></div>;
+  if (!(await anyOnSale())) return <div className={ui.row}><Link className={ui.outline} href="#khoa-hoc">Khóa học sắp ra mắt</Link></div>;
   return (
     <div className={ui.row}>
       <Link className={ui.action} href="/khoa-hoc">Học thử {FREE_TRIAL_LESSONS} bài miễn phí</Link>
@@ -90,8 +93,7 @@ async function HeroActions() {
 }
 
 async function TrialCta() {
-  const { groups } = await catalog();
-  if (groups.length === 0) return null;
+  if (!(await anyOnSale())) return null;
   return (
     <section className={ui.section}>
       <div className={ui.wrap}>

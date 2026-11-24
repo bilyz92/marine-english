@@ -19,7 +19,7 @@ async function Courses({ searchParams }: { searchParams: Search }) {
   const selected = typeof dm === "string" ? groups.find((g) => g.key === dm) : undefined;
   return (
     <>
-      <p className={ui.lead}>Chọn chức danh của bạn. Học thử các bài đầu trước khi mua.</p>
+      <p className={ui.lead}>{courses.some((c) => !c.comingSoon) ? "Chọn chức danh của bạn. Học thử các bài đầu trước khi mua." : "Chọn chức danh của bạn. Các khóa đang được hoàn thiện, sắp ra mắt."}</p>
       <CourseSearch courses={courses}>
         {selected ? <GroupView group={selected} /> : <CategoryTiles groups={groups} />}
       </CourseSearch>
