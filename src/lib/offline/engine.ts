@@ -17,7 +17,7 @@ export type ManifestLesson = {
   topic?: string | null;
   /** Module và loại bài (2026-11-08-course-modules); không có ở manifest cũ. */
   moduleId?: string | null;
-  lessonType?: "qa" | "essay" | "video";
+  lessonType?: "qa" | "essay" | "video" | "interview";
 };
 export type Manifest = {
   courseId: string; slug: string; titleVi: string; versionId: string; provisional?: boolean; lessons: ManifestLesson[]; assets: ManifestAsset[]; totalBytes: number;

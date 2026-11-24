@@ -32,3 +32,31 @@ export function pickVoice(voices: SpeechSynthesisVoice[], preferred?: string | n
 export function englishLocalVoices(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
   return voices.filter((v) => v.localService && v.lang.toLowerCase().startsWith("en"));
 }
+
+// ===== Bài luyện phỏng vấn (2026-11-25-engine-cadet-interview): chọn theo vùng giọng, khóa lưu riêng, không đụng VOICE_KEY =====
+
+export type Accent = "US" | "GB" | "IN";
+export const ACCENTS_UI: { id: Accent; label: string; lang: string }[] = [
+  { id: "US", label: "Mỹ", lang: "en-US" },
+  { id: "GB", label: "Anh", lang: "en-GB" },
+  { id: "IN", label: "Ấn Độ", lang: "en-IN" },
+];
+export const ACCENT_KEY = "me.voice.accent";
+export const RATE_KEY = "me.voice.rate";
+export const RATES = { slow: 0.7, normal: 0.95 } as const;
+
+const langOf = (v: SpeechSynthesisVoice) => v.lang.replace("_", "-").toLowerCase();
+
+/** Giọng cục bộ đúng vùng (exact) nếu máy có; không thì giọng tiếng Anh cục bộ khác (theo pickVoice); không có giọng nào → null. */
+export function pickAccentVoice(voices: SpeechSynthesisVoice[], accent: Accent): { voice: SpeechSynthesisVoice; exact: boolean } | null {
+  const want = ACCENTS_UI.find((a) => a.id === accent)!.lang.toLowerCase();
+  const exact = englishLocalVoices(voices).find((v) => langOf(v) === want);
+  if (exact) return { voice: exact, exact: true };
+  const other = pickVoice(voices);
+  return other ? { voice: other, exact: false } : null;
+}
+
+/** Giọng tiếng Việt cài trên máy (cho lời dẫn); không có → null (chỉ hiện chữ). */
+export function pickVietnameseVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  return voices.find((v) => v.localService && langOf(v).startsWith("vi")) ?? null;
+}

@@ -5,6 +5,7 @@ export const GUEST = "khach";
 const store = (who: string): Storage => (who === GUEST ? sessionStorage : localStorage);
 import type { LevelId } from "./levels";
 import type { Profile } from "./personalize";
+import type { InterviewProgress } from "./interview";
 
 export type LessonState = {
   level?: LevelId;
@@ -43,6 +44,9 @@ export function updateLessonState(who: string, lessonId: string, patch: Partial<
   saveLessonState(who, lessonId, next);
   return next;
 }
+/** Bài luyện phỏng vấn (2026-11-25-engine-cadet-interview): tiến độ từng mức, nằm trong phạm vi clearStudyData. */
+export const loadInterview = (who: string, lessonId: string) => read<InterviewProgress>(who, `me.study.${who}.${lessonId}.interview`, {});
+export const saveInterview = (who: string, lessonId: string, p: InterviewProgress) => write(who, `me.study.${who}.${lessonId}.interview`, p);
 export const loadAccountLevel = (who: string) => read<string | null>(who, `me.study.${who}.level`, null);
 export const saveAccountLevel = (who: string, level: LevelId) => write(who, `me.study.${who}.level`, level);
 

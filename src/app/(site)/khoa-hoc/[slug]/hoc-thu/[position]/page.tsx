@@ -6,6 +6,8 @@ import { connection } from "next/server";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import { LessonStudy } from "@/components/study/lesson-study";
 import { EssayLesson } from "@/components/study/essay-lesson";
+import { InterviewLessonView } from "@/components/study/interview-lesson";
+import { isInterview } from "@/lib/study/interview";
 import { VideoLesson, type VideoContent } from "@/components/study/video-lesson";
 import { hasLevels, type StudyLesson } from "@/lib/study/levels";
 import { GUEST } from "@/lib/study/storage";
@@ -29,6 +31,8 @@ async function Trial({ params }: { params: Promise<{ slug: string; position: str
             externalId={lesson.externalId} content={lesson.content as VideoContent}
             video={{ src: (await trialVideo(slug, Number(position))) ? `/api/public/courses/${encodeURIComponent(slug)}/trial/${Number(position)}/video` : null }}
           />
+        : isInterview(lesson.content)
+        ? <InterviewLessonView lesson={lesson.content} who={GUEST} />
         : (lesson.content as { lesson_type?: string }).lesson_type === "essay"
         ? <EssayLesson externalId={lesson.externalId} content={lesson.content as LessonContent} who={GUEST} />
         : hasLevels(lesson.content as StudyLesson)

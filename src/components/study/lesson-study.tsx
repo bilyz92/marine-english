@@ -105,7 +105,7 @@ type Data = ReturnType<typeof levelData>;
 /** Trường song ngữ (localized_text) có hai ô: tiếng Anh dùng cho câu tiếng Anh, tiếng Việt cho câu tiếng Việt. */
 const keysOf = (f: FieldDef) => (f.type === "localized_text" ? [`${f.key}.en`, `${f.key}.vi`] : [f.key]);
 
-function ProfileFields({ fields, missing, profile, onSave }: { fields: FieldDef[]; missing: FieldDef[]; profile: Profile; onSave: (p: Profile) => void }) {
+export function ProfileFields({ fields, missing, profile, onSave }: { fields: FieldDef[]; missing: FieldDef[]; profile: Profile; onSave: (p: Profile) => void }) {
   // Điền từ dải nhắc: chỉ các trường phần đang hiện cần. "Sửa thông tin": mọi trường của bài.
   const [shown, setShown] = useState<FieldDef[] | null>(null);
   const [draft, setDraft] = useState<Profile>(profile);

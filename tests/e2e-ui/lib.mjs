@@ -6,9 +6,10 @@ import { join } from "node:path";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function openBrowser({ port = 9444 } = {}) {
+/** args: cờ Chrome thêm, ví dụ micro giả cho bài ghi âm (`--use-fake-device-for-media-stream`). */
+export async function openBrowser({ port = 9444, args = [] } = {}) {
   if (await fetch(`http://127.0.0.1:${port}/json`).then(() => true, () => false)) throw new Error(`Cổng ${port} đang bị Chrome khác giữ`);
-  const chrome = spawn("google-chrome", ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), "me-ui-"))}`, "--no-first-run", "about:blank"], { stdio: "ignore" });
+  const chrome = spawn("google-chrome", ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), "me-ui-"))}`, "--no-first-run", ...args, "about:blank"], { stdio: "ignore" });
   let targets = [];
   for (let i = 0; i < 40 && !targets.some((t) => t.type === "page"); i++) {
     await sleep(250);

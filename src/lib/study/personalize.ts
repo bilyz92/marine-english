@@ -14,7 +14,7 @@ function bindingFor(bindings: Binding[], placeholder: string, scope: string): Bi
 }
 
 /** Giá trị của trường cho đúng ngôn ngữ: trường song ngữ lưu "khóa.en" / "khóa.vi"; không lấy chéo ngôn ngữ. */
-function valueOf(profile: Profile, field: string, lang?: "en" | "vi"): string {
+export function profileValue(profile: Profile, field: string, lang?: "en" | "vi"): string {
   const pick = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   if (lang) {
     const localized = pick(profile[`${field}.${lang}`]);
@@ -31,7 +31,7 @@ export function personalize(text: string, ctx: { bindings: Binding[]; scope: str
   const out = text.replace(/\[([^\]]+)\]/g, (whole, placeholder: string) => {
     const b = bindingFor(ctx.bindings, placeholder, ctx.scope);
     if (!b) return whole;
-    const value = valueOf(ctx.profile, b.field, ctx.lang);
+    const value = profileValue(ctx.profile, b.field, ctx.lang);
     if (value) return value;
     if (!missing.includes(b.field)) missing.push(b.field);
     return whole;

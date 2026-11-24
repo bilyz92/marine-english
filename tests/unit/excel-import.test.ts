@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { HttpError } from "@/lib/http";
 import { HEADERS, parseLessonSheet } from "@/modules/content/excel-import";
 import { readSheetRows } from "@/modules/content/xlsx";
-import { makeXlsx } from "../helpers/xlsx";
+import { makeXlsx, sheetXml } from "../helpers/xlsx";
 
 // Khung bài giảng Excel (docs/superpowers/plans/2026-11-08-course-modules.md, Task 8).
 
@@ -34,6 +34,16 @@ describe("đọc khung bài giảng Excel", () => {
   it("tệp đã mở và lưu lại bằng LibreOffice (chuỗi chia sẻ) đọc ra như khung gốc", () => {
     const saved = readFileSync("tests/fixtures/khung-libreoffice.xlsx");
     expect(readSheetRows(saved, "Bài học")).toEqual(readSheetRows(TEMPLATE, "Bài học"));
+  });
+
+  it("tệp ghi XML có tiền tố không gian tên (<x:row>, như thư viện OpenXML SDK) đọc ra như tệp thường", () => {
+    const rows = [["Mã câu", "Chủ đề"], ["EC-001", "Giới thiệu & học vấn"]];
+    const plain = makeXlsx({ "Ngân hàng": rows });
+    const prefixed = makeXlsx({ "Ngân hàng": rows }, {
+      "Ngân hàng": { data: Buffer.from(sheetXml(rows).replace(/<(\/?)(?!\?)([a-zA-Z])/g, "<$1x:$2").replace('<x:worksheet xmlns=', '<x:worksheet xmlns:x=')) },
+    });
+    expect(readSheetRows(prefixed, "Ngân hàng")).toEqual([["Mã câu", "Chủ đề"], ["EC-001", "Giới thiệu & học vấn"]]);
+    expect(readSheetRows(prefixed, "Ngân hàng")).toEqual(readSheetRows(plain, "Ngân hàng"));
   });
 
   it("tiêu đề cột sai → lỗi dòng 1", () => {

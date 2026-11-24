@@ -10,6 +10,8 @@ import { licenseStatus, nowSeconds } from "@/lib/offline/engine";
 import { LessonBody, type LessonContent } from "@/components/lesson-body";
 import { LessonStudy } from "@/components/study/lesson-study";
 import { EssayLesson } from "@/components/study/essay-lesson";
+import { InterviewLessonView } from "@/components/study/interview-lesson";
+import { isInterview } from "@/lib/study/interview";
 import type { VideoContent } from "@/components/study/video-lesson";
 import { VideoPanel } from "./video-panel";
 import { groupActivities, hasLevels, type StudyLesson } from "@/lib/study/levels";
@@ -112,6 +114,8 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
   }
 
   const next = manifest.lessons.find((l) => l.position === position + 1);
+  // Bài luyện phỏng vấn: xong bài chỉ khi đạt đích một mức (không có nút đánh dấu chung, không có khối Hoạt động).
+  const interview = isInterview(content);
   const videoAsset = manifest.assets.find((a) => a.lessonVersionId === lesson.lessonVersionId && a.role === "video") ?? null;
   return (
     <>
@@ -128,6 +132,13 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
         >
           {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
         </VideoPanel>
+      ) : isInterview(content) ? (
+        <InterviewLessonView
+          lesson={content} who={identity.userId} device={identity} contentHash={lesson.contentHash}
+          onComplete={() => { if (!completed) void finish(); }}
+        >
+          {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
+        </InterviewLessonView>
       ) : (content as { lesson_type?: string }).lesson_type === "essay" ? (
         <EssayLesson externalId={lesson.externalId} content={content} who={identity.userId}>
           {audio.map((src) => <audio key={src} className={styles.audio} controls src={src} />)}
@@ -142,7 +153,7 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
           {audio.length === 0 && <p className={styles.muted}>Bài này chưa có âm thanh.</p>}
         </LessonBody>
       )}
-      {!!content.activities?.length && (
+      {!interview && !!content.activities?.length && (
         <div className={styles.card}>
           <h2 className={styles.h2}>Hoạt động</h2>
           {groupActivities(content.activities).map((a) => {
@@ -157,7 +168,8 @@ export function LessonView({ identity, slug, position, license: liveLicense, onE
         </div>
       )}
       <div className={styles.actions}>
-        <button className={styles.secondary} disabled={completed} onClick={() => void finish()}>{completed ? "Đã học xong bài này" : "Đánh dấu đã học xong"}</button>
+        {!interview && <button className={styles.secondary} disabled={completed} onClick={() => void finish()}>{completed ? "Đã học xong bài này" : "Đánh dấu đã học xong"}</button>}
+        {interview && completed && <span className={styles.tagDone}>Đã học xong bài này</span>}
         {next && <button className={styles.secondary} onClick={() => go({ khoa: slug, bai: next.position })}>Bài tiếp →</button>}
       </div>
     </>

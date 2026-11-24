@@ -63,6 +63,7 @@ export function CourseView({ identity, slug, license }: { identity: Identity; sl
           {coded ? l.title : `${l.position}. ${l.title}`}
           {l.lessonType === "essay" && <> <span className={styles.tagEssay}>Tự luận</span></>}
           {l.lessonType === "video" && <> <span className={styles.tagVideo}>Video</span></>}
+          {l.lessonType === "interview" && <> <span className={styles.tagEssay}>Luyện nói</span></>}
         </span>
         {l.status === "completed" ? <span className={styles.tagDone}>Đã xong</span>
           : l.status === "in_progress" ? <span className={styles.tagDoing}>Đang học</span>

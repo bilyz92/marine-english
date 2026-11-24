@@ -14,7 +14,7 @@ import styles from "../../admin.module.css";
 type LessonType = "qa" | "essay" | "video";
 type Row = {
   position: number; externalId: string; questionEn: string; questionVi: string; isFreeTrial: boolean; hasAnswer: boolean;
-  moduleId: string | null; lessonType: LessonType; hasVideo: boolean;
+  moduleId: string | null; lessonType: LessonType | "interview"; hasVideo: boolean;
 };
 type Listing = { course: { slug: string; titleVi: string; status: string; currentVersionId: string | null }; modules: CourseModule[]; lessons: Row[] };
 type Pair = { id?: string; en: string; vi: string };
@@ -25,7 +25,7 @@ type Form = {
 type Bi = { en?: string; vi?: string };
 
 const EMPTY: Form = { lessonType: "qa", questionEn: "", questionVi: "", keyPoints: [], vocabulary: [], modelAnswerEn: "", modelAnswerVi: "", followUps: [], youtubeUrl: "" };
-const TYPE_LABEL: Record<LessonType, string> = { qa: " · Hỏi–đáp", essay: " · Tự luận", video: " · Video" };
+const TYPE_LABEL: Record<Row["lessonType"], string> = { qa: " · Hỏi–đáp", essay: " · Tự luận", video: " · Video", interview: " · Luyện phỏng vấn (sửa bằng tệp Excel ở mục Nhập nội dung)" };
 const pairOf = (t: Bi | undefined, id?: unknown): Pair => ({ ...(typeof id === "string" ? { id } : {}), en: t?.en ?? "", vi: t?.vi ?? "" });
 
 function formOf(c: Record<string, unknown>): Form {
@@ -153,7 +153,7 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
           <span>{l.position}. {l.questionVi || l.questionEn}</span>
           <span className={styles.muted}>
             {l.externalId}{TYPE_LABEL[l.lessonType]}{l.isFreeTrial ? " · học thử" : ""}
-            {l.lessonType === "video" ? (l.hasVideo ? "" : " · chưa có video") : l.hasAnswer ? "" : " · chưa có đáp án mẫu"}
+            {l.lessonType === "video" ? (l.hasVideo ? "" : " · chưa có video") : l.hasAnswer || l.lessonType === "interview" ? "" : " · chưa có đáp án mẫu"}
           </span>
         </div>
         <div className={styles.actions}>
@@ -173,7 +173,7 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
               {videoOf === l.externalId ? "Ẩn video" : "Video"}
             </button>
           )}
-          {canEdit && <button className={styles.btn} onClick={() => void open(l.externalId)}>Sửa</button>}
+          {canEdit && l.lessonType !== "interview" && <button className={styles.btn} onClick={() => void open(l.externalId)}>Sửa</button>}
         </div>
         {audioOf === l.externalId && <LessonAudio slug={slug} externalId={l.externalId} canEdit={canEdit} />}
         {videoOf === l.externalId && <LessonVideo slug={slug} externalId={l.externalId} canEdit={canEdit} onChanged={() => void reload()} />}

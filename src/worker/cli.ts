@@ -3,7 +3,7 @@
 //   pnpm cli admin:recover <email> --reason "<lý do>" --confirm <email>
 //   pnpm cli admin:login-link <email>   (in link đăng nhập quản trị 15 phút, dùng một lần; cần SESSION_KEY_ADMIN, APP_ORIGIN; thay email khi chưa có G7)
 //   pnpm cli admin:set-password <email>   (in mật khẩu tạm ngẫu nhiên MỘT lần cho quản trị đang hoạt động; đăng nhập rồi đổi ở mục Mật khẩu)
-//   pnpm cli content:import <tệp.json>
+//   pnpm cli content:import <tệp.json|tệp.xlsx>   (.xlsx: bộ luyện phỏng vấn, đọc qua readPackage như trang /admin/noi-dung)
 //   pnpm cli license:public-keys   (in NEXT_PUBLIC_LICENSE_PUBLIC_KEYS từ LICENSE_SIGNING_KEYS, dùng khi build app)
 //   pnpm cli media:add <mã bài> <tệp> [--role audio|image|attachment] [--public]   (MEDIA_ROOT, mặc định ./media)
 // Tệp tự chứa (chỉ dùng pg) để chạy thẳng bằng Node, không cần bước build.
@@ -201,7 +201,19 @@ async function main(argv: string[]): Promise<number> {
       return result === "recovered" ? 0 : 1;
     }
     if (command === "content:import") {
-      const result = await importContent(client, JSON.parse(readFileSync(email, "utf8")));
+      // .xlsx đi qua đúng bộ đọc của trang quản trị (cần --experimental-transform-types và alias-loader như deploy/cli.sh).
+      let data: unknown;
+      if (email.toLowerCase().endsWith(".xlsx")) {
+        const { readPackage, PackageError } = await import("../modules/content/package.ts");
+        try {
+          data = readPackage(readFileSync(email), email).datasets[0];
+        } catch (error) {
+          if (!(error instanceof PackageError)) throw error;
+          console.error(error.message);
+          return 1;
+        }
+      } else data = JSON.parse(readFileSync(email, "utf8"));
+      const result = await importContent(client, data);
       console.log(`Đã nhập ${result.courses} khóa: ${result.newCourseVersions} phiên bản khóa mới, ${result.newLessonVersions} phiên bản bài mới.`);
       return 0;
     }
@@ -217,7 +229,7 @@ async function main(argv: string[]): Promise<number> {
       console.log(`Đã gắn tệp vào ${result.attached} phiên bản bài.`);
       return 0;
     }
-    console.error("Lệnh: media:add <mã bài> <tệp> | content:import <tệp.json> | admin:bootstrap <email> | admin:login-link <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
+    console.error("Lệnh: media:add <mã bài> <tệp> | content:import <tệp.json|tệp.xlsx> | admin:bootstrap <email> | admin:login-link <email> | admin:recover <email> --reason \"<lý do>\" --confirm <email>");
     return 2;
   } finally {
     await client.end();

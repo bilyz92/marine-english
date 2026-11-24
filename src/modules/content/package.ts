@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
+import { HttpError } from "@/lib/http";
 import { parseQuestionBank, questionBankToDataset } from "./docx";
+import { INTERVIEW_SHEETS, interviewWorkbookToDataset, InterviewWorkbookError } from "./interview-workbook";
+import { readSheetRows } from "./xlsx";
 import { readZip, ZipError, type ZipEntry } from "./zip";
 
-// Đọc tệp chủ tải lên thành các bộ dữ liệu cho bộ nhập: .json, .docx (ngân hàng câu hỏi), hoặc .zip (gói học liệu,
+// Đọc tệp chủ tải lên thành các bộ dữ liệu cho bộ nhập: .json, .docx (ngân hàng câu hỏi), .xlsx (bộ luyện phỏng vấn), hoặc .zip (gói học liệu,
 // có thể chứa zip lồng một cấp). Giới hạn đặt theo các gói thật (zip lớn nhất 9,3 MB, JSON lớn nhất 4,2 MB).
 
 export class PackageError extends Error {}
@@ -80,6 +83,31 @@ export function readPackage(bytes: Buffer, fileName: string, limits: Partial<Pac
     out.sources.push(name);
   };
 
+  // Bộ luyện phỏng vấn (docs/superpowers/plans/2026-11-25-engine-cadet-interview.md). Lỗi theo dòng: tối đa 30 dòng.
+  const addWorkbook = (data: Buffer, name: string) => {
+    const read = (sheet: string): string[][] | null => {
+      try {
+        return readSheetRows(data, sheet);
+      } catch (error) {
+        if (error instanceof HttpError && error.message === "sheet_missing") return null;
+        if (error instanceof HttpError) throw new PackageError(`${name}: không đọc được tệp Excel (${error.message})`);
+        throw error;
+      }
+    };
+    if (!read(INTERVIEW_SHEETS.bank)) {
+      throw new PackageError(`${name}: không phải bộ câu hỏi luyện phỏng vấn (cần trang "${INTERVIEW_SHEETS.bank}"). Bài giảng Excel thì tải lên ở trang của từng khóa học.`);
+    }
+    try {
+      out.datasets.push(interviewWorkbookToDataset(read, `xlsx-${createHash("sha256").update(data).digest("hex").slice(0, 12)}`));
+    } catch (error) {
+      if (!(error instanceof InterviewWorkbookError)) throw error;
+      const shown = error.problems.slice(0, 30);
+      const more = error.problems.length - shown.length;
+      throw new PackageError([`${name}: ${error.problems.length} lỗi, chưa nhập gì. Sửa trong tệp rồi tải lại:`, ...shown, ...(more > 0 ? [`… và ${more} lỗi khác`] : [])].join("\n"));
+    }
+    out.sources.push(name);
+  };
+
   const walkZip = (data: Buffer, prefix: string, depth: number) => {
     for (const entry of open(data)) {
       const name = prefix + entry.name;
@@ -101,8 +129,11 @@ export function readPackage(bytes: Buffer, fileName: string, limits: Partial<Pac
       case "zip":
         walkZip(bytes, "", 0);
         break;
+      case "xlsx":
+        addWorkbook(bytes, fileName);
+        break;
       default:
-        throw new PackageError("Chỉ nhận tệp .zip, .json hoặc .docx");
+        throw new PackageError("Chỉ nhận tệp .zip, .json, .docx hoặc .xlsx");
     }
   } catch (error) {
     if (error instanceof ZipError) throw new PackageError(error.message);

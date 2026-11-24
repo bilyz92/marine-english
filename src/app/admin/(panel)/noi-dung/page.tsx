@@ -5,7 +5,8 @@ import { useState } from "react";
 import { adminUpload, can, Field, messageFor, useAdmin } from "../admin-lib";
 import styles from "../admin.module.css";
 
-// Chủ tải gói học liệu (.zip/.json) hoặc ngân hàng câu hỏi Word (.docx), xem trước rồi nhập. Khóa mới luôn ở dạng nháp.
+// Chủ tải gói học liệu (.zip/.json), ngân hàng câu hỏi Word (.docx) hoặc bộ luyện phỏng vấn Excel (.xlsx), xem trước rồi nhập.
+// Khóa mới luôn ở dạng nháp.
 
 type Course = { slug: string; titleVi: string; lessons: number; existed: boolean; status: string; newVersion: boolean; titleChanged: boolean; live: boolean };
 type Preview = { file: string; sources: string[]; skipped: number; courses: Course[]; newLessonVersions: number; needsConfirm: string[]; receipt: string };
@@ -74,18 +75,18 @@ export default function ContentImportPage() {
       <h1 className={styles.h1}>Nhập nội dung</h1>
       <section className={styles.card}>
         <p className={styles.muted}>
-          Nhận gói học liệu <b>.zip</b> hoặc <b>.json</b> (như gói Oiler, Wiper, Engine Cadet) và ngân hàng câu hỏi <b>.docx</b> (chỉ có câu hỏi tiếng Anh và câu hỏi phụ, chưa có đáp án). Tối đa 16 MB.
+          Nhận gói học liệu <b>.zip</b> hoặc <b>.json</b> (như gói Oiler, Wiper, Engine Cadet), ngân hàng câu hỏi <b>.docx</b> (chỉ có câu hỏi tiếng Anh và câu hỏi phụ, chưa có đáp án) và bộ luyện phỏng vấn <b>.xlsx</b> (tệp Engine Cadet 3 mức: Ngân hàng, Cách hỏi, Tập từ đầu, Luyện từng ý, Mẫu nâng cao). Tối đa 16 MB.
           Khóa mới vào dạng nháp: đặt giá và mở bán ở mục <Link href="/admin/khoa-hoc">Khóa học</Link> khi đã duyệt nội dung.
         </p>
         <Field label="Tệp nội dung">
-          <input className={styles.input} type="file" accept=".zip,.json,.docx" onChange={(e) => choose(e.target.files?.[0] ?? null)} />
+          <input className={styles.input} type="file" accept=".zip,.json,.docx,.xlsx" onChange={(e) => choose(e.target.files?.[0] ?? null)} />
         </Field>
         <div className={styles.actions}>
           <button className={styles.btnMain} disabled={!file || !!busy || (file?.size ?? 0) > MAX_BYTES} onClick={() => void runPreview()}>
             {busy === "preview" ? "Đang đọc tệp…" : "Xem trước"}
           </button>
         </div>
-        {problem && <p className={styles.error} role="alert">{problem}</p>}
+        {problem && <p className={styles.error} role="alert" style={{ whiteSpace: "pre-line" }}>{problem}</p>}
         {done && <p className={styles.ok} role="status">{done} <Link href="/admin/khoa-hoc">Xem các khóa</Link></p>}
       </section>
 

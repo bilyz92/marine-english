@@ -55,7 +55,8 @@ function reader(bytes: Buffer) {
     }
     total += data.length;
     if (total > MAX_TOTAL_BYTES) throw new HttpError(400, "file_too_complex");
-    return data.toString("utf8");
+    // Một số thư viện (OpenXML SDK) ghi thẻ có tiền tố, ví dụ <x:row>: bỏ tiền tố của tên thẻ (không đụng thuộc tính như r:id).
+    return data.toString("utf8").replace(/<(\/?)[A-Za-z_][\w.-]*:(?=[A-Za-z_])/g, "<$1");
   };
 }
 

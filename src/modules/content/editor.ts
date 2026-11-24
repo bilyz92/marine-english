@@ -138,8 +138,12 @@ function dropRefs(value: unknown, removed: Set<string>): unknown {
   return value;
 }
 
-/** Loại bài: chỉ bài tự luận và bài video ghi `lesson_type`; vắng là hỏi–đáp (bài nhập từ học liệu giữ nguyên mã băm). */
-export const lessonTypeOf = (c: Json): "qa" | "essay" | "video" => (c.lesson_type === "essay" || c.lesson_type === "video" ? c.lesson_type : "qa");
+/**
+ * Loại bài: chỉ bài tự luận, video và luyện phỏng vấn (nhập từ tệp Excel, 2026-11-25-engine-cadet-interview) ghi `lesson_type`;
+ * vắng là hỏi–đáp (bài nhập từ học liệu giữ nguyên mã băm).
+ */
+export const lessonTypeOf = (c: Json): "qa" | "essay" | "video" | "interview" =>
+  c.lesson_type === "essay" || c.lesson_type === "video" || c.lesson_type === "interview" ? c.lesson_type : "qa";
 
 /** Ghép trường soạn được vào nội dung cũ; giữ nguyên mọi trường khác (học liệu ba mức, hoạt động, nguồn…). */
 export function applyFields(
@@ -243,6 +247,8 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
       if (id) {
         const m = list.find((x) => x.externalId === id);
         if (!m) throw new HttpError(404, "not_found");
+        // Bài luyện phỏng vấn có cấu trúc riêng (3 mức, đoạn, cách hỏi): form này sẽ làm mất loại bài. Sửa bằng tệp Excel rồi nhập lại.
+        if (lessonTypeOf(m.content) === "interview") throw new HttpError(400, "interview_readonly");
         base = m.content;
       } else {
         [id] = await freshLessonIds(tx, slug, 1, list.length + 1) as [string];

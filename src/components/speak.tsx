@@ -32,7 +32,7 @@ function subscribe(onChange: () => void): () => void {
 
 const snapshot = () => cached;
 const serverSnapshot = () => NO_VOICES;
-const useVoices = () => useSyncExternalStore(subscribe, snapshot, serverSnapshot);
+export const useVoices = () => useSyncExternalStore(subscribe, snapshot, serverSnapshot);
 
 function readPreferred(): string | null {
   try {

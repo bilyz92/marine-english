@@ -4,6 +4,7 @@ import { readZip, ZipError } from "@/modules/content/zip";
 import { parseQuestionBank, questionBankToDataset } from "@/modules/content/docx";
 import { readPackage, PackageError } from "@/modules/content/package";
 import { makeZip, questionBankXml } from "../helpers/zip";
+import { makeXlsx } from "../helpers/xlsx";
 
 const BANK = [
   { text: "Engine Cadet Interview Questions" },
@@ -154,5 +155,47 @@ describe("gói", () => {
     const one = Buffer.from(JSON.stringify({ publication: { importable: true }, courses: [], lessons: [], pad: "x".repeat(4000) }));
     const zip = makeZip([{ name: "a.json", data: one }, { name: "b.json", data: one }]);
     expect(() => readPackage(zip, "a.zip", { maxTotalInflated: 6000 })).toThrow(PackageError);
+  });
+});
+
+describe("bộ luyện phỏng vấn .xlsx (2026-11-25-engine-cadet-interview)", () => {
+  const real = readFileSync("tests/fixtures/engine-cadet-interview.xlsx");
+
+  it("tệp thật → một bộ dữ liệu khóa mea_cadet_interview 87 bài; phiên bản theo sha256 tệp", () => {
+    const pkg = readPackage(real, "engine_cadet_interview_questions.xlsx");
+    expect(pkg.sources).toEqual(["engine_cadet_interview_questions.xlsx"]);
+    const d = pkg.datasets[0] as { content_version: string; courses: { id: string; lesson_ids: string[] }[] };
+    expect(d.courses[0]!.id).toBe("mea_cadet_interview");
+    expect(d.courses[0]!.lesson_ids).toHaveLength(87);
+    expect(d.content_version).toBe(`xlsx-${pkg.sha256.slice(0, 12)}`);
+  });
+
+  it("tệp Excel khác (khung bài giảng) → lỗi rõ, chỉ chỗ tải đúng", () => {
+    const template = readFileSync("src/assets/khung-bai-giang-mau.xlsx");
+    expect(() => readPackage(template, "khung.xlsx")).toThrow(/không phải bộ câu hỏi luyện phỏng vấn/);
+  });
+
+  it("lỗi theo dòng gom lại, tối đa 30 dòng", () => {
+    const head = ["Mã câu", "Khả năng hỏi", "Chủ đề", "Thứ tự", "Câu hỏi tiếng Anh", "Câu hỏi tiếng Việt", "Đáp án cơ bản (tiếng Anh)", "Bản dịch tiếng Việt (đáp án cơ bản)", "Đáp án nâng cao (tiếng Anh)", "Bản dịch tiếng Việt (đáp án nâng cao)", "Đáp án mẫu tiếng Việt", "Tiêu chí đánh giá câu trả lời"];
+    const rows = Array.from({ length: 40 }, (_, i) => [`EC-${String(i + 1).padStart(3, "0")}`, "", "Chủ đề", String(i + 1)]);
+    const book = makeXlsx({
+      "Ngân hàng": [head, ...rows],
+      "Cách hỏi": [["Mã câu", "Mã cách hỏi", "Thứ tự", "Câu hỏi tiếng Anh", "Nghĩa tiếng Việt"]],
+      "Tập từ đầu": [["Mã câu", "Lời dẫn tiếng Việt", "Lựa chọn đúng", "Lựa chọn nhiễu", "Cụm nghe tiếng Anh", "Nghĩa của cụm", "Câu đầu để đọc theo", "Nghĩa của câu đầu", "Hướng dẫn cho học viên", "Từ nghe thêm (tùy chọn)", "Nghĩa của từ thêm"]],
+      "Luyện từng ý": [["Mã câu", "Mã đoạn", "Thứ tự", "Đoạn tiếng Anh", "Nghĩa của đoạn", "Từ khóa gợi nhớ"]],
+      "Mẫu nâng cao": [["Mã câu", "Đáp án nâng cao tiếng Anh", "Bản dịch tiếng Việt", "Hướng dẫn khi cần"]],
+    });
+    let message = "";
+    try {
+      readPackage(book, "sai.xlsx");
+    } catch (error) {
+      expect(error).toBeInstanceOf(PackageError);
+      message = (error as Error).message;
+    }
+    const lines = message.split("\n");
+    expect(lines[0]).toMatch(/^sai\.xlsx: \d+ lỗi, chưa nhập gì/);
+    expect(lines).toHaveLength(32);
+    expect(lines[1]).toBe('Trang "Ngân hàng", dòng 2, EC-001: thiếu "Câu hỏi tiếng Anh"');
+    expect(lines.at(-1)).toMatch(/^… và \d+ lỗi khác$/);
   });
 });

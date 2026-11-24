@@ -2,9 +2,11 @@
 
 // Phiên bản 2 thêm `videos` (bản ghi nhỏ mỗi video) và `videoParts` (đoạn 4 MB dạng Blob), tách khỏi `files` vì tải khóa đọc cả kho
 // `files` vào bộ nhớ (docs/superpowers/plans/2026-11-12-video-lessons.md, Task 3).
-export type StoreName = "kv" | "lessons" | "files" | "queue" | "quarantine" | "videos" | "videoParts";
-const STORES: StoreName[] = ["kv", "lessons", "files", "queue", "quarantine", "videos", "videoParts"];
-const DB_VERSION = 2;
+// Phiên bản 3 thêm `recordings`: bản ghi âm của học viên ở bài luyện phỏng vấn, chỉ trên máy, xóa cùng kho khi đăng xuất/đổi người
+// (docs/superpowers/plans/2026-11-25-engine-cadet-interview.md, Task 5).
+export type StoreName = "kv" | "lessons" | "files" | "queue" | "quarantine" | "videos" | "videoParts" | "recordings";
+const STORES: StoreName[] = ["kv", "lessons", "files", "queue", "quarantine", "videos", "videoParts", "recordings"];
+const DB_VERSION = 3;
 
 export type Identity = { userId: string; deviceId: string; displayName: string };
 
@@ -28,7 +30,12 @@ export function openOfflineDb(who: { userId: string; deviceId: string }): Promis
       const req = indexedDB.open(name, DB_VERSION);
       req.onupgradeneeded = () => {
         // Chỉ tạo kho còn thiếu: lên phiên bản giữ nguyên dữ liệu đã tải.
-        for (const store of STORES) if (!req.result.objectStoreNames.contains(store)) req.result.createObjectStore(store);
+        for (const store of STORES) {
+          if (req.result.objectStoreNames.contains(store)) continue;
+          const created = req.result.createObjectStore(store);
+          // Bản thu: chỉ mục theo thời điểm thu để bỏ bản cũ nhất mà không đọc âm thanh vào bộ nhớ.
+          if (store === "recordings") created.createIndex("at", "at");
+        }
       };
       req.onsuccess = () => {
         const db = req.result;
