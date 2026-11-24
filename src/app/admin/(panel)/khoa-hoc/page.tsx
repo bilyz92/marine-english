@@ -23,6 +23,8 @@ export default function CoursesPage() {
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
+  const [bulk, setBulk] = useState<"published" | "archived" | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const canEdit = can(me, "prices.edit");
   const canAuthor = can(me, "content.edit");
 
@@ -65,6 +67,25 @@ export default function CoursesPage() {
     await reload();
   }
 
+  const publishedCount = data?.courses.filter((c) => c.status === "published").length ?? 0;
+  const archivedCount = data?.courses.filter((c) => c.status === "archived").length ?? 0;
+
+  /** Ngừng bán / mở bán tất cả (chủ 24/11/2026): nháp không đổi; mở bán bỏ qua khóa chưa có giá hoặc chưa có bài. */
+  async function saveBulk() {
+    const target = bulk;
+    setBusy(true);
+    const r = await adminApi<{ changed: number; skipped: number }>("/api/quan-tri/courses/bulk-status", { method: "POST", body: { status: target } });
+    setBusy(false);
+    const issue = problemOf(r);
+    if (issue) return setProblem(issue);
+    const { changed, skipped } = r.data;
+    setNote(target === "archived"
+      ? `Đã ngừng bán ${changed} khóa.`
+      : `Đã mở bán ${changed} khóa.${skipped > 0 ? ` Bỏ qua ${skipped} khóa chưa có giá hoặc chưa có bài.` : ""}`);
+    setBulk(null);
+    await reload();
+  }
+
   return (
     <>
       <h1 className={styles.h1}>Khóa học</h1>
@@ -73,7 +94,14 @@ export default function CoursesPage() {
       {data && (
         <section className={styles.card}>
           {data.courses.length === 0 && <p className={styles.muted}>Chưa có khóa nào. Chủ thêm khóa ở mục Nhập nội dung.</p>}
-          {problem && !edit && !creating && <p className={styles.error} role="alert">{problem}</p>}
+          {canEdit && (publishedCount > 0 || archivedCount > 0) && (
+            <div className={styles.actions}>
+              {publishedCount > 0 && <button className={styles.btnDanger} onClick={() => { setProblem(null); setNote(null); setBulk("archived"); }}>Ngừng bán tất cả ({publishedCount})</button>}
+              {archivedCount > 0 && <button className={styles.btn} onClick={() => { setProblem(null); setNote(null); setBulk("published"); }}>Mở bán tất cả ({archivedCount})</button>}
+            </div>
+          )}
+          {note && <p className={styles.ok} role="status">{note}</p>}
+          {problem && !edit && !creating && !bulk && <p className={styles.error} role="alert">{problem}</p>}
           {sections.map((sec) => (
             <div key={sec.key} style={{ display: "contents" }}>
             <h2 className={styles.h2}>{sec.title}</h2>
@@ -115,6 +143,14 @@ export default function CoursesPage() {
       </ActionDialog>
       <ActionDialog open={edit?.kind === "published" || edit?.kind === "archived"} title={`${edit?.kind === "published" ? "Mở bán" : "Ngừng bán"} “${edit?.course.titleVi ?? ""}”?`} confirmLabel={edit?.kind === "published" ? "Mở bán" : "Ngừng bán"} danger={edit?.kind === "archived"} busy={busy} problem={problem} onClose={() => setEdit(null)} onConfirm={() => void save()}>
         <p className={styles.muted}>Giá: {edit?.course.priceVnd ? formatVnd(edit.course.priceVnd) : "chưa đặt"}.</p>
+      </ActionDialog>
+      <ActionDialog open={bulk !== null} title={bulk === "archived" ? `Ngừng bán ${publishedCount} khóa?` : `Mở bán ${archivedCount} khóa?`} confirmLabel={bulk === "archived" ? "Ngừng bán tất cả" : "Mở bán tất cả"} danger={bulk === "archived"} busy={busy} problem={problem} onClose={() => { if (!busy) { setBulk(null); setProblem(null); } }} onConfirm={() => void saveBulk()}>
+        <p className={styles.muted}>
+          {bulk === "archived"
+            ? "Mọi khóa đang mở bán sẽ ngừng bán: trang web không còn hiện khóa, không ai mua mới được."
+            : "Mọi khóa đã ngừng bán sẽ mở bán lại; khóa chưa có giá hoặc chưa có bài được bỏ qua."}
+          {" "}Khóa nháp giữ nguyên. Người đã mua vẫn học bình thường.
+        </p>
       </ActionDialog>
     </>
   );

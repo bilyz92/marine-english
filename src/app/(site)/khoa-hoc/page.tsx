@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { ComingSoon } from "@/components/coming-soon";
 import ui from "@/components/ui.module.css";
 import { listPublishedCatalog } from "@/modules/content/catalog";
 import { CategoryTiles, CourseBanner, GroupView } from "./course-groups";
@@ -14,12 +15,15 @@ type Search = Promise<{ dm?: string | string[] }>;
 async function Courses({ searchParams }: { searchParams: Search }) {
   await connection();
   const [{ courses, groups }, { dm }] = await Promise.all([listPublishedCatalog(), searchParams]);
-  if (courses.length === 0) return <p className={ui.notice}>Các khóa học sắp ra mắt.</p>;
+  if (courses.length === 0) return <ComingSoon />;
   const selected = typeof dm === "string" ? groups.find((g) => g.key === dm) : undefined;
   return (
-    <CourseSearch courses={courses}>
-      {selected ? <GroupView group={selected} /> : <CategoryTiles groups={groups} />}
-    </CourseSearch>
+    <>
+      <p className={ui.lead}>Chọn chức danh của bạn. Học thử các bài đầu trước khi mua.</p>
+      <CourseSearch courses={courses}>
+        {selected ? <GroupView group={selected} /> : <CategoryTiles groups={groups} />}
+      </CourseSearch>
+    </>
   );
 }
 
@@ -28,7 +32,6 @@ export default function CatalogPage({ searchParams }: { searchParams: Search }) 
     <main className={ui.section}>
       <div className={ui.wrap} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <CourseBanner />
-        <p className={ui.lead}>Chọn chức danh của bạn. Học thử các bài đầu trước khi mua.</p>
         <Suspense fallback={<p className={ui.muted}>Đang tải danh sách khóa…</p>}><Courses searchParams={searchParams} /></Suspense>
       </div>
     </main>

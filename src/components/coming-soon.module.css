@@ -1,0 +1,6 @@
+/* Khối "Sắp ra mắt" (chủ 24/11/2026): tấm tím đậm, một nút cam; chỉ dùng token sẵn có. */
+.box { composes: plate from "./ui.module.css"; padding: 32px; gap: 12px; }
+.title { font-size: clamp(28px, 5vw, 36px); line-height: 1.2; font-weight: 800; text-wrap: balance; }
+.text { max-width: 65ch; }
+.actions { margin-top: 8px; }
+@media (max-width: 600px) { .box { padding: 24px; } }

@@ -182,6 +182,31 @@ export async function updateCourse(ctx: AdminCtx, courseId: string, change: Cour
   });
 }
 
+/**
+ * Ngừng bán / mở bán tất cả (chủ 24/11/2026). Chỉ đổi published ↔ archived, nháp không đụng; mở bán bỏ qua khóa thiếu giá hoặc chưa có bài
+ * (như updateCourse trả needs_price). Một transaction, mỗi khóa đổi một dòng audit course_update (reason "bulk").
+ */
+export async function bulkCourseStatus(ctx: AdminCtx, to: "published" | "archived"): Promise<{ changed: number; skipped: number }> {
+  await authorize(ctx, "prices.edit", { action: "course_update", resource: { type: "course", id: "bulk" } });
+  const from = to === "published" ? "archived" : "published";
+  return withTx(async (tx) => {
+    const rows = await tx.$queryRaw<{ id: string; price_vnd: number | null; current_version_id: string | null }[]>`
+      SELECT id::text AS id, price_vnd, current_version_id FROM courses WHERE status = ${from} ORDER BY id FOR UPDATE`;
+    let changed = 0;
+    for (const row of rows) {
+      if (to === "published" && (row.price_vnd === null || row.current_version_id === null)) continue;
+      await tx.$executeRaw`UPDATE courses SET status = ${to}, updated_at = now() WHERE id = ${row.id}::uuid`;
+      await audit(tx, {
+        adminId: ctx.adminId, action: "course_update", targetType: "course", targetId: row.id,
+        before: { priceVnd: row.price_vnd, status: from }, after: { priceVnd: row.price_vnd, status: to },
+        result: "ok", reason: "bulk", ip: ctx.ip,
+      });
+      changed += 1;
+    }
+    return { changed, skipped: rows.length - changed };
+  });
+}
+
 export async function listAllCourses() {
   return prisma().course.findMany({
     select: { id: true, slug: true, titleVi: true, status: true, priceVnd: true, updatedAt: true, categoryId: true },

@@ -1,6 +1,7 @@
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
+import { ComingSoon } from "@/components/coming-soon";
 import ui from "@/components/ui.module.css";
 import { env } from "@/lib/env";
 import { listPublishedCatalog } from "@/modules/content/catalog";
@@ -56,11 +57,54 @@ async function Faq() {
   ));
 }
 
-async function Courses() {
+/** Một lần đọc danh mục cho cả trang; chưa có khóa nào đang bán thì trang ở trạng thái "Sắp ra mắt" (chủ 24/11/2026). */
+const catalog = cache(async () => {
   await connection();
-  const { groups } = await listPublishedCatalog();
-  if (groups.length === 0) return <p className={ui.notice}>Các khóa học sắp ra mắt.</p>;
-  return <CategoryTiles groups={groups} />;
+  return listPublishedCatalog();
+});
+
+async function Courses() {
+  const { groups } = await catalog();
+  if (groups.length === 0) return <ComingSoon headingId="h-courses" />;
+  return (
+    <>
+      <div>
+        <h2 id="h-courses" className={ui.h2}>Chọn khóa học</h2>
+        <p className={ui.lead}>Học thử {FREE_TRIAL_LESSONS} bài đầu trước khi mua.</p>
+      </div>
+      <CategoryTiles groups={groups} />
+    </>
+  );
+}
+
+/** Sắp ra mắt: không mời học thử khi chưa có khóa nào. */
+async function HeroActions() {
+  const { groups } = await catalog();
+  if (groups.length === 0) return <div className={ui.row}><Link className={ui.outline} href="#khoa-hoc">Khóa học sắp ra mắt</Link></div>;
+  return (
+    <div className={ui.row}>
+      <Link className={ui.action} href="/khoa-hoc">Học thử {FREE_TRIAL_LESSONS} bài miễn phí</Link>
+      <Link className={ui.outline} href="#khoa-hoc">Xem các khóa</Link>
+    </div>
+  );
+}
+
+async function TrialCta() {
+  const { groups } = await catalog();
+  if (groups.length === 0) return null;
+  return (
+    <section className={ui.section}>
+      <div className={ui.wrap}>
+        <div className={styles.cta}>
+          <div>
+            <h2 className={ui.h2}>Bắt đầu với {FREE_TRIAL_LESSONS} bài miễn phí</h2>
+            <p>Không cần thẻ, không cần chuyển khoản. Thấy hợp thì mua.</p>
+          </div>
+          <Link className={ui.action} href="/khoa-hoc">Học thử miễn phí</Link>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default function HomePage() {
@@ -72,10 +116,7 @@ export default function HomePage() {
           <span className={ui.chip}>Tiếng Anh cho thuyền viên bộ phận máy</span>
           <h1 className={ui.h1}>Nói được tiếng Anh trong buồng máy, mỗi ngày chỉ 10 phút</h1>
           <p className={styles.heroText}>Bài học do máy trưởng tàu dầu soạn, đúng tình huống thật trên tàu, giải thích bằng tiếng Việt. Học trên điện thoại, học được cả khi tàu mất mạng.</p>
-          <div className={ui.row}>
-            <Link className={ui.action} href="/khoa-hoc">Học thử {FREE_TRIAL_LESSONS} bài miễn phí</Link>
-            <Link className={ui.outline} href="#khoa-hoc">Xem các khóa</Link>
-          </div>
+          <Suspense fallback={<div style={{ minHeight: "var(--touch-main)" }} />}><HeroActions /></Suspense>
         </div>
         {/* Máy tính: một ví dụ câu trong bài để cân trang (điện thoại ẩn cho gọn). */}
         <figure className={styles.sample} aria-label="Ví dụ một câu trong bài học">
@@ -107,10 +148,6 @@ export default function HomePage() {
 
       <section id="khoa-hoc" aria-labelledby="h-courses" className={`${styles.alt} ${ui.section}`}>
         <div className={`${ui.wrap} ${styles.stack}`}>
-          <div>
-            <h2 id="h-courses" className={ui.h2}>Chọn khóa học</h2>
-            <p className={ui.lead}>Học thử {FREE_TRIAL_LESSONS} bài đầu trước khi mua.</p>
-          </div>
           <Suspense fallback={<p className={ui.muted}>Đang tải danh sách khóa…</p>}><Courses /></Suspense>
         </div>
       </section>
@@ -130,17 +167,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className={ui.section}>
-        <div className={ui.wrap}>
-          <div className={styles.cta}>
-            <div>
-              <h2 className={ui.h2}>Bắt đầu với {FREE_TRIAL_LESSONS} bài miễn phí</h2>
-              <p>Không cần thẻ, không cần chuyển khoản. Thấy hợp thì mua.</p>
-            </div>
-            <Link className={ui.action} href="/khoa-hoc">Học thử miễn phí</Link>
-          </div>
-        </div>
-      </section>
+      <Suspense fallback={null}><TrialCta /></Suspense>
     </main>
   );
 }
