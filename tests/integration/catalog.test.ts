@@ -153,7 +153,7 @@ describe("danh mục khóa học công khai", () => {
     ]);
     expect(groups[0]).toMatchObject({ id: a, imageUrl: null, subgroups: [] });
     await sqlAsMigrator(`UPDATE courses SET status = 'archived' WHERE slug = $1`, [D]);
-    expect((await catalog()).groups.map((g) => [g.id, g.comingSoon, g.minPriceVnd])).toEqual([[a, true, null], [c, false, 300_000]]);
+    expect((await catalog()).groups.map((g) => [g.id, g.comingSoon, g.minPriceVnd])).toEqual([[c, false, 300_000], [a, true, null]]); // danh mục có khóa đang bán lên trước (chủ 25/11/2026)
     await sqlAsMigrator(`UPDATE courses SET status = 'draft' WHERE slug = $1`, [D]);
     expect((await catalog()).groups.map((g) => g.id)).toEqual([c]);
   });

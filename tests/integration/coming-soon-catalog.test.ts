@@ -33,7 +33,8 @@ describe("khóa Sắp ra mắt trên danh mục công khai", () => {
     await archive(D);
     await sqlAsMigrator(`INSERT INTO courses (slug, title_vi, title_en) VALUES ('nhap_moi', 'Nháp', 'Draft')`);
     const { courses, groups } = await catalog();
-    expect(courses.map((c) => c.slug)).toEqual([D, T]);
+    // Khóa đang mở bán lên đầu (chủ 25/11/2026), dù mã khóa xếp sau.
+    expect(courses.map((c) => c.slug)).toEqual([T, D]);
     expect(courses.find((c) => c.slug === T)).toMatchObject({ comingSoon: false, priceVnd: 300_000 });
     const soon = courses.find((c) => c.slug === D)!;
     expect(soon).toEqual({ slug: D, titleVi: expect.any(String), titleEn: expect.any(String), lessonCount: expect.any(Number), priceVnd: null, trialLessons: [], comingSoon: true, category: null });
@@ -42,6 +43,19 @@ describe("khóa Sắp ra mắt trên danh mục công khai", () => {
     expect(JSON.stringify(await catalog())).not.toContain("250000");
     expect(groups).toHaveLength(1);
     expect(groups[0]).toMatchObject({ key: "khac", courseCount: 2, minPriceVnd: 300_000, comingSoon: false });
+  });
+
+  it("danh mục có khóa đang mở bán lên trước danh mục chỉ có khóa sắp ra mắt", async () => {
+    await seedContent();
+    await publish(T);
+    await publish(D);
+    await archive(T);
+    const { rows: [a] } = await sqlAsMigrator(`INSERT INTO course_categories (title_vi, position) VALUES ('Đầu', 1) RETURNING id::text AS id`);
+    const { rows: [b] } = await sqlAsMigrator(`INSERT INTO course_categories (title_vi, position) VALUES ('Sau', 2) RETURNING id::text AS id`);
+    await sqlAsMigrator(`UPDATE courses SET category_id = $1 WHERE slug = $2`, [a.id, T]);
+    await sqlAsMigrator(`UPDATE courses SET category_id = $1 WHERE slug = $2`, [b.id, D]);
+    const { groups } = await catalog();
+    expect(groups.map((g) => [g.key, g.comingSoon])).toEqual([[b.id, false], [a.id, true]]);
   });
 
   it("danh mục chỉ có khóa sắp ra mắt: nhóm comingSoon, không có giá", async () => {

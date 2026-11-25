@@ -112,7 +112,8 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
       courseId: r.course_id,
       card: { slug: r.slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: null, lessonCount: r.lesson_count, trialLessons: [], comingSoon: true },
     })),
-  ].sort((a, b) => (a.card.slug < b.card.slug ? -1 : a.card.slug > b.card.slug ? 1 : 0));
+  // Khóa đang mở bán lên đầu, rồi tới khóa sắp ra mắt (chủ 25/11/2026); trong mỗi phần xếp theo mã khóa.
+  ].sort((a, b) => Number(a.card.comingSoon) - Number(b.card.comingSoon) || (a.card.slug < b.card.slug ? -1 : a.card.slug > b.card.slug ? 1 : 0));
   for (const { courseId, card } of cards) {
     const own = byId.get(categoryOf.get(courseId) ?? "");
     const parent = own?.parent_id ? byId.get(own.parent_id) : undefined;
@@ -140,7 +141,8 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
         subgroups: categories
           .filter((s) => s.parent_id === c.id)
           .map((s) => ({ id: s.id, titleVi: s.title_vi, courses: inCategory(s.id) }))
-          .filter((s) => s.courses.length > 0),
+          .filter((s) => s.courses.length > 0)
+          .sort((a, b) => Number(a.courses.every((x) => x.comingSoon)) - Number(b.courses.every((x) => x.comingSoon))),
       }),
     )
     .filter((g) => g.courseCount > 0);
@@ -148,6 +150,8 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
   if (other.length) {
     groups.push(summarize({ id: null, key: OTHER_GROUP_KEY, titleVi: "Khóa khác", titleEn: null, imageUrl: null, courses: other, subgroups: [] }));
   }
+  // Danh mục có khóa đang mở bán lên đầu; giữ thứ tự chủ đã xếp trong mỗi phần (sort ổn định).
+  groups.sort((a, b) => Number(a.comingSoon) - Number(b.comingSoon));
   return { courses, groups };
 }
 
