@@ -21,6 +21,8 @@ export type CourseCard = {
  * bài khác chỉ còn con số, không gửi câu hỏi ra ngoài. Khóa chưa chia module: một nhóm "Nội dung khóa học".
  */
 export type CourseModuleSummary = { id: string | null; titleVi: string; lessonCount: number; trial: TrialLesson[] };
+/** Danh mục của khóa (chức danh, đối tượng học); danh mục con kèm tên danh mục cha. null = chưa xếp danh mục. */
+export type CourseCategoryLabel = { titleVi: string; titleEn: string | null; parentTitleVi: string | null; parentTitleEn: string | null };
 export type CourseDetail = CourseCard & { modules: CourseModuleSummary[] };
 
 type Row = {
@@ -170,6 +172,18 @@ export async function getPublishedCourse(slug: string): Promise<CourseDetail | n
   const groups = modules.map((m) => summary(m.id, m.title_vi, lessons.filter((l) => l.moduleId === m.id))).filter((g) => g.lessonCount > 0);
   const other = lessons.filter((l) => !l.moduleId || !known.has(l.moduleId));
   return { ...card, modules: other.length ? [...groups, summary(null, "Bài khác", other)] : groups };
+}
+
+/**
+ * Danh mục (chức danh) của một khóa đang bán, cho trang khóa (đối tượng học, mô tả SEO). Tách khỏi getPublishedCourse: API chi tiết
+ * khóa công khai không trả trường category.
+ */
+export async function getPublishedCourseCategory(slug: string): Promise<CourseCategoryLabel | null> {
+  const [cat] = await prisma().$queryRaw<{ title_vi: string; title_en: string | null; parent_title_vi: string | null; parent_title_en: string | null }[]>`
+    SELECT cc.title_vi, cc.title_en, p.title_vi AS parent_title_vi, p.title_en AS parent_title_en
+    FROM courses c JOIN course_categories cc ON cc.id = c.category_id LEFT JOIN course_categories p ON p.id = cc.parent_id
+    WHERE c.slug = ${slug} AND c.status = 'published'`;
+  return cat ? { titleVi: cat.title_vi, titleEn: cat.title_en, parentTitleVi: cat.parent_title_vi, parentTitleEn: cat.parent_title_en } : null;
 }
 
 /** Nội dung bài học thử: chỉ khi khóa published và vị trí là bài thử trong phiên bản hiện hành. */

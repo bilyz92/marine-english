@@ -1,9 +1,12 @@
 import { cache, Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { ComingSoon } from "@/components/coming-soon";
+import { JsonLd } from "@/components/json-ld";
 import ui from "@/components/ui.module.css";
 import { env } from "@/lib/env";
+import { faqJsonLd, organizationJsonLd, PAGE_SEO, pageMetadata } from "@/lib/seo";
 import { listPublishedCatalog } from "@/modules/content/catalog";
 import { FREE_TRIAL_LESSONS } from "@/modules/content/free-trial";
 import { emailReady } from "@/modules/mail/email-sender";
@@ -11,6 +14,8 @@ import { sepayEnabled } from "@/modules/orders/payment-info";
 import { buyFlowCopy } from "./home-copy";
 import { CategoryTiles } from "./khoa-hoc/course-groups";
 import styles from "./home.module.css";
+
+export const metadata: Metadata = pageMetadata(PAGE_SEO.home);
 
 // WEB-01 từ Home.dc.html, sửa theo Spec mục 10. Các câu chưa đúng với sản phẩm hiện tại đã bỏ: xem docs/noi-dung-can-chu-du-an.md.
 
@@ -49,12 +54,24 @@ async function Faq() {
     { q: "Trên tàu không có mạng thì học thế nào?", a: "Sau khi đơn được xác nhận đã thanh toán, tải bài về máy khi có mạng bờ hoặc Starlink. Khi mất mạng vẫn học được các bài đã tải." },
     { q: "Học trên mấy thiết bị?", a: "Mỗi tài khoản đăng nhập cùng lúc trên tối đa 2 thiết bị, chạy được cả Android và iPhone." },
   ];
-  return items.map((f) => (
-    <details key={f.q}>
-      <summary>{f.q}</summary>
-      <p>{f.a}</p>
-    </details>
-  ));
+  // FAQPage dựng từ đúng các câu đang hiện, nên dữ liệu có cấu trúc luôn khớp nội dung nhìn thấy.
+  return (
+    <>
+      {items.map((f) => (
+        <details key={f.q}>
+          <summary>{f.q}</summary>
+          <p>{f.a}</p>
+        </details>
+      ))}
+      <JsonLd data={faqJsonLd(items)} />
+    </>
+  );
+}
+
+/** Đơn vị đào tạo (schema.org): chỉ thông tin có trong SITE_INFO; địa chỉ gốc đọc lúc chạy. */
+async function OrganizationLd() {
+  await connection();
+  return <JsonLd data={organizationJsonLd(env().APP_ORIGIN)} />;
 }
 
 /**
@@ -170,6 +187,7 @@ export default function HomePage() {
       </section>
 
       <Suspense fallback={null}><TrialCta /></Suspense>
+      <Suspense fallback={null}><OrganizationLd /></Suspense>
     </main>
   );
 }

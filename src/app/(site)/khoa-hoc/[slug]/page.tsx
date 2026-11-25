@@ -1,34 +1,61 @@
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { JsonLd } from "@/components/json-ld";
 import ui from "@/components/ui.module.css";
+import { env } from "@/lib/env";
 import { formatVnd } from "@/lib/format";
-import { getPublishedCourse } from "@/modules/content/catalog";
+import { breadcrumbJsonLd, courseAudience, courseDescription, courseJsonLd, metaDescription, pageMetadata } from "@/lib/seo";
+import { getPublishedCourse, getPublishedCourseCategory } from "@/modules/content/catalog";
 import { BuyOrLearn } from "./buy-or-learn";
 import styles from "./course.module.css";
 
-export const metadata: Metadata = { title: "Chi tiết khóa học" };
+/** Khóa đang bán kèm chức danh (danh mục); null khi không bán. Metadata và trang dùng chung một lần đọc trong cùng yêu cầu. */
+const publishedCourse = cache(async (slug: string) => {
+  const [course, category] = await Promise.all([getPublishedCourse(slug), getPublishedCourseCategory(slug)]);
+  return course ? { ...course, category } : null;
+});
+
+/** Tiêu đề, mô tả, canonical theo khóa thật. Khóa không bán (nháp, sắp ra mắt, không có): không trả gì, trang báo 404 như cũ. */
+export async function generateMetadata({ params }: PageProps<"/khoa-hoc/[slug]">): Promise<Metadata> {
+  await connection();
+  const course = await publishedCourse((await params).slug);
+  if (!course) return {};
+  return pageMetadata({ title: course.titleVi, description: metaDescription(courseDescription(course)), path: `/khoa-hoc/${course.slug}`, ownImage: true });
+}
 
 async function Course({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
   const { slug } = await params;
-  const course = await getPublishedCourse(slug);
+  const course = await publishedCourse(slug);
   if (!course) notFound();
   const firstTrial = course.trialLessons[0];
+  const origin = env().APP_ORIGIN;
+  const description = courseDescription(course);
+  const audience = courseAudience(course);
+  const crumbs = [{ name: "Trang chủ", path: "/" }, { name: "Khóa học", path: "/khoa-hoc" }, { name: course.titleVi, path: `/khoa-hoc/${course.slug}` }];
   // Chủ 08/11/2026: người chưa mua chỉ thấy module và số bài; trong module chỉ bài học thử hiện tên, còn lại là dòng mờ giả
   // (máy chủ không gửi tên bài thật nên không ai đọc được). Học viên đã mua xem đủ bài trong app học /hoc.
   // Nhóm không có mã ("Nội dung khóa học", "Bài khác") luôn đứng cuối nên số module là thứ tự i + 1.
   return (
     <div className={styles.layout}>
       <div className={styles.head}>
-        <p className={ui.muted}><Link href="/khoa-hoc">Khóa học</Link> / Chi tiết khóa</p>
+        <nav aria-label="Đường dẫn" className={styles.crumbs}>
+          <ol>
+            <li><Link href="/">Trang chủ</Link></li>
+            <li><Link href="/khoa-hoc">Khóa học</Link></li>
+            <li aria-current="page">{course.titleVi}</li>
+          </ol>
+        </nav>
+        {audience && <span className={ui.chip}>Dành cho: {audience}</span>}
         <h1 className={ui.h1}>{course.titleVi}</h1>
-        <p className={ui.lead}>{course.titleEn}</p>
+        <p className={ui.lead} lang="en">{course.titleEn}</p>
+        <p className={styles.about}>{description}</p>
       </div>
-      <section className={`${ui.card} ${styles.main}`} aria-label="Danh sách bài">
-        <h2 className={ui.h3}>Danh sách bài ({course.lessonCount})</h2>
+      <section className={`${ui.card} ${styles.main}`} aria-labelledby="h-noi-dung">
+        <h2 id="h-noi-dung" className={ui.h3}>Nội dung khóa học ({course.lessonCount} bài)</h2>
         {course.modules.map((m, i) => {
           const hidden = m.lessonCount - m.trial.length;
           return (
@@ -66,6 +93,8 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
         <p className={ui.muted}>Thanh toán bằng VietQR, mọi ngân hàng Việt Nam.</p>
         <p className={ui.muted}>Mỗi tài khoản đăng nhập cùng lúc trên tối đa 2 thiết bị, chạy được cả Android và iPhone.</p>
       </aside>
+      <JsonLd data={courseJsonLd(origin, course, description)} />
+      <JsonLd data={breadcrumbJsonLd(origin, crumbs)} />
     </div>
   );
 }

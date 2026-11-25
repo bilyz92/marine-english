@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ui from "@/components/ui.module.css";
+import { PAGE_SEO, pageMetadata } from "@/lib/seo";
 import { ABOUT, ABOUT_CTA } from "@/content/about";
 import styles from "./about.module.css";
 
-export const metadata: Metadata = { title: "Câu chuyện người sáng lập" };
+export const metadata: Metadata = pageMetadata(PAGE_SEO.about);
 
 export default function AboutPage() {
   const last = ABOUT.length - 1;

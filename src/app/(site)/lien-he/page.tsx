@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { REFUNDS_UI } from "@/lib/features";
 import ui from "@/components/ui.module.css";
+import { PAGE_SEO, pageMetadata } from "@/lib/seo";
 import { SITE_INFO } from "@/content/site-info";
 
-export const metadata: Metadata = { title: "Liên hệ" };
+export const metadata: Metadata = pageMetadata(PAGE_SEO.contact);
 
 const CHANNELS = [
   { title: "Zalo", text: "Nhóm hỗ trợ học viên.", value: SITE_INFO.zalo },

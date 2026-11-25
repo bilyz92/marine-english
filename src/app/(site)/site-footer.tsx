@@ -10,6 +10,9 @@ export function SiteFooter() {
       <div className={`${ui.wrap} ${styles.footerRow}`}>
         <strong>Marine English</strong>
         <nav aria-label="Liên kết cuối trang" className={styles.footerNav}>
+          <Link href="/khoa-hoc">Khóa học</Link>
+          <Link href="/gioi-thieu">Về tôi</Link>
+          <Link href="/#hoi-dap">Hỏi đáp</Link>
           <Link href="/chinh-sach?tab=bao-mat">Chính sách bảo mật</Link>
           <Link href="/chinh-sach?tab=dieu-khoan">Điều khoản sử dụng</Link>
           {REFUNDS_UI && <Link href="/chinh-sach?tab=hoan-tien">Chính sách hoàn tiền</Link>}

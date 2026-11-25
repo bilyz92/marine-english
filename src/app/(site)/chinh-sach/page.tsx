@@ -3,9 +3,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { REFUNDS_UI } from "@/lib/features";
 import ui from "@/components/ui.module.css";
+import { PAGE_SEO, pageMetadata } from "@/lib/seo";
 import styles from "./policies.module.css";
 
-export const metadata: Metadata = { title: "Chính sách" };
+// ?tab=… chỉ đổi phần đang mở: canonical về /chinh-sach.
+export const metadata: Metadata = pageMetadata(PAGE_SEO.policies);
 
 const ALL_TABS = [
   { id: "bao-mat", label: "Bảo mật" },

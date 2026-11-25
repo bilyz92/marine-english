@@ -1,6 +1,16 @@
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-areas: "head buy" "main buy"; gap: 20px 24px; align-items: start; }
 .head { grid-area: head; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .head p { margin: 0; }
+/* Đường dẫn Trang chủ › Khóa học › tên khóa (thay dòng "Khóa học / Chi tiết khóa"). */
+.crumbs ol { display: flex; flex-wrap: nowrap; align-items: center; gap: 0 8px; margin: 0; padding: 0; list-style: none; color: var(--color-muted); font-size: var(--font-small); }
+.crumbs li { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.crumbs li + li::before { content: "›"; }
+.crumbs a { min-height: var(--touch); display: inline-flex; align-items: center; }
+/* Một dòng cả trên điện thoại: tên khóa (đã có ở H1) co lại bằng dấu "…". */
+.crumbs li { flex: none; }
+.crumbs li:last-child { flex: 1 1 auto; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crumbs li:last-child::before { margin-right: 8px; }
+.about { max-width: 65ch; }
 .main { grid-area: main; min-width: 0; gap: 0; }
 .main > h2 { margin-bottom: 8px; }
 .lessons { margin: 0 0 8px; padding: 0; list-style: none; }
