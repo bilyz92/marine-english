@@ -81,8 +81,9 @@ export async function courseLessons(ctx: AdminCtx, slug: string) {
     JOIN course_version_lessons cvl ON cvl.lesson_version_id = lva.lesson_version_id
     WHERE cvl.course_version_id = ${course.current_version_id}::uuid AND lva.role = 'video'`).map((r) => r.id) : []);
   const { modules, lessonModule } = await modulesFor(prisma(), course.id, course.current_version_id);
+  const description = (await prisma().$queryRaw<{ description: string | null }[]>`SELECT description FROM courses WHERE id = ${course.id}::uuid`)[0]?.description ?? null;
   return {
-    course: { slug: course.slug, titleVi: course.title_vi, titleEn: course.title_en, status: course.status, currentVersionId: course.current_version_id },
+    course: { id: course.id, slug: course.slug, titleVi: course.title_vi, titleEn: course.title_en, status: course.status, currentVersionId: course.current_version_id, description },
     modules,
     lessons: list.map((m) => ({
       position: m.position, externalId: m.externalId, questionEn: questionOf(m.content).en ?? "", questionVi: questionOf(m.content).vi ?? "",

@@ -21,7 +21,8 @@ export type CourseCard = {
  * bài khác chỉ còn con số, không gửi câu hỏi ra ngoài. Khóa chưa chia module: một nhóm "Nội dung khóa học".
  */
 export type CourseModuleSummary = { id: string | null; titleVi: string; lessonCount: number; trial: TrialLesson[] };
-export type CourseDetail = CourseCard & { modules: CourseModuleSummary[] };
+/** `description`: mô tả chủ soạn (chữ thuần, `## ` là tiêu đề, `* `/`- ` là gạch đầu dòng), null = chưa có. */
+export type CourseDetail = CourseCard & { description: string | null; modules: CourseModuleSummary[] };
 
 type Row = {
   course_id: string; slug: string; title_vi: string; title_en: string; price_vnd: number;
@@ -161,15 +162,16 @@ export async function getPublishedCourse(slug: string): Promise<CourseDetail | n
   const { lessons, courseId, ...card } = course;
   const modules = await prisma().$queryRaw<{ id: string; title_vi: string }[]>`
     SELECT id::text AS id, title_vi FROM course_modules WHERE course_id = ${courseId}::uuid ORDER BY position`;
+  const description = (await prisma().$queryRaw<{ description: string | null }[]>`SELECT description FROM courses WHERE id = ${courseId}::uuid`)[0]?.description ?? null;
   const summary = (id: string | null, titleVi: string, own: LessonSummary[]): CourseModuleSummary => ({
     id, titleVi, lessonCount: own.length,
     trial: own.filter((l) => l.isFreeTrial).map(({ position, externalId, title }) => ({ position, externalId, title })),
   });
-  if (modules.length === 0) return { ...card, modules: [summary(null, "Nội dung khóa học", lessons)] };
+  if (modules.length === 0) return { ...card, description, modules: [summary(null, "Nội dung khóa học", lessons)] };
   const known = new Set(modules.map((m) => m.id));
   const groups = modules.map((m) => summary(m.id, m.title_vi, lessons.filter((l) => l.moduleId === m.id))).filter((g) => g.lessonCount > 0);
   const other = lessons.filter((l) => !l.moduleId || !known.has(l.moduleId));
-  return { ...card, modules: other.length ? [...groups, summary(null, "Bài khác", other)] : groups };
+  return { ...card, description, modules: other.length ? [...groups, summary(null, "Bài khác", other)] : groups };
 }
 
 /** Nội dung bài học thử: chỉ khi khóa published và vị trí là bài thử trong phiên bản hiện hành. */
@@ -185,22 +187,28 @@ export async function getTrialLesson(slug: string, position: number): Promise<{ 
   return row ? { externalId: row.external_id, content: row.content } : null;
 }
 
-export type CourseChange = { priceVnd?: number; status?: "draft" | "published" | "archived" };
+/** `description`: null = xóa mô tả (route đã cắt khoảng trắng và đổi chuỗi rỗng thành null). */
+export type CourseChange = { priceVnd?: number; status?: "draft" | "published" | "archived"; description?: string | null };
 
-/** Đổi giá/trạng thái (owner). Đơn đã tạo giữ giá trong ảnh chụp của đơn. */
+/** Đổi giá/trạng thái/mô tả (owner). Đơn đã tạo giữ giá trong ảnh chụp của đơn. Audit ghi mô tả chỉ khi lần này có đổi mô tả. */
 export async function updateCourse(ctx: AdminCtx, courseId: string, change: CourseChange): Promise<"ok" | "not_found" | "needs_price"> {
   await authorize(ctx, "prices.edit", { action: "course_update", resource: { type: "course", id: courseId } });
   return withTx(async (tx) => {
-    const [before] = await tx.$queryRaw<{ price_vnd: number | null; status: string; current_version_id: string | null }[]>`
-      SELECT price_vnd, status, current_version_id FROM courses WHERE id = ${courseId}::uuid FOR UPDATE`;
+    const [before] = await tx.$queryRaw<{ price_vnd: number | null; status: string; current_version_id: string | null; description: string | null }[]>`
+      SELECT price_vnd, status, current_version_id, description FROM courses WHERE id = ${courseId}::uuid FOR UPDATE`;
     if (!before) return "not_found";
-    const after = { price_vnd: change.priceVnd ?? before.price_vnd, status: change.status ?? before.status };
+    const after = {
+      price_vnd: change.priceVnd ?? before.price_vnd, status: change.status ?? before.status,
+      description: change.description !== undefined ? change.description : before.description,
+    };
     if (after.status === "published" && (after.price_vnd === null || before.current_version_id === null)) return "needs_price";
     await tx.$executeRaw`
-      UPDATE courses SET price_vnd = ${after.price_vnd}, status = ${after.status}, updated_at = now() WHERE id = ${courseId}::uuid`;
+      UPDATE courses SET price_vnd = ${after.price_vnd}, status = ${after.status}, description = ${after.description}, updated_at = now() WHERE id = ${courseId}::uuid`;
+    const described = change.description !== undefined;
     await audit(tx, {
       adminId: ctx.adminId, action: "course_update", targetType: "course", targetId: courseId,
-      before: { priceVnd: before.price_vnd, status: before.status }, after: { priceVnd: after.price_vnd, status: after.status },
+      before: { priceVnd: before.price_vnd, status: before.status, ...(described ? { description: before.description } : {}) },
+      after: { priceVnd: after.price_vnd, status: after.status, ...(described ? { description: after.description } : {}) },
       result: "ok", ip: ctx.ip,
     });
     return "ok";

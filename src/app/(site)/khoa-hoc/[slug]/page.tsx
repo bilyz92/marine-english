@@ -7,6 +7,7 @@ import ui from "@/components/ui.module.css";
 import { formatVnd } from "@/lib/format";
 import { getPublishedCourse } from "@/modules/content/catalog";
 import { BuyOrLearn } from "./buy-or-learn";
+import { CourseDescription } from "./course-description";
 import styles from "./course.module.css";
 
 export const metadata: Metadata = { title: "Chi tiết khóa học" };
@@ -21,12 +22,13 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
   // (máy chủ không gửi tên bài thật nên không ai đọc được). Học viên đã mua xem đủ bài trong app học /hoc.
   // Nhóm không có mã ("Nội dung khóa học", "Bài khác") luôn đứng cuối nên số module là thứ tự i + 1.
   return (
-    <div className={styles.layout}>
+    <div className={course.description ? `${styles.layout} ${styles.withAbout}` : styles.layout}>
       <div className={styles.head}>
         <p className={ui.muted}><Link href="/khoa-hoc">Khóa học</Link> / Chi tiết khóa</p>
         <h1 className={ui.h1}>{course.titleVi}</h1>
         <p className={ui.lead}>{course.titleEn}</p>
       </div>
+      {course.description && <CourseDescription text={course.description} />}
       <section className={`${ui.card} ${styles.main}`} aria-label="Danh sách bài">
         <h2 className={ui.h3}>Danh sách bài ({course.lessonCount})</h2>
         {course.modules.map((m, i) => {
