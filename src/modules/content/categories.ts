@@ -4,6 +4,8 @@ import { audit } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
 import { publicMediaUrl, putFile } from "@/modules/storage/storage";
+import { prismaSql } from "./authoring";
+import { categoryUrlSlugTaken, freeCategoryUrlSlug, slugify } from "./url-slug";
 
 // Danh mục khóa học hai cấp (chủ 14/11/2026, docs/superpowers/plans/2026-11-14-course-categories.md): parent_id null = danh mục
 // (hiện là chức danh), có parent_id = danh mục con, không có cấp 3. Mọi ghi đi qua SQL thô (Prisma không ghi được cột sinh
@@ -14,11 +16,13 @@ export const MAX_CATEGORY_IMAGE_BYTES = 2 * 1024 * 1024;
 const ROOT_KEY = "00000000-0000-0000-0000-000000000000";
 
 export type AdminCategory = {
-  id: string; parentId: string | null; seedKey: string | null; titleVi: string; titleEn: string | null;
+  id: string; parentId: string | null; seedKey: string | null; urlSlug: string; titleVi: string; titleEn: string | null;
   imageUrl: string | null; position: number; courseCount: number;
 };
 
-type CategoryRow = { id: string; parent_id: string | null; parent_key: string; title_vi: string; title_en: string | null; position: number; image_asset_id: string | null };
+type CategoryRow = {
+  id: string; parent_id: string | null; parent_key: string; url_slug: string; title_vi: string; title_en: string | null; position: number; image_asset_id: string | null;
+};
 
 function cleanTitle(title: string): string {
   const t = title.normalize("NFC").trim().replace(/\s+/g, " ");
@@ -45,19 +49,21 @@ export function sniffImage(b: Buffer): "image/jpeg" | "image/png" | "image/webp"
 
 const lockSiblings = (tx: Tx, parentKey: string) =>
   tx.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext('course-category:' || ${parentKey}))`;
+/** Đường dẫn danh mục là một không gian phẳng (cả danh mục con): chọn/đổi đường dẫn lấy chung một khóa. */
+const lockUrlSlugs = (tx: Tx) => tx.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext('course-category-url-slug'))`;
 
 async function categoryRow(tx: Tx, id: string, mode: "update" | "share" | "none" = "none"): Promise<CategoryRow> {
   const rows =
     mode === "update"
       ? await tx.$queryRaw<CategoryRow[]>`
-          SELECT id::text AS id, parent_id::text AS parent_id, parent_key::text AS parent_key, title_vi, title_en, position, image_asset_id::text AS image_asset_id
+          SELECT id::text AS id, parent_id::text AS parent_id, parent_key::text AS parent_key, url_slug, title_vi, title_en, position, image_asset_id::text AS image_asset_id
           FROM course_categories WHERE id = ${id}::uuid FOR UPDATE`
       : mode === "share"
         ? await tx.$queryRaw<CategoryRow[]>`
-            SELECT id::text AS id, parent_id::text AS parent_id, parent_key::text AS parent_key, title_vi, title_en, position, image_asset_id::text AS image_asset_id
+            SELECT id::text AS id, parent_id::text AS parent_id, parent_key::text AS parent_key, url_slug, title_vi, title_en, position, image_asset_id::text AS image_asset_id
             FROM course_categories WHERE id = ${id}::uuid FOR SHARE`
         : await tx.$queryRaw<CategoryRow[]>`
-            SELECT id::text AS id, parent_id::text AS parent_id, parent_key::text AS parent_key, title_vi, title_en, position, image_asset_id::text AS image_asset_id
+            SELECT id::text AS id, parent_id::text AS parent_id, parent_key::text AS parent_key, url_slug, title_vi, title_en, position, image_asset_id::text AS image_asset_id
             FROM course_categories WHERE id = ${id}::uuid`;
   if (!rows[0]) throw new HttpError(404, "not_found");
   return rows[0];
@@ -76,6 +82,7 @@ async function mapDbErrors<T>(run: () => Promise<T>, fk: () => HttpError = () =>
     const code = typeof cause?.originalCode === "string" ? cause.originalCode : sqlState(error);
     const text = `${(error as Error)?.message ?? ""} ${JSON.stringify((error as { meta?: unknown })?.meta ?? null)}`;
     if (code === "23505" && text.includes("course_categories_name_key")) throw new HttpError(409, "category_name_taken");
+    if (code === "23505" && text.includes("course_categories_url_slug_key")) throw new HttpError(409, "url_slug_taken");
     if (code === "23514" && text.includes("category_depth")) throw new HttpError(400, "category_depth");
     if (code === "23503") throw fk();
     throw error;
@@ -85,10 +92,10 @@ async function mapDbErrors<T>(run: () => Promise<T>, fk: () => HttpError = () =>
 export async function listCategories(ctx: AdminCtx): Promise<{ categories: AdminCategory[] }> {
   await authorize(ctx, "orders.view", { action: "category_list" });
   const rows = await prisma().$queryRaw<{
-    id: string; parent_id: string | null; seed_key: string | null; title_vi: string; title_en: string | null;
+    id: string; parent_id: string | null; seed_key: string | null; url_slug: string; title_vi: string; title_en: string | null;
     position: number; storage_key: string | null; course_count: number;
   }[]>`
-    SELECT c.id::text AS id, c.parent_id::text AS parent_id, c.seed_key, c.title_vi, c.title_en, c.position, ma.storage_key,
+    SELECT c.id::text AS id, c.parent_id::text AS parent_id, c.seed_key, c.url_slug, c.title_vi, c.title_en, c.position, ma.storage_key,
            (SELECT count(*) FROM courses co WHERE co.category_id = c.id)::int AS course_count
     FROM course_categories c
     LEFT JOIN course_categories p ON p.id = c.parent_id
@@ -96,7 +103,7 @@ export async function listCategories(ctx: AdminCtx): Promise<{ categories: Admin
     ORDER BY coalesce(p.position, c.position), c.parent_id IS NOT NULL, c.position`;
   return {
     categories: rows.map((r) => ({
-      id: r.id, parentId: r.parent_id, seedKey: r.seed_key, titleVi: r.title_vi, titleEn: r.title_en,
+      id: r.id, parentId: r.parent_id, seedKey: r.seed_key, urlSlug: r.url_slug, titleVi: r.title_vi, titleEn: r.title_en,
       imageUrl: r.storage_key ? publicMediaUrl(r.storage_key) : null, position: r.position, courseCount: r.course_count,
     })),
   };
@@ -116,34 +123,45 @@ export async function createCategory(ctx: AdminCtx, input: { titleVi: string; ti
         if (parent.parent_id !== null) throw new HttpError(400, "category_depth");
       }
       await lockSiblings(tx, parentId ?? ROOT_KEY);
+      await lockUrlSlugs(tx);
+      const urlSlug = await freeCategoryUrlSlug(prismaSql(tx), titleVi);
       const [{ next }] = (await tx.$queryRaw<{ next: number }[]>`
         SELECT coalesce(max(position), 0)::int + 1 AS next FROM course_categories WHERE parent_key = ${parentId ?? ROOT_KEY}::uuid`) as [{ next: number }];
       const [created] = await tx.$queryRaw<{ id: string }[]>`
-        INSERT INTO course_categories (parent_id, title_vi, title_en, position)
-        VALUES (${parentId}::uuid, ${titleVi}, ${titleEn}, ${next}) RETURNING id::text AS id`;
+        INSERT INTO course_categories (parent_id, title_vi, title_en, position, url_slug)
+        VALUES (${parentId}::uuid, ${titleVi}, ${titleEn}, ${next}, ${urlSlug}) RETURNING id::text AS id`;
       await audit(tx, {
         adminId: ctx.adminId, action: "category_create", targetType: "course_category", targetId: created!.id,
-        after: { parentId, titleVi, titleEn, position: next }, result: "ok", ip: ctx.ip,
+        after: { parentId, titleVi, titleEn, urlSlug, position: next }, result: "ok", ip: ctx.ip,
       });
       return { id: created!.id };
     }),
   );
 }
 
-/** Đổi tên Việt và/hoặc tên Anh (titleEn null = xóa). */
-export async function updateCategory(ctx: AdminCtx, id: string, change: { titleVi?: string; titleEn?: string | null }): Promise<void> {
+/**
+ * Đổi tên Việt và/hoặc tên Anh (titleEn null = xóa), và/hoặc đường dẫn công khai `/khoa-hoc/danh-muc/<urlSlug>` (chủ gõ tự do, chuẩn hóa
+ * bằng slugify; không còn chữ/số → 400 url_slug_invalid; trùng danh mục khác hay "khac" → 409 url_slug_taken). Đường dẫn cũ của danh
+ * mục không được giữ: link cũ sẽ 404.
+ */
+export async function updateCategory(ctx: AdminCtx, id: string, change: { titleVi?: string; titleEn?: string | null; urlSlug?: string }): Promise<void> {
   await authorize(ctx, "content.edit", { action: "category_update", resource: { type: "course_category", id } });
   const titleVi = change.titleVi === undefined ? undefined : cleanTitle(change.titleVi);
   const titleEn = change.titleEn === undefined ? undefined : cleanTitleEn(change.titleEn);
+  const urlSlug = change.urlSlug === undefined ? undefined : slugify(change.urlSlug);
+  if (urlSlug === "") throw new HttpError(400, "url_slug_invalid");
   await mapDbErrors(() =>
     withTx(async (tx) => {
+      if (urlSlug !== undefined) await lockUrlSlugs(tx);
       const before = await categoryRow(tx, id, "update");
-      const after = { titleVi: titleVi ?? before.title_vi, titleEn: titleEn === undefined ? before.title_en : titleEn };
-      if (after.titleVi === before.title_vi && after.titleEn === before.title_en) return;
-      await tx.$executeRaw`UPDATE course_categories SET title_vi = ${after.titleVi}, title_en = ${after.titleEn} WHERE id = ${id}::uuid`;
+      const after = { titleVi: titleVi ?? before.title_vi, titleEn: titleEn === undefined ? before.title_en : titleEn, urlSlug: urlSlug ?? before.url_slug };
+      if (after.titleVi === before.title_vi && after.titleEn === before.title_en && after.urlSlug === before.url_slug) return;
+      if (after.urlSlug !== before.url_slug && (await categoryUrlSlugTaken(prismaSql(tx), after.urlSlug, id))) throw new HttpError(409, "url_slug_taken");
+      await tx.$executeRaw`
+        UPDATE course_categories SET title_vi = ${after.titleVi}, title_en = ${after.titleEn}, url_slug = ${after.urlSlug} WHERE id = ${id}::uuid`;
       await audit(tx, {
         adminId: ctx.adminId, action: "category_update", targetType: "course_category", targetId: id,
-        before: { titleVi: before.title_vi, titleEn: before.title_en }, after, result: "ok", ip: ctx.ip,
+        before: { titleVi: before.title_vi, titleEn: before.title_en, urlSlug: before.url_slug }, after, result: "ok", ip: ctx.ip,
       });
     }),
   );
@@ -298,6 +316,7 @@ export async function applyCategoryLayout(ctx: AdminCtx, layout: CategoryLayoutE
   }
   const result = await mapDbErrors(() => withTx(async (tx) => {
     await lockSiblings(tx, ROOT_KEY);
+    await lockUrlSlugs(tx);
     const seeded = await seededKeys(tx);
     const slugs = [...new Set(layout.flatMap((e) => e.courses))];
     const found = await tx.$queryRaw<{ slug: string; category_id: string | null }[]>`
@@ -318,9 +337,11 @@ export async function applyCategoryLayout(ctx: AdminCtx, layout: CategoryLayoutE
       const assetId = image ? await assetIdFor(tx, image) : null;
       const [{ next }] = (await tx.$queryRaw<{ next: number }[]>`
         SELECT coalesce(max(position), 0)::int + 1 AS next FROM course_categories WHERE parent_key = ${ROOT_KEY}::uuid`) as [{ next: number }];
+      const titleVi = cleanTitle(entry.titleVi);
+      const urlSlug = await freeCategoryUrlSlug(prismaSql(tx), titleVi);
       const [created] = await tx.$queryRaw<{ id: string }[]>`
-        INSERT INTO course_categories (seed_key, title_vi, title_en, position, image_asset_id)
-        VALUES (${entry.seedKey}, ${cleanTitle(entry.titleVi)}, ${cleanTitleEn(entry.titleEn)}, ${next}, ${assetId}::uuid) RETURNING id::text AS id`;
+        INSERT INTO course_categories (seed_key, title_vi, title_en, position, image_asset_id, url_slug)
+        VALUES (${entry.seedKey}, ${titleVi}, ${cleanTitleEn(entry.titleEn)}, ${next}, ${assetId}::uuid, ${urlSlug}) RETURNING id::text AS id`;
       out.created.push(entry.seedKey);
       for (const slug of entry.courses) {
         if (courseCategory.get(slug) !== null) {

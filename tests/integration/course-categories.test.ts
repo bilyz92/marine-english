@@ -10,7 +10,7 @@ import { seedContent } from "../helpers/content";
 
 // Danh mục khóa học hai cấp (chủ 14/11/2026, docs/superpowers/plans/2026-11-14-course-categories.md, Task 1).
 
-type Cat = { id: string; parentId: string | null; seedKey: string | null; titleVi: string; titleEn: string | null; imageUrl: string | null; position: number; courseCount: number };
+type Cat = { id: string; parentId: string | null; seedKey: string | null; urlSlug: string; titleVi: string; titleEn: string | null; imageUrl: string | null; position: number; courseCount: number };
 
 const list = async (s: AdminSess) => {
   const res = await callAdmin(listRoute, s, "GET", "/x");
@@ -396,5 +396,41 @@ describe("gieo danh mục theo chức danh (applyCategoryLayout)", () => {
     const { ownerCtx } = await import("../helpers/admin");
     const r = await applyCategoryLayout(await ownerCtx(), [{ seedKey: "rank:a", titleVi: "A", titleEn: "A", courses: [T] }]);
     expect(r.uncategorizedPublished).toEqual([D]);
+    const { rows } = await sqlAsMigrator(`SELECT url_slug FROM course_categories WHERE seed_key = 'rank:a'`);
+    expect(rows).toEqual([{ url_slug: "a" }]);
+  });
+});
+
+describe("đường dẫn danh mục (url_slug)", () => {
+  const slugOf = async (s: AdminSess, id: string) => (await list(s)).categories.find((c) => c.id === id)!.urlSlug;
+
+  it("tạo: theo tên tiếng Việt, một không gian phẳng cho cả danh mục con; trùng thì -2; 'Khác' không lấy được 'khac'", async () => {
+    const owner = await adminSess("owner");
+    const a = (await create(owner, { titleVi: "Máy ba" })).body.id!;
+    await create(owner, { titleVi: "Máy ba", parentId: a });
+    await create(owner, { titleVi: "Khác" });
+    const { categories } = await list(owner);
+    expect(categories.map((c) => [c.titleVi, c.parentId === null, c.urlSlug])).toEqual([
+      ["Máy ba", true, "may-ba"], ["Máy ba", false, "may-ba-2"], ["Khác", true, "khac-2"],
+    ]);
+  });
+
+  it("chủ sửa đường dẫn: chữ có dấu được chuẩn hóa, trùng hay 'khac' → 409, không còn chữ → 400; ghi audit; support → 403", async () => {
+    const owner = await adminSess("owner");
+    const a = (await create(owner, { titleVi: "Thợ máy" })).body.id!;
+    const b = (await create(owner, { titleVi: "Máy hai" })).body.id!;
+    expect((await patch(owner, a, { urlSlug: " Thợ Máy Oiler " })).status).toBe(200);
+    expect(await slugOf(owner, a)).toBe("tho-may-oiler");
+    const taken = await patch(owner, b, { urlSlug: "tho-may-oiler" });
+    expect([taken.status, await errorOf(taken)]).toEqual([409, "url_slug_taken"]);
+    const other = await patch(owner, b, { urlSlug: "khac" });
+    expect([other.status, await errorOf(other)]).toEqual([409, "url_slug_taken"]);
+    const empty = await patch(owner, b, { urlSlug: "!!!" });
+    expect([empty.status, await errorOf(empty)]).toEqual([400, "url_slug_invalid"]);
+    expect(await slugOf(owner, b)).toBe("may-hai");
+    const { rows } = await sqlAsMigrator(`SELECT before, after FROM admin_audit_log WHERE action = 'category_update' AND target_id = $1`, [a]);
+    expect(rows).toEqual([{ before: expect.objectContaining({ urlSlug: "tho-may" }), after: expect.objectContaining({ urlSlug: "tho-may-oiler" }) }]);
+    const support = await adminSess("support");
+    expect((await patch(support, b, { urlSlug: "may-2" })).status).toBe(403);
   });
 });

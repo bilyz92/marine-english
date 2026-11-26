@@ -1,8 +1,11 @@
 import { prisma, withTx, type Tx } from "@/lib/db";
+import { HttpError } from "@/lib/http";
 import { audit } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
 import { publicMediaUrl } from "@/modules/storage/storage";
+import { prismaSql } from "./authoring";
+import { courseUrlSlugTaken, lockCourseUrlSlugs, OTHER_CATEGORY_URL_SLUG, slugify } from "./url-slug";
 
 // Danh mục chỉ gồm khóa published; nội dung đọc theo phiên bản hiện hành của khóa.
 
@@ -10,6 +13,8 @@ type LessonSummary = { position: number; externalId: string; title: string; isFr
 type TrialLesson = { position: number; externalId: string; title: string };
 export type CourseCard = {
   slug: string;
+  /** Đường dẫn công khai /khoa-hoc/<urlSlug> (SEO, chủ 26/11/2026); `slug` là mã nội bộ cho đơn, /mua, /hoc. */
+  urlSlug: string;
   titleVi: string;
   titleEn: string;
   priceVnd: number;
@@ -27,14 +32,14 @@ export type CourseCategoryLabel = { titleVi: string; titleEn: string | null; par
 export type CourseDetail = CourseCard & { description: string | null; modules: CourseModuleSummary[] };
 
 type Row = {
-  course_id: string; slug: string; title_vi: string; title_en: string; price_vnd: number;
+  course_id: string; slug: string; url_slug: string; title_vi: string; title_en: string; price_vnd: number;
   position: number; external_id: string; is_free_trial: boolean; title: string | null; module_id: string | null;
 };
 
 /** Tiêu đề bài: câu hỏi tiếng Việt, không có thì tiếng Anh, không có nữa thì mã bài. */
 async function publishedRows(slug?: string, db: Tx | ReturnType<typeof prisma> = prisma()): Promise<Row[]> {
   return db.$queryRaw<Row[]>`
-    SELECT c.id::text AS course_id, c.slug, c.title_vi, c.title_en, c.price_vnd, cvl.position, l.external_id, cvl.is_free_trial,
+    SELECT c.id::text AS course_id, c.slug, c.url_slug, c.title_vi, c.title_en, c.price_vnd, cvl.position, l.external_id, cvl.is_free_trial,
            clm.module_id::text AS module_id, coalesce(lv.content #>> '{question,text,vi}', lv.content #>> '{question,text,en}') AS title
     FROM courses c
     JOIN course_version_lessons cvl ON cvl.course_version_id = c.current_version_id
@@ -52,7 +57,7 @@ function group(rows: Row[]): Grouped[] {
   for (const r of rows) {
     let course = bySlug.get(r.slug);
     if (!course) {
-      course = { courseId: r.course_id, slug: r.slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: r.price_vnd, lessonCount: 0, trialLessons: [], lessons: [] };
+      course = { courseId: r.course_id, slug: r.slug, urlSlug: r.url_slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: r.price_vnd, lessonCount: 0, trialLessons: [], lessons: [] };
       bySlug.set(r.slug, course);
     }
     const lesson = { position: r.position, externalId: r.external_id, title: r.title ?? r.external_id, isFreeTrial: r.is_free_trial, moduleId: r.module_id };
@@ -79,15 +84,37 @@ export type CatalogCourseCard = Omit<CourseCard, "priceVnd"> & {
  * danh mục ở nhóm cuối "Khóa khác" (key "khac").
  */
 export type CatalogGroup = {
-  id: string | null; key: string; titleVi: string; titleEn: string | null; imageUrl: string | null;
+  /** `urlSlug`: trang /khoa-hoc/danh-muc/<urlSlug> ("khac" = Khóa khác). */
+  id: string | null; key: string; urlSlug: string; titleVi: string; titleEn: string | null; imageUrl: string | null;
   courseCount: number; minPriceVnd: number | null; comingSoon: boolean; courses: CatalogCourseCard[];
-  subgroups: { id: string; titleVi: string; courses: CatalogCourseCard[] }[];
+  subgroups: { id: string; urlSlug: string; titleVi: string; courses: CatalogCourseCard[] }[];
 };
 export const OTHER_GROUP_KEY = "khac";
 
-type CategoryRow = { id: string; parent_id: string | null; title_vi: string; title_en: string | null; storage_key: string | null };
+type CategoryRow = { id: string; parent_id: string | null; url_slug: string; title_vi: string; title_en: string | null; storage_key: string | null };
 
-type ComingSoonRow = { course_id: string; slug: string; title_vi: string; title_en: string; lesson_count: number };
+type ComingSoonRow = { course_id: string; slug: string; url_slug: string; title_vi: string; title_en: string; lesson_count: number };
+
+function summarize(base: Omit<CatalogGroup, "courseCount" | "minPriceVnd" | "comingSoon">): CatalogGroup {
+  const all = [...base.courses, ...base.subgroups.flatMap((s) => s.courses)];
+  const prices = all.flatMap((c) => (c.priceVnd === null ? [] : [c.priceVnd]));
+  return { ...base, courseCount: all.length, minPriceVnd: prices.length ? Math.min(...prices) : null, comingSoon: prices.length === 0 };
+}
+
+/**
+ * Trang /khoa-hoc/danh-muc/<urlSlug>: danh mục cấp 1 (kèm danh mục con), "khac", hoặc một danh mục con (một nhóm riêng, không có
+ * nhóm con). null khi không có hay không có khóa nào hiện được.
+ */
+export function catalogGroupBySlug(groups: CatalogGroup[], urlSlug: string): CatalogGroup | null {
+  const top = groups.find((g) => g.urlSlug === urlSlug);
+  if (top) return top;
+  for (const g of groups) {
+    const sub = g.subgroups.find((s) => s.urlSlug === urlSlug);
+    // Tên kèm danh mục cha ("Engine Cadet – Thực tập máy · Tàu dầu"): tên danh mục con một mình dễ trùng giữa các chức danh.
+    if (sub) return summarize({ id: sub.id, key: sub.id, urlSlug: sub.urlSlug, titleVi: `${g.titleVi} · ${sub.titleVi}`, titleEn: g.titleEn, imageUrl: null, courses: sub.courses, subgroups: [] });
+  }
+  return null;
+}
 
 /** Danh mục công khai: khóa đang bán và khóa sắp ra mắt ('archived'); khóa nháp không bao giờ có ở đây. */
 export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCard[]; groups: CatalogGroup[] }> {
@@ -95,13 +122,13 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
   const [grouped, soon, links, categories] = await prisma().$transaction(async (db) => [
     group(await publishedRows(undefined, db)),
     await db.$queryRaw<ComingSoonRow[]>`
-      SELECT c.id::text AS course_id, c.slug, c.title_vi, c.title_en,
+      SELECT c.id::text AS course_id, c.slug, c.url_slug, c.title_vi, c.title_en,
              (SELECT count(*)::int FROM course_version_lessons cvl WHERE cvl.course_version_id = c.current_version_id) AS lesson_count
       FROM courses c WHERE c.status = 'archived' ORDER BY c.slug`,
     await db.$queryRaw<{ id: string; category_id: string | null }[]>`
       SELECT id::text AS id, category_id::text AS category_id FROM courses WHERE status IN ('published', 'archived')`,
     await db.$queryRaw<CategoryRow[]>`
-      SELECT c.id::text AS id, c.parent_id::text AS parent_id, c.title_vi, c.title_en, ma.storage_key
+      SELECT c.id::text AS id, c.parent_id::text AS parent_id, c.url_slug, c.title_vi, c.title_en, ma.storage_key
       FROM course_categories c LEFT JOIN course_categories p ON p.id = c.parent_id LEFT JOIN media_assets ma ON ma.id = c.image_asset_id
       ORDER BY coalesce(p.position, c.position), c.parent_id IS NOT NULL, c.position`,
   ] as const, { isolationLevel: "RepeatableRead" });
@@ -113,7 +140,7 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
     ...grouped.map(({ lessons: _lessons, courseId, ...card }) => ({ courseId, card: { ...card, comingSoon: false } })),
     ...soon.map((r) => ({
       courseId: r.course_id,
-      card: { slug: r.slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: null, lessonCount: r.lesson_count, trialLessons: [], comingSoon: true },
+      card: { slug: r.slug, urlSlug: r.url_slug, titleVi: r.title_vi, titleEn: r.title_en, priceVnd: null, lessonCount: r.lesson_count, trialLessons: [], comingSoon: true },
     })),
   // Khóa đang mở bán lên đầu, rồi tới khóa sắp ra mắt (chủ 25/11/2026); trong mỗi phần xếp theo mã khóa.
   ].sort((a, b) => Number(a.card.comingSoon) - Number(b.card.comingSoon) || (a.card.slug < b.card.slug ? -1 : a.card.slug > b.card.slug ? 1 : 0));
@@ -130,20 +157,15 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
     courseCategory.set(course, own);
   }
   const inCategory = (id: string) => courses.filter((c) => courseCategory.get(c)?.id === id);
-  const summarize = (base: Omit<CatalogGroup, "courseCount" | "minPriceVnd" | "comingSoon">): CatalogGroup => {
-    const all = [...base.courses, ...base.subgroups.flatMap((s) => s.courses)];
-    const prices = all.flatMap((c) => (c.priceVnd === null ? [] : [c.priceVnd]));
-    return { ...base, courseCount: all.length, minPriceVnd: prices.length ? Math.min(...prices) : null, comingSoon: prices.length === 0 };
-  };
   const groups = categories
     .filter((c) => c.parent_id === null)
     .map((c) =>
       summarize({
-        id: c.id, key: c.id, titleVi: c.title_vi, titleEn: c.title_en, imageUrl: c.storage_key ? publicMediaUrl(c.storage_key) : null,
+        id: c.id, key: c.id, urlSlug: c.url_slug, titleVi: c.title_vi, titleEn: c.title_en, imageUrl: c.storage_key ? publicMediaUrl(c.storage_key) : null,
         courses: inCategory(c.id),
         subgroups: categories
           .filter((s) => s.parent_id === c.id)
-          .map((s) => ({ id: s.id, titleVi: s.title_vi, courses: inCategory(s.id) }))
+          .map((s) => ({ id: s.id, urlSlug: s.url_slug, titleVi: s.title_vi, courses: inCategory(s.id) }))
           .filter((s) => s.courses.length > 0)
           .sort((a, b) => Number(a.courses.every((x) => x.comingSoon)) - Number(b.courses.every((x) => x.comingSoon))),
       }),
@@ -151,11 +173,17 @@ export async function listPublishedCatalog(): Promise<{ courses: CatalogCourseCa
     .filter((g) => g.courseCount > 0);
   const other = courses.filter((c) => !courseCategory.get(c));
   if (other.length) {
-    groups.push(summarize({ id: null, key: OTHER_GROUP_KEY, titleVi: "Khóa khác", titleEn: null, imageUrl: null, courses: other, subgroups: [] }));
+    groups.push(summarize({ id: null, key: OTHER_GROUP_KEY, urlSlug: OTHER_CATEGORY_URL_SLUG, titleVi: "Khóa khác", titleEn: null, imageUrl: null, courses: other, subgroups: [] }));
   }
   // Danh mục có khóa đang mở bán lên đầu; giữ thứ tự chủ đã xếp trong mỗi phần (sort ổn định).
   groups.sort((a, b) => Number(a.comingSoon) - Number(b.comingSoon));
   return { courses, groups };
+}
+
+/** Mã nội bộ của khóa đang bán có đường dẫn công khai này; null khi không có hay không bán (trang khóa, bài học thử, ảnh chia sẻ). */
+export async function publishedSlugForUrlSlug(urlSlug: string): Promise<string | null> {
+  const [row] = await prisma().$queryRaw<{ slug: string }[]>`SELECT slug FROM courses WHERE url_slug = ${urlSlug} AND status = 'published'`;
+  return row?.slug ?? null;
 }
 
 export async function getPublishedCourse(slug: string): Promise<CourseDetail | null> {
@@ -201,28 +229,46 @@ export async function getTrialLesson(slug: string, position: number): Promise<{ 
   return row ? { externalId: row.external_id, content: row.content } : null;
 }
 
-/** `description`: null = xóa mô tả (route đã cắt khoảng trắng và đổi chuỗi rỗng thành null). */
-export type CourseChange = { priceVnd?: number; status?: "draft" | "published" | "archived"; description?: string | null };
+/**
+ * `description`: null = xóa mô tả (route đã cắt khoảng trắng và đổi chuỗi rỗng thành null). `urlSlug`: đường dẫn công khai
+ * /khoa-hoc/<urlSlug>, chủ gõ tự do rồi chuẩn hóa bằng slugify.
+ */
+export type CourseChange = { priceVnd?: number; status?: "draft" | "published" | "archived"; description?: string | null; urlSlug?: string };
 
-/** Đổi giá/trạng thái/mô tả (owner). Đơn đã tạo giữ giá trong ảnh chụp của đơn. Audit ghi mô tả chỉ khi lần này có đổi mô tả. */
+/**
+ * Đổi giá/trạng thái/mô tả/đường dẫn (owner). Đơn đã tạo giữ giá trong ảnh chụp của đơn. Audit ghi mô tả, đường dẫn chỉ khi lần này có
+ * đổi. Đường dẫn cũ vào course_url_slug_history (link đã chia sẻ vẫn chuyển hướng về khóa); đường dẫn không còn chữ/số → 400
+ * url_slug_invalid; đã có chủ (khóa khác đang dùng, đường dẫn cũ hay mã nội bộ của khóa khác, "danh-muc") → 409 url_slug_taken.
+ */
 export async function updateCourse(ctx: AdminCtx, courseId: string, change: CourseChange): Promise<"ok" | "not_found" | "needs_price"> {
   await authorize(ctx, "prices.edit", { action: "course_update", resource: { type: "course", id: courseId } });
+  const urlSlug = change.urlSlug === undefined ? undefined : slugify(change.urlSlug);
+  if (urlSlug === "") throw new HttpError(400, "url_slug_invalid");
   return withTx(async (tx) => {
-    const [before] = await tx.$queryRaw<{ price_vnd: number | null; status: string; current_version_id: string | null; description: string | null }[]>`
-      SELECT price_vnd, status, current_version_id, description FROM courses WHERE id = ${courseId}::uuid FOR UPDATE`;
+    if (urlSlug !== undefined) await lockCourseUrlSlugs(prismaSql(tx));
+    const [before] = await tx.$queryRaw<{ price_vnd: number | null; status: string; current_version_id: string | null; description: string | null; url_slug: string }[]>`
+      SELECT price_vnd, status, current_version_id, description, url_slug FROM courses WHERE id = ${courseId}::uuid FOR UPDATE`;
     if (!before) return "not_found";
     const after = {
       price_vnd: change.priceVnd ?? before.price_vnd, status: change.status ?? before.status,
       description: change.description !== undefined ? change.description : before.description,
+      url_slug: urlSlug ?? before.url_slug,
     };
     if (after.status === "published" && (after.price_vnd === null || before.current_version_id === null)) return "needs_price";
+    const moved = after.url_slug !== before.url_slug;
+    if (moved) {
+      if (await courseUrlSlugTaken(prismaSql(tx), after.url_slug, courseId)) throw new HttpError(409, "url_slug_taken");
+      await tx.$executeRaw`
+        INSERT INTO course_url_slug_history (url_slug, course_id) VALUES (${before.url_slug}, ${courseId}::uuid) ON CONFLICT (url_slug) DO NOTHING`;
+    }
     await tx.$executeRaw`
-      UPDATE courses SET price_vnd = ${after.price_vnd}, status = ${after.status}, description = ${after.description}, updated_at = now() WHERE id = ${courseId}::uuid`;
+      UPDATE courses SET price_vnd = ${after.price_vnd}, status = ${after.status}, description = ${after.description}, url_slug = ${after.url_slug}, updated_at = now()
+      WHERE id = ${courseId}::uuid`;
     const described = change.description !== undefined;
     await audit(tx, {
       adminId: ctx.adminId, action: "course_update", targetType: "course", targetId: courseId,
-      before: { priceVnd: before.price_vnd, status: before.status, ...(described ? { description: before.description } : {}) },
-      after: { priceVnd: after.price_vnd, status: after.status, ...(described ? { description: after.description } : {}) },
+      before: { priceVnd: before.price_vnd, status: before.status, ...(described ? { description: before.description } : {}), ...(moved ? { urlSlug: before.url_slug } : {}) },
+      after: { priceVnd: after.price_vnd, status: after.status, ...(described ? { description: after.description } : {}), ...(moved ? { urlSlug: after.url_slug } : {}) },
       result: "ok", ip: ctx.ip,
     });
     return "ok";

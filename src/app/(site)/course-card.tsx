@@ -2,6 +2,7 @@ import Link from "next/link";
 import ui from "@/components/ui.module.css";
 import { formatVnd } from "@/lib/format";
 import type { CatalogCourseCard as Course } from "@/modules/content/catalog";
+import { courseUrl } from "@/modules/content/paths";
 import { CourseCardAction } from "./course-card-action";
 import styles from "./course-card.module.css";
 
@@ -26,7 +27,7 @@ export function CourseCard({ course }: { course: Course }) {
       <span className={ui.price}>{formatVnd(course.priceVnd)}</span>
       <div className={ui.row}>
         <CourseCardAction slug={course.slug} />
-        <Link className={ui.outline} href={`/khoa-hoc/${course.slug}`}>Xem chi tiết</Link>
+        <Link className={ui.outline} href={courseUrl(course.urlSlug)}>Xem chi tiết</Link>
       </div>
     </article>
   );

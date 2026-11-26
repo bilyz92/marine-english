@@ -7,7 +7,7 @@ import styles from "../admin.module.css";
 // Danh mục khóa học (docs/superpowers/plans/2026-11-14-course-categories.md, Task 3): cây 2 cấp, sửa tên tại chỗ, ↑ ↓, xóa khi rỗng,
 // danh mục con, tên tiếng Anh và ảnh đại diện (ảnh chỉ hiện ở ô danh mục cấp 1 của trang công khai).
 
-export type Category = { id: string; parentId: string | null; titleVi: string; titleEn: string | null; imageUrl: string | null; position: number; courseCount: number };
+export type Category = { id: string; parentId: string | null; urlSlug: string; titleVi: string; titleEn: string | null; imageUrl: string | null; position: number; courseCount: number };
 
 /** Lựa chọn danh mục cho ô chọn của khóa: danh mục con thụt lề dưới cha. */
 export function categoryOptions(categories: Category[]) {
@@ -26,7 +26,7 @@ export function CategoriesPanel({ categories, canEdit, onChanged }: { categories
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState({ titleVi: "", titleEn: "" });
-  const [names, setNames] = useState<Record<string, { titleVi: string; titleEn: string }>>({});
+  const [names, setNames] = useState<Record<string, { titleVi: string; titleEn: string; urlSlug: string }>>({});
   const [childOf, setChildOf] = useState<Category | null>(null);
   const [childName, setChildName] = useState("");
   const [childProblem, setChildProblem] = useState<string | null>(null);
@@ -44,13 +44,15 @@ export function CategoriesPanel({ categories, canEdit, onChanged }: { categories
     await onChanged();
     return true;
   }
-  const nameOf = (c: Category) => names[c.id] ?? { titleVi: c.titleVi, titleEn: c.titleEn ?? "" };
-  const setName = (c: Category, patch: Partial<{ titleVi: string; titleEn: string }>) => setNames({ ...names, [c.id]: { ...nameOf(c), ...patch } });
-  const changed = (c: Category) => nameOf(c).titleVi !== c.titleVi || nameOf(c).titleEn !== (c.titleEn ?? "");
+  const nameOf = (c: Category) => names[c.id] ?? { titleVi: c.titleVi, titleEn: c.titleEn ?? "", urlSlug: c.urlSlug };
+  const setName = (c: Category, patch: Partial<{ titleVi: string; titleEn: string; urlSlug: string }>) => setNames({ ...names, [c.id]: { ...nameOf(c), ...patch } });
+  const changed = (c: Category) => nameOf(c).titleVi !== c.titleVi || nameOf(c).titleEn !== (c.titleEn ?? "") || nameOf(c).urlSlug.trim() !== c.urlSlug;
 
   async function saveName(c: Category) {
-    const { titleVi, titleEn } = nameOf(c);
-    if (await run(() => adminApi(`/api/quan-tri/categories/${c.id}`, { method: "PATCH", body: { titleVi, titleEn: titleEn.trim() ? titleEn : null } }))) {
+    const { titleVi, titleEn, urlSlug } = nameOf(c);
+    // Đường dẫn chỉ gửi khi có đổi: máy chủ chuẩn hóa (bỏ dấu, chữ thường) và kiểm trùng.
+    const body = { titleVi, titleEn: titleEn.trim() ? titleEn : null, ...(urlSlug.trim() !== c.urlSlug ? { urlSlug } : {}) };
+    if (await run(() => adminApi(`/api/quan-tri/categories/${c.id}`, { method: "PATCH", body }))) {
       const { [c.id]: _done, ...rest } = names;
       setNames(rest);
     }
@@ -77,6 +79,10 @@ export function CategoriesPanel({ categories, canEdit, onChanged }: { categories
           <div className={styles.itemText} style={{ gap: 6 }}>
             <input className={styles.input} aria-label={`Tên danh mục ${label}`} value={nameOf(c).titleVi} onChange={(e) => setName(c, { titleVi: e.target.value })} />
             <input className={styles.input} aria-label={`Tên tiếng Anh của ${label}`} placeholder="Tên tiếng Anh (không bắt buộc)" value={nameOf(c).titleEn} onChange={(e) => setName(c, { titleEn: e.target.value })} />
+            <label className={styles.muted}>
+              Đường dẫn: /khoa-hoc/danh-muc/
+              <input className={styles.input} aria-label={`Đường dẫn của ${label}`} value={nameOf(c).urlSlug} maxLength={160} onChange={(e) => setName(c, { urlSlug: e.target.value })} />
+            </label>
             <span className={styles.muted}>{c.parentId ? "Danh mục con" : `Danh mục ${c.position}`} · {c.courseCount} khóa</span>
           </div>
         ) : (
@@ -91,7 +97,7 @@ export function CategoriesPanel({ categories, canEdit, onChanged }: { categories
         )}
         {canEdit && (
           <div className={styles.actions}>
-            {changed(c) && <button className={styles.btnMain} disabled={busy} aria-label={`Lưu tên ${label}`} onClick={() => void saveName(c)}>Lưu tên</button>}
+            {changed(c) && <button className={styles.btnMain} disabled={busy} aria-label={`Lưu tên ${label}`} onClick={() => void saveName(c)}>Lưu</button>}
             <button className={styles.btn} disabled={busy} aria-label={`Lên: ${label}`} onClick={() => void run(() => adminApi(`/api/quan-tri/categories/${c.id}`, { method: "PATCH", body: { move: "up" } }))}>↑</button>
             <button className={styles.btn} disabled={busy} aria-label={`Xuống: ${label}`} onClick={() => void run(() => adminApi(`/api/quan-tri/categories/${c.id}`, { method: "PATCH", body: { move: "down" } }))}>↓</button>
             {!c.parentId && (
@@ -115,7 +121,7 @@ export function CategoriesPanel({ categories, canEdit, onChanged }: { categories
   return (
     <section className={styles.card} aria-labelledby="h-danh-muc">
       <h2 id="h-danh-muc" className={styles.h2}>Danh mục</h2>
-      <p className={styles.muted}>Trang Khóa học gom khóa theo danh mục cấp 1 (theo thứ tự ở đây). Danh mục con hiện thành nhóm nhỏ bên trong. Ảnh: jpg, png hoặc webp, tối đa 2 MB.</p>
+      <p className={styles.muted}>Trang Khóa học gom khóa theo danh mục cấp 1 (theo thứ tự ở đây). Danh mục con hiện thành nhóm nhỏ bên trong. Ảnh: jpg, png hoặc webp, tối đa 2 MB. Mỗi danh mục có trang riêng /khoa-hoc/danh-muc/&lt;đường dẫn&gt;; đổi đường dẫn thì link cũ của danh mục không còn mở được.</p>
       {categories.length === 0 && <p className={styles.muted}>Chưa có danh mục. Mọi khóa đang hiện ở nhóm “Khóa khác”.</p>}
       <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>{categories.map(row)}</ul>
       {problem && <p className={styles.error} role="alert">{problem}</p>}

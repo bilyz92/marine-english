@@ -2,25 +2,27 @@ import Link from "next/link";
 import ui from "@/components/ui.module.css";
 import { formatVnd } from "@/lib/format";
 import type { CatalogGroup } from "@/modules/content/catalog";
+import { categoryUrl } from "@/modules/content/paths";
 import { CourseCard } from "../course-card";
 import styles from "./course-groups.module.css";
 
 // Danh mục khóa học (docs/superpowers/plans/2026-11-14-course-categories.md, Task 3). Ô có ảnh: ảnh của chủ đã in tên chức danh,
 // nên tên chỉ nằm trong HTML cho trình đọc màn hình; ô không ảnh hiện tên Anh đậm + tên Việt trên nền nhạt.
 
-export const groupHref = (key: string) => `/khoa-hoc?dm=${encodeURIComponent(key)}`;
-const groupName = (g: Pick<CatalogGroup, "titleVi" | "titleEn">) => (g.titleEn ? `${g.titleEn} – ${g.titleVi}` : g.titleVi);
+export const groupName = (g: Pick<CatalogGroup, "titleVi" | "titleEn">) => (g.titleEn ? `${g.titleEn} – ${g.titleVi}` : g.titleVi);
 /** Nhóm chỉ có khóa sắp ra mắt thì không có giá (chủ 25/11/2026). */
 const groupMeta = (g: CatalogGroup) => `${g.courseCount} khóa${g.minPriceVnd === null ? "" : ` · từ ${formatVnd(g.minPriceVnd)}`}`;
 
-export function CourseBanner() {
+/** `heading` = false ở trang danh mục: tên danh mục mới là h1 của trang, dòng chữ trên ảnh chỉ là chữ thường. */
+export function CourseBanner({ heading = true }: { heading?: boolean }) {
+  const Title = heading ? "h1" : "p";
   return (
     <section className={styles.banner} aria-labelledby="h-khoa-hoc">
       {/* eslint-disable-next-line @next/next/no-img-element -- ảnh tĩnh nhỏ trong public/, trang trí */}
       <img className={styles.bannerImage} src="/images/khoa-hoc-banner.webp" alt="" width={410} height={160} />
       <div className={styles.bannerText}>
         <span className={styles.eyebrow}>Marine Engine Academy</span>
-        <h1 id="h-khoa-hoc" className={styles.bannerTitle}>Khóa phỏng vấn ngành máy</h1>
+        <Title id="h-khoa-hoc" className={styles.bannerTitle}>Khóa phỏng vấn ngành máy</Title>
       </div>
     </section>
   );
@@ -31,7 +33,7 @@ export function CategoryTiles({ groups }: { groups: CatalogGroup[] }) {
     <ul className={styles.tiles} aria-label="Chức danh">
       {groups.map((g) => (
         <li key={g.key}>
-          <Link className={g.comingSoon ? `${styles.tile} ${styles.tileSoon}` : styles.tile} href={groupHref(g.key)} data-category-key={g.key}>
+          <Link className={g.comingSoon ? `${styles.tile} ${styles.tileSoon}` : styles.tile} href={categoryUrl(g.urlSlug)} data-category-key={g.key}>
             {g.imageUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element -- ảnh công khai theo nội dung (/media), kích thước cố định */}
@@ -53,18 +55,19 @@ export function CategoryTiles({ groups }: { groups: CatalogGroup[] }) {
   );
 }
 
+/** Trang một danh mục (/khoa-hoc/danh-muc/<đường dẫn>): tên danh mục là tiêu đề chính (h1) của trang. */
 export function GroupView({ group }: { group: CatalogGroup }) {
   return (
     <>
       <div className={styles.groupHead}>
         <Link className={styles.back} href="/khoa-hoc">← Tất cả chức danh</Link>
-        <h2 className={ui.h2}>{groupName(group)}</h2>
+        <h1 className={ui.h2}>{groupName(group)}</h1>
         <p className={ui.muted}>{groupMeta(group)}{group.comingSoon ? " · Sắp ra mắt" : ""}</p>
       </div>
       {group.courses.length > 0 && <div className={ui.grid}>{group.courses.map((c) => <CourseCard key={c.slug} course={c} />)}</div>}
       {group.subgroups.map((s) => (
         <section key={s.id} className={styles.sub} aria-labelledby={`dm-${s.id}`}>
-          <h3 id={`dm-${s.id}`} className={ui.h3}>{s.titleVi}</h3>
+          <h2 id={`dm-${s.id}`} className={ui.h3}><Link href={categoryUrl(s.urlSlug)}>{s.titleVi}</Link></h2>
           <div className={ui.grid}>{s.courses.map((c) => <CourseCard key={c.slug} course={c} />)}</div>
         </section>
       ))}

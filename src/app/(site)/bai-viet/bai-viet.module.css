@@ -1,0 +1,17 @@
+/* Bài viết (UI v2: phông hệ thống, chữ thân 18px theo body, màu lấy từ tokens.css). Cột chữ ~68 ký tự cho dễ đọc trên máy tính. */
+.article { max-width: 720px; display: flex; flex-direction: column; gap: 18px; line-height: 1.65; }
+.head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.head h1 { text-wrap: balance; }
+.crumbs ol { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: var(--font-small); color: var(--color-muted); }
+.crumbs li + li::before { content: "/"; margin-right: 6px; }
+.date { color: var(--color-muted); font-size: var(--font-small); }
+.heading { margin-top: 16px; text-wrap: balance; }
+.list { margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 10px; }
+.quote { margin: 0; padding: 16px 20px; border-left: 4px solid var(--color-primary); border-radius: 0 var(--radius-card) var(--radius-card) 0; background: var(--color-primary-soft); display: flex; flex-direction: column; gap: 10px; }
+
+/* Danh sách bài */
+.items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; max-width: 720px; }
+.item { padding: 20px; border-radius: var(--radius-card); background: var(--color-bg); border: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 8px; }
+.item h2 { text-wrap: balance; }
+.item a { text-decoration: none; }
+.item a:hover { text-decoration: underline; }

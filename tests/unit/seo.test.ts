@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  breadcrumbJsonLd, courseDescription, courseJsonLd, faqJsonLd, jsonLdHtml, metaDescription, organizationJsonLd, pageMetadata, PAGE_SEO, siteUrl, trimDescription,
+  breadcrumbJsonLd, categoryDescription, categoryTitle, courseDescription, courseJsonLd, faqJsonLd, jsonLdHtml, metaDescription, organizationJsonLd, pageMetadata, PAGE_SEO, siteUrl, trimDescription,
 } from "@/lib/seo";
 
 const ORIGIN = "https://vi-du.vn";
 
 const COURSE = {
-  slug: "mea_3e_tanker", titleVi: "Máy ba — Tàu dầu và hóa chất", titleEn: "Third Engineer — Tanker", priceVnd: 700000, lessonCount: 139,
+  slug: "mea_3e_tanker", urlSlug: "may-ba-tau-dau-va-hoa-chat", titleVi: "Máy ba — Tàu dầu và hóa chất", titleEn: "Third Engineer — Tanker", priceVnd: 700000, lessonCount: 139,
   trialLessons: [{ position: 1, externalId: "a", title: "Giới thiệu bản thân" }, { position: 2, externalId: "b", title: "Kinh nghiệm" }],
   modules: [{ id: "m1", titleVi: "Chung", lessonCount: 123, trial: [] }, { id: "m2", titleVi: "Đặc thù", lessonCount: 16, trial: [] }],
   category: { titleVi: "Máy ba", titleEn: "3/E", parentTitleVi: null, parentTitleEn: null }, description: null,
@@ -158,12 +158,12 @@ describe("JSON-LD", () => {
     const o = organizationJsonLd(ORIGIN, { business: "Hộ kinh doanh Thử", zalo: null, messenger: null, email: "a@b.vn" });
     expect(o).toMatchObject({ legalName: "Hộ kinh doanh Thử", email: "a@b.vn" });
   });
-  it("Course có tên, mô tả, đơn vị cung cấp, giá VND thật và địa chỉ trang khóa", () => {
+  it("Course có tên, mô tả, đơn vị cung cấp, giá VND thật và địa chỉ trang khóa (đường dẫn đọc được, không phải mã nội bộ)", () => {
     const c = courseJsonLd(ORIGIN, COURSE, "Mô tả");
     expect(c).toMatchObject({
-      "@type": "Course", name: COURSE.titleVi, alternateName: COURSE.titleEn, description: "Mô tả", url: "https://vi-du.vn/khoa-hoc/mea_3e_tanker", inLanguage: "vi",
+      "@type": "Course", name: COURSE.titleVi, alternateName: COURSE.titleEn, description: "Mô tả", url: "https://vi-du.vn/khoa-hoc/may-ba-tau-dau-va-hoa-chat", inLanguage: "vi",
       provider: { "@type": "EducationalOrganization", name: "Marine English", url: "https://vi-du.vn/" },
-      offers: { "@type": "Offer", price: 700000, priceCurrency: "VND", category: "Paid", url: "https://vi-du.vn/khoa-hoc/mea_3e_tanker" },
+      offers: { "@type": "Offer", price: 700000, priceCurrency: "VND", category: "Paid", url: "https://vi-du.vn/khoa-hoc/may-ba-tau-dau-va-hoa-chat" },
     });
   });
   it("BreadcrumbList đánh số từ 1 với địa chỉ tuyệt đối", () => {
@@ -180,5 +180,26 @@ describe("JSON-LD", () => {
       "@context": "https://schema.org", "@type": "FAQPage",
       mainEntity: [{ "@type": "Question", name: "Hỏi?", acceptedAnswer: { "@type": "Answer", text: "Đáp." } }],
     });
+  });
+});
+
+describe("trang danh mục", () => {
+  const group = (over: object = {}) => ({
+    titleVi: "Thực tập máy", titleEn: "Engine Cadet", comingSoon: false,
+    courses: [{ titleVi: "Luyện phỏng vấn Engine Cadet", comingSoon: false }, { titleVi: "Tàu dầu", comingSoon: true }], subgroups: [], ...over,
+  });
+  it("tiêu đề theo tên danh mục; 'Khóa khác' giữ nguyên tên", () => {
+    expect(categoryTitle(group())).toBe("Khóa tiếng Anh cho Engine Cadet – Thực tập máy");
+    expect(categoryTitle(group({ titleVi: "Khóa khác", titleEn: null, urlSlug: "khac" }))).toBe("Khóa khác");
+  });
+  it("mô tả 120–160 ký tự từ dữ liệu thật: tên danh mục, tên khóa đang bán; không hứa học thử khi chỉ có khóa sắp ra mắt", () => {
+    const d = categoryDescription(group());
+    expect(d).toContain("Engine Cadet – Thực tập máy");
+    expect(d).toContain("Luyện phỏng vấn Engine Cadet");
+    expect(d.length).toBeGreaterThanOrEqual(120);
+    expect(d.length).toBeLessThanOrEqual(160);
+    const soon = categoryDescription(group({ comingSoon: true, courses: [{ titleVi: "Tàu dầu", comingSoon: true }] }));
+    expect(soon).toContain("sắp ra mắt");
+    expect(soon).not.toMatch(/học thử/i);
   });
 });

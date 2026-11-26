@@ -81,7 +81,10 @@ describe("soạn bài trên web", () => {
     expect(created.status).toBe(200);
     expect((await callAdmin(createCourse, owner, "POST", "/x", { slug: "khoa_moi", titleVi: "A", titleEn: "B" })).status).toBe(409);
     expect((await callAdmin(createCourse, owner, "POST", "/x", { slug: "Khóa Sai!", titleVi: "A", titleEn: "B" })).status).toBe(400);
-    expect((await listing(owner, "khoa_moi")).course).toMatchObject({ status: "draft", currentVersionId: null });
+    expect((await listing(owner, "khoa_moi")).course).toMatchObject({ status: "draft", currentVersionId: null, urlSlug: "khoa-moi" });
+    // Đường dẫn công khai theo tên tiếng Việt; trùng tên thì thêm -2.
+    const twin = await callAdmin(createCourse, owner, "POST", "/x", { slug: "khoa_moi_hai", titleVi: "Khóa  mới!", titleEn: "B" });
+    expect(await twin.json()).toEqual({ slug: "khoa_moi_hai", urlSlug: "khoa-moi-2" });
 
     let version: string | null = null;
     for (const n of [1, 2, 3, 4]) {
@@ -94,7 +97,7 @@ describe("soạn bài trên web", () => {
       [1, "khoa_moi-b1", true], [2, "khoa_moi-b2", true], [3, "khoa_moi-b3", false], [4, "khoa_moi-b4", false],
     ]);
     expect(await auditRows("lesson_add")).toHaveLength(4);
-    expect(await auditRows("course_create")).toHaveLength(1);
+    expect(await auditRows("course_create")).toHaveLength(2);
   });
 
   it("khóa đang bán: sửa và thêm đều cần confirmLive", async () => {

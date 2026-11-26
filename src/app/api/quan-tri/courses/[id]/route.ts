@@ -9,8 +9,10 @@ const Change = z
     status: z.enum(["draft", "published", "archived"]).optional(),
     // Mô tả khóa (chủ 26/11/2026): cắt khoảng trắng hai đầu, rỗng = xóa; tối đa 8000 ký tự như ràng buộc trong DB.
     description: z.string().trim().max(8000).transform((d) => d || null).nullable().optional(),
+    // Đường dẫn công khai /khoa-hoc/<urlSlug> (chủ 26/11/2026): gõ tự do, máy chủ chuẩn hóa và kiểm trùng.
+    urlSlug: z.string().max(200).optional(),
   })
-  .refine((c) => c.priceVnd !== undefined || c.status !== undefined || c.description !== undefined);
+  .refine((c) => c.priceVnd !== undefined || c.status !== undefined || c.description !== undefined || c.urlSlug !== undefined);
 
 export const PATCH = route(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
   const admin = await requireAdmin(req);

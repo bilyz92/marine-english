@@ -6,9 +6,10 @@ import { audit } from "@/modules/audit/audit";
 import { authorize } from "@/modules/auth-admin/authorize";
 import type { AdminCtx } from "@/modules/sessions/guards";
 import { canonical, contentHash } from "@/worker/content-import";
-import { ContentConflict } from "./authoring";
+import { ContentConflict, prismaSql } from "./authoring";
 import { parseYouTubeId } from "./video-format";
 import { modulesFor } from "./modules";
+import { freeCourseUrlSlug, internalSlugClashes, lockCourseUrlSlugs } from "./url-slug";
 
 // Chủ sửa và thêm bài trên web (docs/superpowers/plans/2026-11-02-content-authoring.md, bước 5).
 // Phiên bản bất biến: sửa = phiên bản bài mới + phiên bản khóa mới thay bài đó tại chỗ; chỉ đổi khóa đang mở.
@@ -81,9 +82,10 @@ export async function courseLessons(ctx: AdminCtx, slug: string) {
     JOIN course_version_lessons cvl ON cvl.lesson_version_id = lva.lesson_version_id
     WHERE cvl.course_version_id = ${course.current_version_id}::uuid AND lva.role = 'video'`).map((r) => r.id) : []);
   const { modules, lessonModule } = await modulesFor(prisma(), course.id, course.current_version_id);
-  const description = (await prisma().$queryRaw<{ description: string | null }[]>`SELECT description FROM courses WHERE id = ${course.id}::uuid`)[0]?.description ?? null;
+  const [{ description, url_slug: urlSlug }] = (await prisma().$queryRaw<{ description: string | null; url_slug: string }[]>`
+    SELECT description, url_slug FROM courses WHERE id = ${course.id}::uuid`) as [{ description: string | null; url_slug: string }];
   return {
-    course: { id: course.id, slug: course.slug, titleVi: course.title_vi, titleEn: course.title_en, status: course.status, currentVersionId: course.current_version_id, description },
+    course: { id: course.id, slug: course.slug, urlSlug, titleVi: course.title_vi, titleEn: course.title_en, status: course.status, currentVersionId: course.current_version_id, description },
     modules,
     lessons: list.map((m) => ({
       position: m.position, externalId: m.externalId, questionEn: questionOf(m.content).en ?? "", questionVi: questionOf(m.content).vi ?? "",
@@ -297,11 +299,15 @@ export async function saveLesson(ctx: AdminCtx, slug: string, externalId: string
 export async function createCourse(ctx: AdminCtx, input: z.infer<typeof CreateCourse>) {
   await authorize(ctx, "content.edit", { action: "course_create", resource: { type: "course", id: input.slug } });
   return withTx(async (tx) => {
+    // Đường dẫn công khai theo tên tiếng Việt (chủ sửa sau ở trang khóa).
+    await lockCourseUrlSlugs(prismaSql(tx));
+    if (await internalSlugClashes(prismaSql(tx), input.slug)) throw new HttpError(409, "slug_taken");
+    const urlSlug = await freeCourseUrlSlug(prismaSql(tx), input.titleVi);
     const [created] = await tx.$queryRaw<{ id: string }[]>`
-      INSERT INTO courses (slug, title_vi, title_en) VALUES (${input.slug}, ${input.titleVi}, ${input.titleEn})
+      INSERT INTO courses (slug, title_vi, title_en, url_slug) VALUES (${input.slug}, ${input.titleVi}, ${input.titleEn}, ${urlSlug})
       ON CONFLICT (slug) DO NOTHING RETURNING id::text AS id`;
     if (!created) throw new HttpError(409, "slug_taken");
-    await audit(tx, { adminId: ctx.adminId, action: "course_create", targetType: "course", targetId: created.id, after: input, result: "ok", ip: ctx.ip });
-    return { slug: input.slug };
+    await audit(tx, { adminId: ctx.adminId, action: "course_create", targetType: "course", targetId: created.id, after: { ...input, urlSlug }, result: "ok", ip: ctx.ip });
+    return { slug: input.slug, urlSlug };
   });
 }

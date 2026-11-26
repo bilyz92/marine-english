@@ -11,6 +11,7 @@ export function SiteFooter() {
         <strong>Marine English</strong>
         <nav aria-label="Liên kết cuối trang" className={styles.footerNav}>
           <Link href="/khoa-hoc">Khóa học</Link>
+          <Link href="/bai-viet">Bài viết</Link>
           <Link href="/gioi-thieu">Về tôi</Link>
           <Link href="/#hoi-dap">Hỏi đáp</Link>
           <Link href="/chinh-sach?tab=bao-mat">Chính sách bảo mật</Link>

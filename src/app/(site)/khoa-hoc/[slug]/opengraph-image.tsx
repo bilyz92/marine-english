@@ -1,17 +1,18 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { formatVnd } from "@/lib/format";
-import { getPublishedCourse } from "@/modules/content/catalog";
+import { getPublishedCourse, publishedSlugForUrlSlug } from "@/modules/content/catalog";
 import { OG_SIZE, ogCard } from "../../og-card";
 
 export const alt = "Khóa tiếng Anh cho thuyền viên máy – Marine English";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
-/** Ảnh chia sẻ riêng từng khóa đang bán: tên, số bài, giá thật. Khóa không bán: 404 như trang khóa. */
+/** Ảnh chia sẻ riêng từng khóa đang bán (theo đường dẫn công khai): tên, số bài, giá thật. Khóa không bán: 404 như trang khóa. */
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
-  const course = await getPublishedCourse((await params).slug);
+  const slug = await publishedSlugForUrlSlug((await params).slug);
+  const course = slug ? await getPublishedCourse(slug) : null;
   if (!course) notFound();
   return ogCard({
     eyebrow: "KHÓA HỌC",

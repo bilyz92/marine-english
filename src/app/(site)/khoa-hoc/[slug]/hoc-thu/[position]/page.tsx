@@ -13,15 +13,20 @@ import { hasLevels, type StudyLesson } from "@/lib/study/levels";
 import { GUEST } from "@/lib/study/storage";
 import ui from "@/components/ui.module.css";
 import { BuyOrLearn } from "../../buy-or-learn";
-import { getPublishedCourse, getTrialLesson } from "@/modules/content/catalog";
+import { getPublishedCourse, getTrialLesson, publishedSlugForUrlSlug } from "@/modules/content/catalog";
+import { courseUrl, trialUrl } from "@/modules/content/paths";
 import { metaDescription, pageMetadata } from "@/lib/seo";
 import { trialVideo } from "@/modules/content/lesson-video";
 
-const publishedCourse = cache(getPublishedCourse);
+/** Khóa đang bán theo đường dẫn công khai (`[slug]` là url_slug; mã nội bộ đã được proxy chuyển hướng). */
+const publishedCourse = cache(async (urlSlug: string) => {
+  const slug = await publishedSlugForUrlSlug(urlSlug);
+  return slug ? getPublishedCourse(slug) : null;
+});
 
-/** Bài học thử của khóa đang bán: tên khóa và tiêu đề bài thật. Bài không phải bài thử hay khóa không bán: không trả gì, trang 404. */
-async function trialInfo(slug: string, position: string) {
-  const course = await publishedCourse(slug);
+/** Bài học thử của khóa đang bán: tên khóa và tiêu đề bài thật. Bài không phải bài thử hay khóa không bán: không trả gì; proxy đã trả 404. */
+async function trialInfo(urlSlug: string, position: string) {
+  const course = await publishedCourse(urlSlug);
   const trial = course?.trialLessons.find((t) => String(t.position) === position);
   return course && trial ? { course, trial } : null;
 }
@@ -35,20 +40,22 @@ export async function generateMetadata({ params }: PageProps<"/khoa-hoc/[slug]/h
   return pageMetadata({
     title: `Học thử bài ${trial.position}: ${course.titleVi}`,
     description: metaDescription(`Bài ${trial.position} học thử miễn phí của khóa ${course.titleVi} (${course.titleEn}): ${trial.title}. Học ngay trên điện thoại, không cần tài khoản.`),
-    path: `/khoa-hoc/${course.slug}/hoc-thu/${trial.position}`,
+    path: trialUrl(course.urlSlug, trial.position),
   });
 }
 
 async function Trial({ params }: { params: Promise<{ slug: string; position: string }> }) {
   await connection();
-  const { slug, position } = await params;
+  const { slug: urlSlug, position } = await params;
+  const info = await trialInfo(urlSlug, position);
+  if (!info) notFound();
+  const slug = info.course.slug; // mã nội bộ: video học thử, nút mua
   // getTrialLesson chỉ trả bài thử của khóa đang mở bán; bài khác hay vị trí sai đều 404.
   const lesson = await getTrialLesson(slug, Number(position));
   if (!lesson) notFound();
-  const info = await trialInfo(slug, position);
   return (
     <>
-      <h1 className={ui.h2}>{info ? `Học thử bài ${info.trial.position}: ${info.course.titleVi}` : "Bài học thử"}</h1>
+      <h1 className={ui.h2}>{`Học thử bài ${info.trial.position}: ${info.course.titleVi}`}</h1>
       {(lesson.content as { lesson_type?: string }).lesson_type === "video"
         ? <VideoLesson
             externalId={lesson.externalId} content={lesson.content as VideoContent}
@@ -63,7 +70,7 @@ async function Trial({ params }: { params: Promise<{ slug: string; position: str
         : <LessonBody externalId={lesson.externalId} content={lesson.content as LessonContent} />}
       <div className={ui.row}>
         <BuyOrLearn slug={slug} />
-        <Link className={ui.outline} href={`/khoa-hoc/${slug}`}>← Danh sách bài</Link>
+        <Link className={ui.outline} href={courseUrl(info.course.urlSlug)}>← Danh sách bài</Link>
       </div>
     </>
   );

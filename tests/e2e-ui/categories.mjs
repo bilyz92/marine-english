@@ -131,23 +131,27 @@ try {
   const tA = await tile(idA);
   check("ô không ảnh: hiện tên Anh và tên Việt", tA && !tA.img && tA.visible.includes(A_EN) && tA.visible.includes(A), JSON.stringify(tA));
 
-  // Mở thẳng một danh mục và Khóa khác, tải lại vẫn đúng nhóm.
+  // Trang riêng của danh mục /khoa-hoc/danh-muc/<đường dẫn> (SEO, 26/11/2026); link ?dm=<id> cũ chuyển hướng vĩnh viễn tới đó.
+  const slugA = groups.find((g) => g.key === idA).urlSlug;
   await b.go(`${BASE}/khoa-hoc?dm=${idA}`);
-  check("?dm=<id>: tiêu đề danh mục, nút về, danh mục con là h3", (await see(`${A_EN} – ${A}`)) && (await see("← Tất cả chức danh")) && (await b.evaluate(`[...document.querySelectorAll("main h3")].some((h) => h.textContent.trim() === ${JSON.stringify(SUB)})`)));
-  check("?dm=<id>: có khóa trong danh mục con", await see(c1.title_vi));
-  await b.go(`${BASE}/khoa-hoc?dm=${idA}`);
-  check("?dm=<id>: tải lại vẫn đúng nhóm", await see(SUB));
+  check("?dm=<id> cũ → /khoa-hoc/danh-muc/<đường dẫn>", await waitFor(async () => (await b.evaluate("location.pathname + location.search")) === `/khoa-hoc/danh-muc/${slugA}`));
+  check("trang danh mục: tiêu đề h1 là tên danh mục, nút về, danh mục con là h2", (await see(`${A_EN} – ${A}`)) && (await see("← Tất cả chức danh"))
+    && (await b.evaluate(`document.querySelector("main h1")?.textContent.trim() === ${JSON.stringify(`${A_EN} – ${A}`)}`))
+    && (await b.evaluate(`[...document.querySelectorAll("main h2")].some((h) => h.textContent.trim() === ${JSON.stringify(SUB)})`)));
+  check("trang danh mục: có khóa trong danh mục con", await see(c1.title_vi));
+  await b.go(`${BASE}/khoa-hoc/danh-muc/${slugA}`);
+  check("trang danh mục: tải lại vẫn đúng nhóm", await see(SUB));
   const problemsA = await pageProblems();
-  check("?dm=<id>: không lỗi giao diện", problemsA.length === 0, problemsA.join("; "));
+  check("trang danh mục: không lỗi giao diện", problemsA.length === 0, problemsA.join("; "));
   await b.shot(`${OUT}/khoa-hoc-danh-muc-1280.png`);
   if (groups.some((g) => g.key === "khac")) {
+    await b.go(`${BASE}/khoa-hoc/danh-muc/khac`);
+    check("/khoa-hoc/danh-muc/khac: nhóm Khóa khác", (await see("Khóa khác")) && (await see("← Tất cả chức danh")));
     await b.go(`${BASE}/khoa-hoc?dm=khac`);
-    check("?dm=khac: nhóm Khóa khác", (await see("Khóa khác")) && (await see("← Tất cả chức danh")));
-    await b.go(`${BASE}/khoa-hoc?dm=khac`);
-    check("?dm=khac: tải lại vẫn đúng", await see("← Tất cả chức danh"));
+    check("?dm=khac cũ → /khoa-hoc/danh-muc/khac", await waitFor(async () => (await b.evaluate("location.pathname")) === "/khoa-hoc/danh-muc/khac"));
   }
   await b.go(`${BASE}/khoa-hoc?dm=khong-co`);
-  check("?dm không tồn tại → lưới danh mục", (await waitFor(async () => (await tileKeys()).length > 0)) && !(await text()).includes("← Tất cả chức danh"));
+  check("?dm không tồn tại → về /khoa-hoc, lưới danh mục", (await waitFor(async () => (await tileKeys()).length > 0)) && !(await text()).includes("← Tất cả chức danh"));
 
   // Tìm kiếm: danh sách phẳng; tìm theo tên danh mục cha, danh mục con và tên tiếng Anh.
   const search = async (q) => {
@@ -166,12 +170,12 @@ try {
   const rB = await search(`ảnh ${stamp}`);
   check("tìm theo tên danh mục B ra khóa 2", rB.text.includes(c2.title_vi));
 
-  // Trang chủ: ô "Khóa khác" dẫn tới /khoa-hoc?dm=khac.
+  // Trang chủ: ô "Khóa khác" dẫn tới /khoa-hoc/danh-muc/khac.
   await b.go(`${BASE}/`);
   check("trang chủ: có lưới chức danh", await waitFor(async () => (await tileKeys()).length > 0));
   if (groups.some((g) => g.key === "khac")) {
     await b.evaluate(`document.querySelector('[data-category-key="khac"]').click()`);
-    check("trang chủ: bấm Khóa khác → /khoa-hoc?dm=khac", await waitFor(async () => (await b.evaluate("location.pathname + location.search")) === "/khoa-hoc?dm=khac"));
+    check("trang chủ: bấm Khóa khác → /khoa-hoc/danh-muc/khac", await waitFor(async () => (await b.evaluate("location.pathname + location.search")) === "/khoa-hoc/danh-muc/khac"));
   }
   for (const w of [390, 1280]) {
     await b.width(w, 900);

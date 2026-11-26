@@ -6,8 +6,8 @@ import { requireAdmin } from "@/modules/sessions/guards";
 const Title = z.string().max(CATEGORY_TITLE_MAX * 2);
 const Body = z.union([
   z.object({ move: z.enum(["up", "down"]) }).strict(),
-  z.object({ titleVi: Title.optional(), titleEn: Title.nullable().optional() }).strict()
-    .refine((b) => b.titleVi !== undefined || b.titleEn !== undefined),
+  z.object({ titleVi: Title.optional(), titleEn: Title.nullable().optional(), urlSlug: Title.optional() }).strict()
+    .refine((b) => b.titleVi !== undefined || b.titleEn !== undefined || b.urlSlug !== undefined),
 ]);
 type Params = { params: Promise<{ id: string }> };
 

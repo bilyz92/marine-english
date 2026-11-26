@@ -37,8 +37,8 @@ describe("đổi trạng thái hàng loạt", () => {
     await publish(T);
     await sqlAsMigrator(`UPDATE courses SET status = 'archived' WHERE slug = $1`, [T]);
     await sqlAsMigrator(`UPDATE courses SET status = 'archived', price_vnd = NULL WHERE slug = $1`, [D]);
-    await sqlAsMigrator(`INSERT INTO courses (slug, title_vi, title_en, status, price_vnd) VALUES ('khong_bai', 'Chưa có bài', 'No lessons', 'archived', 99000)`);
-    await sqlAsMigrator(`INSERT INTO courses (slug, title_vi, title_en) VALUES ('nhap_moi', 'Nháp', 'Draft')`);
+    await sqlAsMigrator(`INSERT INTO courses (slug, title_vi, title_en, status, price_vnd, url_slug) VALUES ('khong_bai', 'Chưa có bài', 'No lessons', 'archived', 99000, 'chua-co-bai')`);
+    await sqlAsMigrator(`INSERT INTO courses (slug, title_vi, title_en, url_slug) VALUES ('nhap_moi', 'Nháp', 'Draft', 'nhap')`);
     await sqlAsMigrator(`UPDATE courses SET price_vnd = 99000 WHERE slug = 'nhap_moi'`);
     const owner = await adminSess("owner");
     const res = await call(owner, { status: "published" });

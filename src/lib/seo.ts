@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { SITE_INFO } from "@/content/site-info";
 import { env } from "@/lib/env";
 import type { CourseCategoryLabel, CourseDetail } from "@/modules/content/catalog";
+import type { ArticleMeta } from "@/modules/articles/articles";
+import { courseUrl } from "@/modules/content/paths";
+import { OTHER_CATEGORY_URL_SLUG } from "@/modules/content/url-slug";
 
 // SEO cơ bản cho site công khai: tiêu đề và mô tả từng trang, canonical, Open Graph, JSON-LD. Địa chỉ tuyệt đối lấy APP_ORIGIN lúc chạy
 // (bản build Docker không có biến môi trường), nên mọi hàm cần gốc site đều nhận origin hoặc đọc env() khi được gọi.
@@ -60,6 +63,12 @@ export const PAGE_SEO = {
       "Liên hệ Marine English để hỏi về khóa tiếng Anh cho thuyền viên máy, thanh toán hoặc dữ liệu cá nhân. Người hỗ trợ trên bờ trả lời trong giờ làm việc.",
     path: "/lien-he",
   },
+  articles: {
+    title: "Bài viết",
+    description:
+      "Bài viết cho thuyền viên bộ phận máy: câu hỏi phỏng vấn Engine Cadet bằng tiếng Anh kèm nghĩa tiếng Việt, câu trả lời mẫu và cách luyện nói cho buổi phỏng vấn.",
+    path: "/bai-viet",
+  },
   policies: {
     title: "Chính sách",
     description:
@@ -93,7 +102,7 @@ export function metaDescription(text: string): string {
   return trimDescription(out);
 }
 
-type SeoCourse = Pick<CourseDetail, "slug" | "titleVi" | "titleEn" | "priceVnd" | "lessonCount" | "trialLessons" | "modules" | "description"> & { category: CourseCategoryLabel | null };
+type SeoCourse = Pick<CourseDetail, "urlSlug" | "titleVi" | "titleEn" | "priceVnd" | "lessonCount" | "trialLessons" | "modules" | "description"> & { category: CourseCategoryLabel | null };
 
 const label = (vi: string, en: string | null) => (en ? `${en} – ${vi}` : vi);
 
@@ -132,6 +141,26 @@ export function courseDescription(course: SeoCourse): string {
   return parts.filter(Boolean).join(" ");
 }
 
+type SeoCategory = { titleVi: string; titleEn: string | null; urlSlug?: string; comingSoon: boolean; courses: { titleVi: string; comingSoon: boolean }[]; subgroups: { courses: { titleVi: string; comingSoon: boolean }[] }[] };
+
+const categoryName = (g: SeoCategory) => (g.urlSlug === OTHER_CATEGORY_URL_SLUG ? g.titleVi : label(g.titleVi, g.titleEn));
+
+/** Tiêu đề trang danh mục (/khoa-hoc/danh-muc/…): theo tên chức danh; "Khóa khác" giữ nguyên tên. */
+export function categoryTitle(g: SeoCategory): string {
+  return g.urlSlug === OTHER_CATEGORY_URL_SLUG ? g.titleVi : `Khóa tiếng Anh cho ${categoryName(g)}`;
+}
+
+/** Mô tả trang danh mục từ dữ liệu thật: tên danh mục, tên các khóa đang bán; chỉ có khóa sắp ra mắt thì nói vậy, không nhắc học thử. */
+export function categoryDescription(g: SeoCategory): string {
+  const all = [...g.courses, ...g.subgroups.flatMap((s) => s.courses)];
+  const onSale = all.filter((c) => !c.comingSoon).map((c) => c.titleVi);
+  const who = g.urlSlug === OTHER_CATEGORY_URL_SLUG ? "Các khóa tiếng Anh khác cho thuyền viên máy" : `Khóa tiếng Anh cho thuyền viên máy dành cho ${categoryName(g)}`;
+  const text = onSale.length
+    ? `${who}: ${onSale.join(", ")}. Học thử bài đầu miễn phí trước khi mua.`
+    : `${who}: ${all.length} khóa sắp ra mắt.`;
+  return metaDescription(text);
+}
+
 const CONTEXT = "https://schema.org";
 
 /** JSON trong thẻ <script type="application/ld+json">: thoát < > & và U+2028/2029 để chuỗi từ DB không đóng được thẻ script. */
@@ -159,7 +188,7 @@ export function organizationJsonLd(origin: string, info: typeof SITE_INFO = SITE
 }
 
 export function courseJsonLd(origin: string, course: SeoCourse, description: string) {
-  const url = siteUrl(`/khoa-hoc/${course.slug}`, origin);
+  const url = siteUrl(courseUrl(course.urlSlug), origin);
   return {
     "@context": CONTEXT,
     "@type": "Course",
@@ -172,6 +201,22 @@ export function courseJsonLd(origin: string, course: SeoCourse, description: str
     offers: { "@type": "Offer", price: course.priceVnd, priceCurrency: "VND", category: "Paid", availability: "https://schema.org/InStock", url },
     // Học trên web và app PWA (có tải về học offline): hình thức trực tuyến.
     hasCourseInstance: { "@type": "CourseInstance", courseMode: "Online" },
+  };
+}
+
+/** Bài viết (/bai-viet/…): chỉ dữ liệu có trong tệp bài (tiêu đề, mô tả, ngày) và tên site; không bịa tác giả hay ảnh. */
+export function articleJsonLd(origin: string, article: Pick<ArticleMeta, "title" | "description" | "path" | "date">) {
+  const url = siteUrl(article.path, origin);
+  return {
+    "@context": CONTEXT,
+    "@type": "Article",
+    headline: article.title,
+    description: article.description,
+    datePublished: article.date,
+    inLanguage: "vi",
+    url,
+    mainEntityOfPage: url,
+    publisher: { "@type": "EducationalOrganization", name: SITE_NAME, url: siteUrl("/", origin), logo: siteUrl("/icon-512.png", origin) },
   };
 }
 

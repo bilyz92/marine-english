@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import type pg from "pg";
 import { FREE_TRIAL_LESSONS } from "../modules/content/free-trial.ts";
+import { freeCourseUrlSlug, internalSlugClashes, lockCourseUrlSlugs } from "../modules/content/url-slug.ts";
 
 export class ContentImportError extends Error {}
 
@@ -235,19 +236,27 @@ export async function importDatasets(sql: Sql, datasets: unknown[]): Promise<Imp
       );
       for (const a of authored) if (!imported.has(a.external_id)) members.push({ externalId: a.external_id, id: a.id, hash: a.content_hash });
       const sourceHash = sha256(JSON.stringify(members.map((m) => [m.externalId, m.hash])));
-      const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null; title_vi: string; title_en: string; topics: { id: string }[] }>(
-        `SELECT id::text AS id, status, current_version_id::text AS current_version_id, title_vi, title_en, topics FROM courses WHERE slug = $1 FOR UPDATE`,
+      const [before] = await sql.query<{ id: string; status: string; current_version_id: string | null; title_vi: string; title_en: string; topics: { id: string }[]; url_slug: string }>(
+        `SELECT id::text AS id, status, current_version_id::text AS current_version_id, title_vi, title_en, topics, url_slug FROM courses WHERE slug = $1 FOR UPDATE`,
         [course.id],
       );
       // Chủ đề do file Excel thêm (không có trong học liệu) mà bài giữ lại còn dùng: giữ, nối sau chủ đề của học liệu.
       const topics: { id: string }[] = courseTopics(p.topics, course.lesson_ids);
       const keptTopics = new Set(authored.filter((a) => !imported.has(a.external_id) && a.topic).map((a) => a.topic));
       for (const t of before?.topics ?? []) if (keptTopics.has(t.id) && !topics.some((x) => x.id === t.id)) topics.push(t);
+      // Khóa mới: đường dẫn công khai theo tên tiếng Việt. Khóa có sẵn giữ đường dẫn đang có (chủ có thể đã sửa).
+      if (!before) {
+        await lockCourseUrlSlugs(sql);
+        if (await internalSlugClashes(sql, course.id)) {
+          throw new ContentImportError(`Mã khóa ${course.id} trùng đường dẫn công khai (hiện tại hoặc cũ) của khóa khác: đổi mã khóa`);
+        }
+      }
+      const urlSlug = before ? before.url_slug : await freeCourseUrlSlug(sql, course.title.vi);
       const [c] = await sql.query<{ id: string; status: string }>(
-        `INSERT INTO courses (slug, title_vi, title_en, topics) VALUES ($1, $2, $3, $4::jsonb)
+        `INSERT INTO courses (slug, title_vi, title_en, topics, url_slug) VALUES ($1, $2, $3, $4::jsonb, $5)
          ON CONFLICT (slug) DO UPDATE SET title_vi = EXCLUDED.title_vi, title_en = EXCLUDED.title_en, topics = EXCLUDED.topics, updated_at = now()
          RETURNING id::text AS id, status`,
-        [course.id, course.title.vi, course.title.en, JSON.stringify(topics)],
+        [course.id, course.title.vi, course.title.en, JSON.stringify(topics), urlSlug],
       );
       const [existing] = await sql.query<{ id: string }>(
         `SELECT id::text AS id FROM course_versions WHERE course_id = $1::uuid AND source_hash = $2`,

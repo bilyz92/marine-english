@@ -55,6 +55,8 @@ const MESSAGES: Record<string, string> = {
   category_not_empty: "Danh mục còn khóa hoặc còn danh mục con (kể cả khóa nháp, đã ngừng bán): chuyển hết sang danh mục khác rồi mới xóa được.",
   category_name_taken: "Đã có danh mục cùng tên ở cùng cấp.",
   category_depth: "Danh mục con không có danh mục con được nữa (chỉ 2 cấp).",
+  url_slug_taken: "Đường dẫn này đã có chỗ dùng (khóa hay danh mục khác, hoặc đường dẫn cũ của khóa khác đang chuyển hướng). Chọn đường dẫn khác.",
+  url_slug_invalid: "Đường dẫn cần có ít nhất một chữ cái hoặc chữ số.",
   image_format: "Ảnh cần là tệp jpg, png hoặc webp.",
   image_too_large: "Ảnh lớn hơn 2 MB: thu nhỏ ảnh rồi tải lại.",
 };

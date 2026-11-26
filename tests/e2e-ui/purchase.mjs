@@ -120,8 +120,8 @@ try {
   check("đã có khóa → trang khóa hiện vào học", await waitFor(async () => (await text()).includes("Vào học")));
   check("đã có khóa → trang khóa không còn nút mua", !(await text()).includes("Mua khóa học"));
   // Trang Khóa học gom theo danh mục (2026-11-14): thẻ khóa nằm trong trang của danh mục chứa khóa.
-  const groupKey = (await (await fetch(`${BASE}/api/public/courses`)).json()).groups.find((g) => [...g.courses, ...g.subgroups.flatMap((s) => s.courses)].some((c) => c.slug === SLUG))?.key;
-  await b.go(`${BASE}/khoa-hoc?dm=${groupKey}`);
+  const groupSlug = (await (await fetch(`${BASE}/api/public/courses`)).json()).groups.find((g) => [...g.courses, ...g.subgroups.flatMap((s) => s.courses)].some((c) => c.slug === SLUG))?.urlSlug;
+  await b.go(`${BASE}/khoa-hoc/danh-muc/${groupSlug}`);
   check("đã có khóa → danh sách khóa hiện vào học", await waitFor(async () => (await text()).includes("Vào học"), 60000));
 
   const errors = b.events.errors.filter((e) => !String(e).includes("401"));

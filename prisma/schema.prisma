@@ -318,6 +318,7 @@ model AdminAuditLog {
 model Course {
   id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug             String          @unique
+  urlSlug          String          @unique @map("url_slug")
   titleVi          String          @map("title_vi")
   titleEn          String          @map("title_en")
   status           String          @default("draft")
@@ -335,6 +336,7 @@ model Course {
   modules          CourseModule[]
   learningEvents   LearningEvent[]
   category         CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  oldUrlSlugs      CourseUrlSlugHistory[]
 
   @@index([categoryId], map: "courses_category_idx")
   @@map("courses")
@@ -853,6 +855,7 @@ model CourseCategory {
   id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   parentId     String?          @map("parent_id") @db.Uuid
   seedKey      String?          @unique @map("seed_key")
+  urlSlug      String           @unique @map("url_slug")
   titleVi      String           @map("title_vi")
   titleEn      String?          @map("title_en")
   imageAssetId String?          @map("image_asset_id") @db.Uuid
@@ -865,4 +868,15 @@ model CourseCategory {
 
   @@index([imageAssetId], map: "course_categories_image_idx")
   @@map("course_categories")
+}
+
+/// Đường dẫn công khai cũ của khóa (migration 20261127090000_readable_urls): chuyển hướng vĩnh viễn về khóa. Chỉ thêm.
+model CourseUrlSlugHistory {
+  urlSlug   String   @id @map("url_slug")
+  courseId  String   @map("course_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId], map: "course_url_slug_history_course_idx")
+  @@map("course_url_slug_history")
 }

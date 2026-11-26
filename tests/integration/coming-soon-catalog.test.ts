@@ -31,13 +31,14 @@ describe("khóa Sắp ra mắt trên danh mục công khai", () => {
     await publish(T, 300_000);
     await publish(D, 250_000);
     await archive(D);
-    await sqlAsMigrator(`INSERT INTO courses (slug, title_vi, title_en) VALUES ('nhap_moi', 'Nháp', 'Draft')`);
+    await sqlAsMigrator(`INSERT INTO courses (slug, title_vi, title_en, url_slug) VALUES ('nhap_moi', 'Nháp', 'Draft', 'nhap')`);
     const { courses, groups } = await catalog();
     // Khóa đang mở bán lên đầu (chủ 25/11/2026), dù mã khóa xếp sau.
     expect(courses.map((c) => c.slug)).toEqual([T, D]);
     expect(courses.find((c) => c.slug === T)).toMatchObject({ comingSoon: false, priceVnd: 300_000 });
     const soon = courses.find((c) => c.slug === D)!;
-    expect(soon).toEqual({ slug: D, titleVi: expect.any(String), titleEn: expect.any(String), lessonCount: expect.any(Number), priceVnd: null, trialLessons: [], comingSoon: true, category: null });
+    // urlSlug chỉ là tên tiếng Việt đã bỏ dấu (không lộ gì thêm); trang khóa sắp ra mắt vẫn 404.
+    expect(soon).toEqual({ slug: D, urlSlug: "thuc-tap-sinh-may-tau-hang-kho", titleVi: expect.any(String), titleEn: expect.any(String), lessonCount: expect.any(Number), priceVnd: null, trialLessons: [], comingSoon: true, category: null });
     expect(soon.lessonCount).toBeGreaterThan(0);
     // Giá của khóa sắp ra mắt không lộ ra ngoài; nhóm chỉ tính giá thấp nhất của khóa đang bán.
     expect(JSON.stringify(await catalog())).not.toContain("250000");
@@ -50,8 +51,8 @@ describe("khóa Sắp ra mắt trên danh mục công khai", () => {
     await publish(T);
     await publish(D);
     await archive(T);
-    const { rows: [a] } = await sqlAsMigrator(`INSERT INTO course_categories (title_vi, position) VALUES ('Đầu', 1) RETURNING id::text AS id`);
-    const { rows: [b] } = await sqlAsMigrator(`INSERT INTO course_categories (title_vi, position) VALUES ('Sau', 2) RETURNING id::text AS id`);
+    const { rows: [a] } = await sqlAsMigrator(`INSERT INTO course_categories (title_vi, position, url_slug) VALUES ('Đầu', 1, 'dau') RETURNING id::text AS id`);
+    const { rows: [b] } = await sqlAsMigrator(`INSERT INTO course_categories (title_vi, position, url_slug) VALUES ('Sau', 2, 'sau') RETURNING id::text AS id`);
     await sqlAsMigrator(`UPDATE courses SET category_id = $1 WHERE slug = $2`, [a.id, T]);
     await sqlAsMigrator(`UPDATE courses SET category_id = $1 WHERE slug = $2`, [b.id, D]);
     const { groups } = await catalog();
