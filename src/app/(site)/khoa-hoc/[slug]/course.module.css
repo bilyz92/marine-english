@@ -10,7 +10,13 @@
 .crumbs li { flex: none; }
 .crumbs li:last-child { flex: 1 1 auto; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crumbs li:last-child::before { margin-right: 8px; }
-.about { max-width: 65ch; }
+.intro { max-width: 65ch; }
+/* Giới thiệu khóa (chủ 26/11/2026): đoạn văn dễ đọc, không quá rộng. */
+.withAbout { grid-template-areas: "head buy" "about buy" "main buy"; }
+.about { grid-area: about; min-width: 0; gap: 12px; }
+.about p, .about ul { margin: 0; max-width: 68ch; }
+.about ul { padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.about h2 { margin: 8px 0 0; }
 .main { grid-area: main; min-width: 0; gap: 0; }
 .main > h2 { margin-bottom: 8px; }
 .lessons { margin: 0 0 8px; padding: 0; list-style: none; }
@@ -38,7 +44,7 @@
 .trial { composes: btn from "../../../../components/ui.module.css"; background: transparent; border-color: var(--color-plate-text); color: var(--color-plate-text); }
 .trial:hover { color: var(--color-plate-text); background: var(--color-plate-2); }
 /* Điện thoại: tên khóa, rồi giá và nút mua, rồi danh sách bài. */
-@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "buy" "main"; } .buy { position: static; } }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "buy" "main"; } .withAbout { grid-template-areas: "head" "buy" "about" "main"; } .buy { position: static; } }
 @media (max-width: 600px) {
   .lesson { grid-template-columns: 76px minmax(0, 1fr); }
   .lesson > :last-child { grid-column: 2; justify-self: start; }

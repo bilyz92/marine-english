@@ -10,6 +10,7 @@ import { formatVnd } from "@/lib/format";
 import { breadcrumbJsonLd, courseAudience, courseDescription, courseJsonLd, metaDescription, pageMetadata } from "@/lib/seo";
 import { getPublishedCourse, getPublishedCourseCategory } from "@/modules/content/catalog";
 import { BuyOrLearn } from "./buy-or-learn";
+import { CourseDescription } from "./course-description";
 import styles from "./course.module.css";
 
 /** Khóa đang bán kèm chức danh (danh mục); null khi không bán. Metadata và trang dùng chung một lần đọc trong cùng yêu cầu. */
@@ -40,7 +41,7 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
   // (máy chủ không gửi tên bài thật nên không ai đọc được). Học viên đã mua xem đủ bài trong app học /hoc.
   // Nhóm không có mã ("Nội dung khóa học", "Bài khác") luôn đứng cuối nên số module là thứ tự i + 1.
   return (
-    <div className={styles.layout}>
+    <div className={course.description ? `${styles.layout} ${styles.withAbout}` : styles.layout}>
       <div className={styles.head}>
         <nav aria-label="Đường dẫn" className={styles.crumbs}>
           <ol>
@@ -52,8 +53,9 @@ async function Course({ params }: { params: Promise<{ slug: string }> }) {
         {audience && <span className={ui.chip}>Dành cho: {audience}</span>}
         <h1 className={ui.h1}>{course.titleVi}</h1>
         <p className={ui.lead} lang="en">{course.titleEn}</p>
-        <p className={styles.about}>{description}</p>
+        {!course.description && <p className={styles.intro}>{description}</p>}
       </div>
+      {course.description && <CourseDescription text={course.description} />}
       <section className={`${ui.card} ${styles.main}`} aria-labelledby="h-noi-dung">
         <h2 id="h-noi-dung" className={ui.h3}>Nội dung khóa học ({course.lessonCount} bài)</h2>
         {course.modules.map((m, i) => {

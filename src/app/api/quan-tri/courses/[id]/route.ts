@@ -4,8 +4,13 @@ import { updateCourse } from "@/modules/content/catalog";
 import { requireAdmin } from "@/modules/sessions/guards";
 
 const Change = z
-  .object({ priceVnd: z.number().int().positive().max(100_000_000).optional(), status: z.enum(["draft", "published", "archived"]).optional() })
-  .refine((c) => c.priceVnd !== undefined || c.status !== undefined);
+  .object({
+    priceVnd: z.number().int().positive().max(100_000_000).optional(),
+    status: z.enum(["draft", "published", "archived"]).optional(),
+    // Mô tả khóa (chủ 26/11/2026): cắt khoảng trắng hai đầu, rỗng = xóa; tối đa 8000 ký tự như ràng buộc trong DB.
+    description: z.string().trim().max(8000).transform((d) => d || null).nullable().optional(),
+  })
+  .refine((c) => c.priceVnd !== undefined || c.status !== undefined || c.description !== undefined);
 
 export const PATCH = route(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
   const admin = await requireAdmin(req);

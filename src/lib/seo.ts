@@ -93,7 +93,7 @@ export function metaDescription(text: string): string {
   return trimDescription(out);
 }
 
-type SeoCourse = Pick<CourseDetail, "slug" | "titleVi" | "titleEn" | "priceVnd" | "lessonCount" | "trialLessons" | "modules"> & { category: CourseCategoryLabel | null };
+type SeoCourse = Pick<CourseDetail, "slug" | "titleVi" | "titleEn" | "priceVnd" | "lessonCount" | "trialLessons" | "modules" | "description"> & { category: CourseCategoryLabel | null };
 
 const label = (vi: string, en: string | null) => (en ? `${en} – ${vi}` : vi);
 
@@ -104,8 +104,24 @@ export function courseAudience(course: Pick<SeoCourse, "category">): string | nu
   return c.parentTitleVi ? `${label(c.parentTitleVi, c.parentTitleEn)} · ${label(c.titleVi, c.titleEn)}` : label(c.titleVi, c.titleEn);
 }
 
-/** Giới thiệu khóa ghép từ dữ liệu có thật trong DB (khóa chưa có trường mô tả riêng): tên, số bài, chức danh, module, bài học thử. */
+/** Mô tả chủ viết thành một dòng chữ thuần: bỏ dòng tiêu đề "## ", bỏ dấu gạch đầu dòng, dòng chưa có dấu câu cuối thì thêm ".". */
+function ownDescriptionText(text: string): string {
+  return text
+    .split(/\r\n?|\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("## "))
+    .map((l) => l.replace(/^[*-]\s+/, ""))
+    .map((l) => (/[.!?:;…]$/.test(l) ? l : `${l}.`))
+    .join(" ");
+}
+
+/**
+ * Giới thiệu khóa cho meta, JSON-LD, thẻ chia sẻ: mô tả chủ viết (một dòng, cắt về 160 ký tự) nếu có; không thì ghép từ dữ liệu có thật
+ * trong DB: tên, số bài, chức danh, module, bài học thử.
+ */
 export function courseDescription(course: SeoCourse): string {
+  const own = course.description ? ownDescriptionText(course.description) : "";
+  if (own) return trimDescription(own);
   const audience = courseAudience(course);
   const named = course.modules.filter((m) => m.id !== null);
   const parts = [

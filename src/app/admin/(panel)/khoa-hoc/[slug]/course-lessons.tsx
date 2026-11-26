@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useState } from "react";
 import { adminApi, can, Field, LoadState, messageFor, useAdmin, useLoad } from "../../admin-lib";
+import { CourseDescriptionEditor } from "./course-description";
 import { CourseModules, type CourseModule } from "./course-modules";
 import { ExcelUpload } from "./excel-upload";
 import { LessonAudio } from "./lesson-audio";
@@ -16,7 +17,7 @@ type Row = {
   position: number; externalId: string; questionEn: string; questionVi: string; isFreeTrial: boolean; hasAnswer: boolean;
   moduleId: string | null; lessonType: LessonType | "interview"; hasVideo: boolean;
 };
-type Listing = { course: { slug: string; titleVi: string; status: string; currentVersionId: string | null }; modules: CourseModule[]; lessons: Row[] };
+type Listing = { course: { id: string; slug: string; titleVi: string; status: string; currentVersionId: string | null; description: string | null }; modules: CourseModule[]; lessons: Row[] };
 type Pair = { id?: string; en: string; vi: string };
 type Form = {
   lessonType: LessonType; questionEn: string; questionVi: string; keyPoints: Pair[]; vocabulary: Pair[]; modelAnswerEn: string; modelAnswerVi: string; followUps: Pair[];
@@ -198,6 +199,8 @@ export function CourseLessons({ params }: { params: Promise<{ slug: string }> })
       <h1 className={styles.h1}>{data?.course.titleVi ?? slug}</h1>
       <LoadState {...state} reload={reload} />
       {saved && <p className={styles.ok} role="status">{saved}</p>}
+      {data && <CourseDescriptionEditor key={data.course.description ?? ""} courseId={data.course.id} description={data.course.description}
+        canEdit={can(me, "prices.edit")} onChanged={modulesChanged} />}
       {data && <CourseModules slug={slug} modules={data.modules} canEdit={canEdit} onChanged={modulesChanged}
         lessonCount={(id) => data.lessons.filter((l) => l.moduleId === id).length} />}
       {data && (

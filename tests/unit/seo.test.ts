@@ -9,7 +9,7 @@ const COURSE = {
   slug: "mea_3e_tanker", titleVi: "Máy ba — Tàu dầu và hóa chất", titleEn: "Third Engineer — Tanker", priceVnd: 700000, lessonCount: 139,
   trialLessons: [{ position: 1, externalId: "a", title: "Giới thiệu bản thân" }, { position: 2, externalId: "b", title: "Kinh nghiệm" }],
   modules: [{ id: "m1", titleVi: "Chung", lessonCount: 123, trial: [] }, { id: "m2", titleVi: "Đặc thù", lessonCount: 16, trial: [] }],
-  category: { titleVi: "Máy ba", titleEn: "3/E", parentTitleVi: null, parentTitleEn: null },
+  category: { titleVi: "Máy ba", titleEn: "3/E", parentTitleVi: null, parentTitleEn: null }, description: null,
 };
 
 describe("siteUrl", () => {
@@ -113,6 +113,31 @@ describe("courseDescription", () => {
   it("danh mục con: ghi cả chức danh cha", () => {
     const d = courseDescription({ ...COURSE, category: { titleVi: "Tàu dầu", titleEn: null, parentTitleVi: "Máy ba", parentTitleEn: "3/E" } });
     expect(d).toContain("3/E – Máy ba · Tàu dầu");
+  });
+  it("khóa có mô tả chủ viết: dùng mô tả đó thành một dòng chữ thuần (bỏ tiêu đề ##, dấu gạch đầu dòng), không ghép từ dữ liệu", () => {
+    const d = courseDescription({ ...COURSE, description: "Mình là Máy trưởng tàu dầu\n\n## Bạn sẽ học gì?\n\nMở đầu:\n* Câu hỏi song ngữ\r\n- Luyện nói!" });
+    expect(d).toBe("Mình là Máy trưởng tàu dầu. Mở đầu: Câu hỏi song ngữ. Luyện nói!");
+  });
+  it("mô tả chủ viết dài: cắt ở ranh giới từ trong 120–160 ký tự; dùng được cho meta, JSON-LD và thẻ chia sẻ", () => {
+    const own = `${"Bài học sát tình huống thật trên tàu dầu ".repeat(6)}hết.`;
+    const d = courseDescription({ ...COURSE, description: own });
+    expect(d.length).toBeGreaterThanOrEqual(120);
+    expect(d.length).toBeLessThanOrEqual(160);
+    expect(d.endsWith("…")).toBe(true);
+    expect(own.startsWith(d.slice(0, -1))).toBe(true);
+    expect(metaDescription(d)).toBe(d);
+    expect(courseJsonLd(ORIGIN, { ...COURSE, description: own }, d).description).toBe(d);
+  });
+  it("mô tả chủ viết ngắn: meta nối thêm câu có thật cho đủ 120 ký tự", () => {
+    const d = courseDescription({ ...COURSE, description: "Luyện phỏng vấn tàu dầu." });
+    expect(d).toBe("Luyện phỏng vấn tàu dầu.");
+    const m = metaDescription(d);
+    expect(m.startsWith(d)).toBe(true);
+    expect(m.length).toBeGreaterThanOrEqual(120);
+    expect(m.length).toBeLessThanOrEqual(160);
+  });
+  it("mô tả chỉ có tiêu đề hoặc khoảng trắng: quay về cách ghép từ dữ liệu khóa", () => {
+    expect(courseDescription({ ...COURSE, description: "## Giới thiệu\n\n   " })).toBe(courseDescription(COURSE));
   });
 });
 
