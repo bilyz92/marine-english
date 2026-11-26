@@ -19,7 +19,11 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // Trang khóa, bài học thử, danh mục: trang dựng theo luồng gửi mã 200 trước khi biết khóa có hay không (Cache Components), nên
   // 404 thật và chuyển hướng vĩnh viễn (mã nội bộ, đường dẫn cũ, ?dm=<id>) quyết ở đây, trước khi trang chạy.
   if (pathname === "/khoa-hoc" || pathname.startsWith("/khoa-hoc/")) {
-    const decision = await routePublicPath(pathname, request.nextUrl.search);
+    // Lỗi tra cứu (DB trục trặc) không được làm sập mọi trang khóa: bỏ qua, để trang tự dựng và tự báo lỗi như trước.
+    const decision = await routePublicPath(pathname, request.nextUrl.search).catch((error: unknown) => {
+      console.error("public_path_lookup_failed", error instanceof Error ? error.message : error);
+      return null;
+    });
     if (decision?.kind === "redirect") return NextResponse.redirect(new URL(decision.to, request.url), 308);
     if (decision?.kind === "not_found") return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
   }
