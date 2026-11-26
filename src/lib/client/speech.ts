@@ -35,15 +35,17 @@ export function englishLocalVoices(voices: SpeechSynthesisVoice[]): SpeechSynthe
 
 // ===== Bài luyện phỏng vấn (2026-11-25-engine-cadet-interview): chọn theo vùng giọng, khóa lưu riêng, không đụng VOICE_KEY =====
 
-export type Accent = "US" | "GB" | "IN";
+// Chủ 26/11/2026: ba giọng Mỹ, Philippines, Ấn Độ (bỏ giọng Anh), như kế hoạch trợ lý giọng Philippines/Ấn/Mỹ.
+export type Accent = "US" | "PH" | "IN";
 export const ACCENTS_UI: { id: Accent; label: string; lang: string }[] = [
   { id: "US", label: "Mỹ", lang: "en-US" },
-  { id: "GB", label: "Anh", lang: "en-GB" },
+  { id: "PH", label: "Philippines", lang: "en-PH" },
   { id: "IN", label: "Ấn Độ", lang: "en-IN" },
 ];
 export const ACCENT_KEY = "me.voice.accent";
 export const RATE_KEY = "me.voice.rate";
-export const RATES = { slow: 0.7, normal: 0.95 } as const;
+// 0,6 / 1,0: chủ 26/11/2026 thấy 0,7 / 0,95 nghe gần như không khác.
+export const RATES = { slow: 0.6, normal: 1 } as const;
 
 const langOf = (v: SpeechSynthesisVoice) => v.lang.replace("_", "-").toLowerCase();
 

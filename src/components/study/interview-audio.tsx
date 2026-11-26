@@ -30,15 +30,18 @@ export type Speaker = ReturnType<typeof useSpeaker>;
 /** Một giọng mẫu cho cả bài: mỗi lúc phát một câu; đổi giọng thì phát lại đúng câu đang chọn. */
 export function useSpeaker() {
   const voices = useVoices();
-  const [accent, setAccentState] = useState<Accent>(() => (["US", "GB", "IN"].includes(readPref(ACCENT_KEY) ?? "") ? (readPref(ACCENT_KEY) as Accent) : "US"));
+  const [accent, setAccentState] = useState<Accent>(() => (ACCENTS_UI.some((a) => a.id === readPref(ACCENT_KEY)) ? (readPref(ACCENT_KEY) as Accent) : "US"));
   const [slow, setSlowState] = useState(() => readPref(RATE_KEY) === "slow");
   const [playing, setPlaying] = useState<string | null>(null);
   const last = useRef<{ id: string; text: string; lang: "en" | "vi" } | null>(null);
+  // Câu đang đọc: cancel() làm câu cũ báo lỗi "interrupted" muộn; chỉ câu hiện tại mới được tắt trạng thái đang đọc.
+  const current = useRef<SpeechSynthesisUtterance | null>(null);
   const en = pickAccentVoice(voices, accent);
   const vi = pickVietnameseVoice(voices);
   const supported = typeof window !== "undefined" && !!window.speechSynthesis;
 
   const stop = useCallback(() => {
+    current.current = null;
     if (supported) window.speechSynthesis.cancel();
     setPlaying(null);
   }, [supported]);
@@ -53,8 +56,14 @@ export function useSpeaker() {
     u.voice = voice;
     u.lang = voice.lang;
     u.rate = (opts.slow ?? slow) ? RATES.slow : RATES.normal;
-    u.onend = () => setPlaying((p) => (p === id ? null : p));
-    u.onerror = () => setPlaying((p) => (p === id ? null : p));
+    const done = () => {
+      if (current.current !== u) return;
+      current.current = null;
+      setPlaying((p) => (p === id ? null : p));
+    };
+    u.onend = done;
+    u.onerror = done;
+    current.current = u;
     last.current = { id, text, lang };
     setPlaying(id);
     synth.speak(u);
@@ -75,6 +84,9 @@ export function useSpeaker() {
     setSlow(s: boolean) {
       setSlowState(s);
       writePref(RATE_KEY, s ? "slow" : "normal");
+      // Đổi tốc độ khi đang đọc: đọc lại câu đó ngay ở tốc độ mới, như đổi giọng (chủ 26/11/2026: bấm Chậm không thấy đổi).
+      const l = last.current;
+      if (l && playing) play(l.id, l.text, l.lang, { slow: s });
     },
   };
 }

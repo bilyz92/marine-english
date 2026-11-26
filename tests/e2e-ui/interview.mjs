@@ -27,14 +27,16 @@ const created = { admin: null, users: [] };
 const STUBS = `(() => {
   const voices = [
     { name: "US", lang: "en-US", localService: true, voiceURI: "us", default: true },
-    { name: "UK", lang: "en-GB", localService: true, voiceURI: "uk", default: false },
+    { name: "PH", lang: "en-PH", localService: true, voiceURI: "ph", default: false },
     { name: "VN", lang: "vi-VN", localService: true, voiceURI: "vn", default: false },
   ];
   window.__spoken = [];
   window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
   const synth = {
-    getVoices: () => voices, cancel() {}, speaking: false, pending: false,
-    speak(u) { window.__spoken.push({ text: u.text, lang: u.lang, rate: u.rate }); setTimeout(() => u.onend && u.onend(), 50); },
+    getVoices: () => voices, speaking: false, pending: false,
+    // Như trình duyệt thật: cancel() làm câu đang đọc báo lỗi "interrupted" (muộn, sau khi câu mới đã bắt đầu).
+    cancel() { const u = window.__current; window.__current = null; if (u) setTimeout(() => u.onerror && u.onerror({ error: "interrupted" }), 0); },
+    speak(u) { window.__current = u; window.__spoken.push({ text: u.text, lang: u.lang, rate: u.rate }); setTimeout(() => { if (window.__current === u) { window.__current = null; u.onend && u.onend(); } }, 50); },
     addEventListener() {}, removeEventListener() {},
   };
   Object.defineProperty(window, "speechSynthesis", { value: synth, configurable: true });
@@ -137,11 +139,11 @@ try {
   check("bước 4: câu đầu đọc theo", await l.see("I like machinery.") && await l.see("Tôi thích máy móc."));
   // Đổi giọng và tốc độ.
   await l.press("Nghe");
-  check("đọc bằng giọng Mỹ, tốc độ thường", await l.waitFor(() => learnerB.evaluate(`(() => { const s = window.__spoken.at(-1); return s?.text === "I like machinery." && s.lang === "en-US" && s.rate === 0.95; })()`)));
-  await l.press("Anh");
+  check("đọc bằng giọng Mỹ, tốc độ thường", await l.waitFor(() => learnerB.evaluate(`(() => { const s = window.__spoken.at(-1); return s?.text === "I like machinery." && s.lang === "en-US" && s.rate === 1; })()`)));
+  await l.press("Philippines");
   await l.press("Chậm");
   await l.press("Nghe");
-  check("đổi sang giọng Anh, chậm", await l.waitFor(() => learnerB.evaluate(`(() => { const s = window.__spoken.at(-1); return s?.lang === "en-GB" && s.rate === 0.7; })()`)));
+  check("đổi sang giọng Philippines, chậm", await l.waitFor(() => learnerB.evaluate(`(() => { const s = window.__spoken.at(-1); return s?.lang === "en-PH" && s.rate === 0.6; })()`)));
   await l.press("Ấn Độ");
   check("máy không có giọng Ấn Độ → báo rõ, đọc bằng giọng khác", await l.see("Máy chưa có giọng Ấn Độ, đang đọc bằng giọng en-US"));
   await l.press("Thường");

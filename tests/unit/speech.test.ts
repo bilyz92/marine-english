@@ -22,13 +22,15 @@ describe("đọc bằng giọng trên máy", () => {
     expect(pickVoice([uk])).toBe(uk);
   });
 
-  it("bài phỏng vấn: chọn đúng vùng Mỹ/Anh/Ấn Độ nếu máy có; không có thì giọng khác và báo không đúng vùng; giọng mạng không dùng", () => {
+  it("bài phỏng vấn: chọn đúng vùng Mỹ/Philippines/Ấn Độ nếu máy có; không có thì giọng khác và báo không đúng vùng; giọng mạng không dùng", () => {
     const us = voice("Samantha", "en-US", true);
     const uk = voice("Daniel", "en_GB", true);
+    const ph = voice("Rosa", "en_PH", true);
     const inRemote = voice("Google Hindi English", "en-IN", false);
     const inLocal = voice("Rishi", "en-IN", true);
     expect(pickAccentVoice([us, uk, inLocal], "IN")).toEqual({ voice: inLocal, exact: true });
-    expect(pickAccentVoice([us, uk], "GB")).toEqual({ voice: uk, exact: true });
+    expect(pickAccentVoice([us, uk, ph], "PH")).toEqual({ voice: ph, exact: true });
+    expect(pickAccentVoice([us, uk], "PH")).toEqual({ voice: us, exact: false });
     expect(pickAccentVoice([us, uk, inRemote], "IN")).toEqual({ voice: us, exact: false });
     expect(pickAccentVoice([inRemote], "US")).toBeNull();
   });
