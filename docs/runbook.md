@@ -219,6 +219,14 @@ Tắt lại: để trống `SEPAY_WEBHOOK_SECRETS` (webhook trả 503, nút "Tô
 
   Chưa có job xóa tự động; đĩa chật thì báo kỹ thuật làm job dọn có kiểm tham chiếu.
 
+### Đường dẫn công khai và bài viết (từ 27/11/2026, migration `20261127090000_readable_urls`)
+
+- Trang khóa là `/khoa-hoc/<đường dẫn>` (ví dụ `/khoa-hoc/luyen-phong-van-engine-cadet`), danh mục là `/khoa-hoc/danh-muc/<đường dẫn>`. Migration tự điền đường dẫn từ tên tiếng Việt; trùng tên thì thêm `-2`. Link cũ theo mã khóa (`/khoa-hoc/mea_cadet_interview`) và `/khoa-hoc?dm=<id>` tự chuyển hướng vĩnh viễn (308).
+- Sau khi deploy migration này: mở `/admin/khoa-hoc/mea_cadet_interview` xem mục **Đường dẫn công khai** đúng là `luyen-phong-van-engine-cadet` (bài viết đầu tiên trỏ vào đó), và `curl -sI https://conghung.ce-tanker.vn/khoa-hoc/mea_cadet_interview` trả `308` kèm `location` mới.
+- Chủ đổi đường dẫn khóa ở `/admin/khoa-hoc/<mã khóa>` → **Đường dẫn công khai**: link cũ vẫn chuyển sang link mới. Đổi đường dẫn danh mục ở `/admin/khoa-hoc` (mục Danh mục): link cũ của danh mục **không** chuyển hướng, nên chỉ đổi khi cần.
+- Khóa không có, khóa nháp hay sắp ra mắt, bài không phải bài học thử, danh mục không có khóa: trả 404 thật (proxy quyết trước khi trang chạy).
+- Thêm bài viết: thêm tệp `content/bai-viet/<đường-dẫn>.md` (phần đầu `tieu_de`, `mo_ta`, `duong_dan: /bai-viet/<đường-dẫn>`, `ngay: YYYY-MM-DD`), commit rồi deploy. Tệp sai định dạng làm `pnpm build` báo lỗi. Bài tự vào `/bai-viet` và sitemap.
+
 ## 6B. Quản trị quên mật khẩu (D3, từ 02/11/2026)
 
 - Quản trị đăng nhập ở `/admin/dang-nhap` bằng email + mật khẩu. Quên mật khẩu hoặc chưa đặt: trên máy chủ chạy
